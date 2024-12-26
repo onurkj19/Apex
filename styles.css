@@ -19,23 +19,23 @@ body {
 
 }
 
+
+.logo-section img{
+    width: 1000px;
+}
+
 /* Media query për ekranet mobile (p.sh. deri në 768px) */
 @media (max-width: 768px) {
     .logo-section img {
-        width: 300px;  /* zvogëlojmë logon për ekranet mobile */
+        width: 500px;  /* zvogëlojmë logon për ekranet mobile */
     }
 }
 
 /* Media query për ekranet shumë të vogla (p.sh. deri në 480px) */
 @media (max-width: 480px) {
     .logo-section img {
-        width: 200px;  /* zvogëlojmë logon edhe më shumë për ekranet më të vogla */
+        width: 400px;  /* zvogëlojmë logon edhe më shumë për ekranet më të vogla */
     }
-}
-
-
-.logo-section img{
-    width: 1000px;
 }
 
 
