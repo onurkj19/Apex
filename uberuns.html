@@ -55,10 +55,31 @@
             margin: 0;
             font-size: 0.9rem;
         }
+
+        .previous {
+            position: absolute;
+            top: 25px;
+            left: 35px;
+            padding: 12px 30px;
+            background: #e74c3c;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s ease;
+          }
+        .previous:hover {
+            transform: scale(1.1);
+            background: #c0392b;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
+          }
     </style>
 </head>
 <body>
     <header>
+        <a href="./index.html" class="previous">&laquo; Zurück</a>
         <h1>Über uns</h1>
     </header>
     <div class="container">
