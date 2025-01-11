@@ -110,17 +110,32 @@
             background: #c0392b;
             box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
           }
-            @media (max-width: 768px) and (min-width: 320px)
-          {
-              .previous {
-                  position: absolute;
-                  top: 30px;
-                  left: 5px;
-                  font-size: 14px;
-              }
-              .headerh1 {
-                    font-size: 2rem;
-              }
+          
+          /* Për mobile */
+          @media (max-width: 768px) {
+            .previous {
+              top: 20px;
+              left: 10px;
+              font-size: 14px; /* Tekst më i vogël */
+              padding: 8px 20px; /* Dimensione më të vogla */
+              border-radius: 40px; /* Rreth më kompakt */
+              width: auto; /* Hiq kufizimin e gjerësisë së fiksuar */
+            }
+          }
+          
+          /* Për ekrane më të vogla se 480px */
+          @media (max-width: 480px) {
+            .previous {
+              top: 15px;
+              left: 5px;
+              font-size: 12px; /* Tekst më i vogël për ekrane të vogla */
+              padding: 6px 15px; /* Madhësi më e vogël për përmbajtjen */
+            }
+          
+            .headerh1 {
+              font-size: 1.5rem; /* Madhësi e përshtatur për titujt */
+              text-align: center; /* Qendërzo titullin për një ndjesi më të mirë vizuale */
+            }
           }
     </style>
 </head>
