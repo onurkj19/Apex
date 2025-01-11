@@ -78,23 +78,43 @@
             overflow: hidden;
             transition: all 0.4s ease;
           }
-        .previous:hover {
+          
+          .previous:hover {
             transform: scale(1.1);
             background: #c0392b;
             box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
           }
-                  @media (max-width: 768px) and (min-width: 320px)
-          {
-              .previous {
-                  position: absolute;
-                  top: 10px;
-                  left: 5px;
-                  font-size: 14px;
-              }
-              .hh1 {
-                  font-size: 1.5rem;
-              }
+          
+          /* Për pajisje mobile (320px deri në 768px) */
+          @media (max-width: 768px) and (min-width: 320px) {
+            .previous {
+              top: 10px;
+              left: 10px; /* Pak më larg për pajisjet më të vogla */
+              font-size: 14px; /* Tekst më i vogël për mobile */
+              padding: 10px 20px; /* Dimension më të vogla për butonin */
+              border-radius: 40px; /* Forma më kompakte */
             }
+          
+            .hh1 {
+              font-size: 1.2rem; /* Madhësi më e vogël për titullin në mobile */
+              text-align: center; /* Qendërzo tekstin për mobile */
+            }
+          }
+          
+          /* Për pajisje më të vogla (<480px) */
+          @media (max-width: 480px) {
+            .previous {
+              top: 8px;
+              left: 5px;
+              font-size: 12px; /* Madhësi më e vogël për tekstin */
+              padding: 8px 15px; /* Dimension më të vogla për përmbajtjen */
+              border-radius: 30px; /* Rrumbullakësi më e përshtatur */
+            }
+          
+            .hh1 {
+              font-size: 1rem; /* Madhësi më e vogël për titullin */
+            }
+          }
     </style>
 </head>
 <body>
