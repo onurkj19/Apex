@@ -70,20 +70,35 @@
             overflow: hidden;
             transition: all 0.4s ease;
           }
-        .previous:hover {
+          
+          .previous:hover {
             transform: scale(1.1);
             background: #c0392b;
             box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
           }
-        @media (max-width: 768px) and (min-width: 320px)
-            {
-                .previous {
-                    position: absolute;
-                    top: 25px;
-                    left: 5px;
-                    font-size: 14px;
-                }
+          
+          /* Për ekrane mobile */
+          @media (max-width: 768px) {
+            .previous {
+              top: 15px;
+              left: 10px;
+              font-size: 14px; /* Reduktuar madhësinë e tekstit për mobile */
+              padding: 8px 15px; /* Dimensione më të vogla për pajisje më të ngushta */
+              border-radius: 40px; /* Ruajtje e formës së rrumbullakosur */
+              width: auto; /* Hiq gjerësinë fikse për fleksibilitet */
             }
+          }
+          
+          /* Për ekrane shumë të vogla (<480px) */
+          @media (max-width: 480px) {
+            .previous {
+              top: 10px;
+              left: 5px;
+              font-size: 12px; /* Madhësi më e vogël për tekstin */
+              padding: 6px 10px; /* Dimension më të vogla për përmbajtjen */
+              border-radius: 30px; /* Forma më e ngushtë për butonin */
+            }
+          }
     </style>
 </head>
 <body>
