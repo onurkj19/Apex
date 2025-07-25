@@ -27,7 +27,7 @@ const HeroSection = () => {
             <img
               src="/Transperent.png"
               alt="Apex Gerüstbau Logo"
-              className="mx-auto h-25 object-contain"
+              className="mx-auto h-24 object-contain"
             />
           </h1>
 
