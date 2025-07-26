@@ -1,8 +1,11 @@
+/* ---------- STYLE BAZË ---------- */
 #root {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .logo {
@@ -11,6 +14,7 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
@@ -35,8 +39,75 @@
 
 .card {
   padding: 2em;
+  box-sizing: border-box;
 }
 
 .read-the-docs {
   color: #888;
+}
+
+/* ---------- MEDIA QUERIES PËR RESPONSIVE DESIGN ---------- */
+
+/* ✅ MOBILE: Ekrane deri në 767px */
+@media (max-width: 767px) {
+  #root {
+    padding: 1rem;
+  }
+
+  .logo {
+    height: 4em;
+    padding: 1em;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+}
+
+/* ✅ TABLET: 768px – 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  #root {
+    padding: 1.5rem;
+  }
+
+  .logo {
+    height: 5em;
+    padding: 1.2em;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+}
+
+/* ✅ LAPTOP: 992px – 1199px */
+@media (min-width: 992px) and (max-width: 1199px) {
+  #root {
+    padding: 1.8rem;
+  }
+
+  .logo {
+    height: 5.5em;
+    padding: 1.3em;
+  }
+
+  .card {
+    padding: 1.8rem;
+  }
+}
+
+/* ✅ DESKTOP i madh: 1200px+ */
+@media (min-width: 1200px) {
+  #root {
+    padding: 2rem;
+  }
+
+  .logo {
+    height: 6em;
+    padding: 1.5em;
+  }
+
+  .card {
+    padding: 2em;
+  }
 }
