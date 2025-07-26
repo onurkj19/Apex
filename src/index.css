@@ -1,109 +1,76 @@
+/* 1. IMPORTS & TAILWIND BASE */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Apex Gerüstbau Design System - Ferrari Red & Grey Theme */
-
+/* 2. APEX DESIGN SYSTEM COLORS & VARS */
 @layer base {
   :root {
-    /* Brand Colors - Ferrari Red & Grey */
+    /* Brand Colors */
     --background: 0 0% 98%;
     --foreground: 0 0% 12%;
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 12%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 12%;
-
-    /* Ferrari Red Primary */
     --primary: 8 90% 55%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 8 90% 65%;
     --primary-dark: 8 85% 45%;
-
-    /* Grey Secondary */
     --secondary: 0 0% 85%;
     --secondary-foreground: 0 0% 15%;
     --secondary-dark: 0 0% 25%;
-
     --muted: 0 0% 94%;
     --muted-foreground: 0 0% 45%;
-
     --accent: 8 90% 55%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 90%;
     --input: 0 0% 94%;
     --ring: 8 90% 55%;
-
-    /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
     --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(var(--muted)));
-    
-    /* Shadows */
     --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.2);
     --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.08);
     --shadow-hover: 0 8px 30px hsl(var(--primary) / 0.15);
-    
-    /* Animation */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
     --radius: 0.75rem;
-
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    /* Dark theme with Ferrari red accents */
+    /* Dark theme overrides... (same as before) */
     --background: 0 0% 8%;
     --foreground: 0 0% 95%;
-
     --card: 0 0% 12%;
     --card-foreground: 0 0% 95%;
-
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
-
     --primary: 8 90% 55%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 8 90% 65%;
     --primary-dark: 8 85% 45%;
-
     --secondary: 0 0% 18%;
     --secondary-foreground: 0 0% 85%;
     --secondary-dark: 0 0% 25%;
-
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
-
     --accent: 8 90% 55%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 20%;
     --input: 0 0% 15%;
     --ring: 8 90% 55%;
@@ -116,43 +83,36 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
-@layer base {
+  /* Global resets */
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground font-montserrat;
   }
+
+  /* -------- RESPONSIVE CONTAINER FOR #root -------- */
+  #root {
+    @apply w-full max-w-screen-xl mx-auto;
+    @apply px-4 sm:px-6 lg:px-8;
+    box-sizing: border-box;
+  }
 }
 
+/* 3. COMPONENTS (po ashtu si ke më lart) */
 @layer components {
-  /* Shadow Utilities */
-  .shadow-elegant {
-    box-shadow: var(--shadow-elegant);
-  }
-  
-  .shadow-hover {
-    box-shadow: var(--shadow-hover);
-  }
-  
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .shadow-hover { box-shadow: var(--shadow-hover); }
+  .shadow-card { box-shadow: var(--shadow-card); }
 
-  /* Hero Button Variants */
   .btn-hero {
     @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
     @apply px-8 py-4 rounded-lg font-semibold;
     @apply transition-all duration-300 hover:scale-105;
     box-shadow: var(--shadow-elegant);
   }
-  
-  .btn-hero:hover {
-    box-shadow: var(--shadow-hover);
-  }
+  .btn-hero:hover { box-shadow: var(--shadow-hover); }
 
   .btn-secondary {
     @apply bg-secondary text-secondary-foreground border border-border;
@@ -160,46 +120,67 @@
     @apply hover:bg-secondary-dark hover:text-primary-foreground hover:border-primary;
   }
 
-  /* Card Components */
   .card-elegant {
     @apply bg-card rounded-xl border border-border/50;
     @apply transition-all duration-300 hover:scale-105;
     box-shadow: var(--shadow-card);
   }
-  
-  .card-elegant:hover {
-    box-shadow: var(--shadow-hover);
-  }
+  .card-elegant:hover { box-shadow: var(--shadow-hover); }
 
-  /* Animation Utilities */
-  .fade-in-up {
-    @apply opacity-0 translate-y-8 transition-all duration-700 ease-out;
-  }
+  .fade-in-up { @apply opacity-0 translate-y-8 transition-all duration-700 ease-out; }
+  .fade-in-up.animate { @apply opacity-100 translate-y-0; }
 
-  .fade-in-up.animate {
-    @apply opacity-100 translate-y-0;
-  }
+  .hover-lift { @apply transition-transform duration-300 hover:-translate-y-2; }
+  .icon-bounce { @apply transition-transform duration-300 hover:scale-110 hover:rotate-6; }
 
-  .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-2;
-  }
-
-  .icon-bounce {
-    @apply transition-transform duration-300 hover:scale-110 hover:rotate-6;
-  }
-
-  /* Header Styles */
   .header-glass {
     @apply bg-background/80 backdrop-blur-lg border-b border-border/50;
     @apply transition-all duration-300;
   }
+  .header-glass.scrolled { @apply bg-background/95 shadow-card; }
 
-  .header-glass.scrolled {
-    @apply bg-background/95 shadow-card;
-  }
-
-  /* Text Gradients */
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent;
+  }
+}
+
+/* 4. UTILITIES – RESPONSIVE .logo & .card */
+@layer utilities {
+  /* MOBILE FIRST (≤639px) */
+  .logo {
+    @apply h-16 p-4;
+  }
+  .card {
+    @apply p-4;
+  }
+
+  /* TABLET (≥640px) */
+  @screen sm {
+    .logo {
+      @apply h-20 p-6;
+    }
+    .card {
+      @apply p-6;
+    }
+  }
+
+  /* LAPTOP (≥768px) */
+  @screen md {
+    .logo {
+      @apply h-24 p-8;
+    }
+    .card {
+      @apply p-8;
+    }
+  }
+
+  /* DESKTOP (≥1024px) */
+  @screen lg {
+    .logo {
+      @apply h-28 p-10;
+    }
+    .card {
+      @apply p-10;
+    }
   }
 }
