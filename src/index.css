@@ -1,3 +1,4 @@
+/* 1. IMPORTS & TAILWIND BASE */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
@@ -11,10 +12,8 @@
     /* Modern Dark Theme Colors */
     --background: 0 0% 8%;
     --foreground: 0 0% 95%;
-
     --card: 0 0% 12%;
     --card-foreground: 0 0% 95%;
-
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
 
@@ -37,7 +36,6 @@
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 20%;
     --input: 0 0% 15%;
     --ring: 45 100% 60%;
@@ -70,13 +68,11 @@
     --input: 0 0% 94%;
     --ring: 45 100% 60%;
   }
-}
 
-@layer base {
+  /* Global resets */
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground font-montserrat;
     background-image: 
@@ -87,8 +83,16 @@
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
+
+  /* -------- RESPONSIVE CONTAINER FOR #root -------- */
+  #root {
+    @apply w-full max-w-screen-xl mx-auto;
+    @apply px-4 sm:px-6 lg:px-8;
+    box-sizing: border-box;
+  }
 }
 
+/* 3. COMPONENTS */
 @layer components {
   /* Shadow Utilities */
   .shadow-elegant {
@@ -103,7 +107,6 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
 
-  /* Hero Button Variants */
   .btn-hero {
     @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
     @apply px-8 py-4 rounded-lg font-semibold;
@@ -121,7 +124,6 @@
     @apply hover:bg-secondary-dark hover:text-primary-foreground hover:border-primary;
   }
 
-  /* Card Components */
   .card-elegant {
     @apply bg-card rounded-xl border border-border/50;
     @apply transition-all duration-300 hover:scale-105;
@@ -159,34 +161,18 @@
     50% { background-position: 100% 50%; }
   }
 
-  /* Animation Utilities */
-  .fade-in-up {
-    @apply opacity-0 translate-y-8 transition-all duration-700 ease-out;
-  }
+  .fade-in-up { @apply opacity-0 translate-y-8 transition-all duration-700 ease-out; }
+  .fade-in-up.animate { @apply opacity-100 translate-y-0; }
 
-  .fade-in-up.animate {
-    @apply opacity-100 translate-y-0;
-  }
+  .hover-lift { @apply transition-transform duration-300 hover:-translate-y-2; }
+  .icon-bounce { @apply transition-transform duration-300 hover:scale-110 hover:rotate-6; }
 
-  .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-2;
-  }
-
-  .icon-bounce {
-    @apply transition-transform duration-300 hover:scale-110 hover:rotate-6;
-  }
-
-  /* Header Styles */
   .header-glass {
     @apply bg-background/80 backdrop-blur-lg border-b border-border/50;
     @apply transition-all duration-300;
   }
+  .header-glass.scrolled { @apply bg-background/95 shadow-card; }
 
-  .header-glass.scrolled {
-    @apply bg-background/95 shadow-card;
-  }
-
-  /* Text Gradients */
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent;
   }
@@ -207,5 +193,36 @@
   .checkout-form {
     @apply bg-card border border-border rounded-xl p-6;
     @apply shadow-card;
+  }
+}
+
+/* 4. UTILITIES – RESPONSIVE .logo & .card */
+@layer utilities {
+  /* MOBILE FIRST (≤639px) */
+  .logo {
+    @apply h-12 w-auto;
+  }
+  .card {
+    @apply p-4;
+  }
+
+  /* TABLET (640px-1023px) */
+  @media (min-width: 640px) {
+    .logo {
+      @apply h-14 w-auto;
+    }
+    .card {
+      @apply p-6;
+    }
+  }
+
+  /* DESKTOP (≥1024px) */
+  @media (min-width: 1024px) {
+    .logo {
+      @apply h-16 w-auto;
+    }
+    .card {
+      @apply p-8;
+    }
   }
 }
