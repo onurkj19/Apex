@@ -21,5 +21,9 @@
   ],
   "env": {
     "VITE_API_URL": "https://your-backend-url.vercel.app"
-  }
+  },
+  "domains": [
+    "xn--apex-gerste-0hb.ch",
+    "www.xn--apex-gerste-0hb.ch"
+  ]
 } 
