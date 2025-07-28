@@ -21,7 +21,7 @@ const Header = () => {
     { label: 'Über uns', href: '/about' },
     { label: 'Projekte', href: '/projects' },
     { label: 'Produkte', href: '/products' },
-    { label: 'Kontakt', href: '#contact' }
+    { label: 'Kontakt', href: '/contact' }
   ];
 
   return (
@@ -43,25 +43,15 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
-            {navItems.map((item) =>
-              item.href.startsWith('#') ? (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-foreground hover:text-primary transition-colors duration-300 font-medium"
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  className="text-foreground hover:text-primary transition-colors duration-300 font-medium"
-                >
-                  {item.label}
-                </Link>
-              )
-            )}
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                to={item.href}
+                className="text-foreground hover:text-primary transition-colors duration-300 font-medium"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Contact Button replaced with mailto */}
@@ -87,27 +77,16 @@ const Header = () => {
         {isMobileMenuOpen && (
           <div className="lg:hidden bg-background/95 backdrop-blur-lg border-t border-border/50 py-4">
             <nav className="flex flex-col space-y-4">
-              {navItems.map((item) =>
-                item.href.startsWith('#') ? (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="text-foreground hover:text-primary transition-colors duration-300 font-medium px-4 py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="text-foreground hover:text-primary transition-colors duration-300 font-medium px-4 py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              )}
+              {navItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  className="text-foreground hover:text-primary transition-colors duration-300 font-medium px-4 py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
               <div className="px-4 pt-2">
                 <a
                   href="mailto:info@apex-gerüste.ch"

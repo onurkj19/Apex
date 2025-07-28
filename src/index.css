@@ -4,79 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apex Gerüstbau Design System - Ferrari Red & Grey Theme */
+/* Apex Gerüstbau Design System - Modern Dark Theme */
 
 @layer base {
   :root {
-    /* Brand Colors - Ferrari Red & Grey */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
-
-    /* Ferrari Red Primary */
-    --primary: 8 90% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 8 90% 65%;
-    --primary-dark: 8 85% 45%;
-
-    /* Grey Secondary */
-    --secondary: 0 0% 85%;
-    --secondary-foreground: 0 0% 15%;
-    --secondary-dark: 0 0% 25%;
-
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
-
-    --accent: 8 90% 55%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 90%;
-    --input: 0 0% 94%;
-    --ring: 8 90% 55%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(var(--muted)));
-    
-    /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.2);
-    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.08);
-    --shadow-hover: 0 8px 30px hsl(var(--primary) / 0.15);
-    
-    /* Animation */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    /* Dark theme with Ferrari red accents */
+    /* Modern Dark Theme Colors */
     --background: 0 0% 8%;
     --foreground: 0 0% 95%;
 
@@ -86,35 +18,57 @@
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 8 90% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 8 90% 65%;
-    --primary-dark: 8 85% 45%;
+    /* Yellow Primary */
+    --primary: 45 100% 60%;
+    --primary-foreground: 0 0% 8%;
+    --primary-glow: 45 100% 70%;
+    --primary-dark: 45 100% 50%;
 
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 85%;
-    --secondary-dark: 0 0% 25%;
+    /* Light Gray Secondary */
+    --secondary: 0 0% 85%;
+    --secondary-foreground: 0 0% 15%;
+    --secondary-dark: 0 0% 75%;
 
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 8 90% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 100% 60%;
+    --accent-foreground: 0 0% 8%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 20%;
     --input: 0 0% 15%;
-    --ring: 8 90% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ring: 45 100% 60%;
+
+    --radius: 0.75rem;
+  }
+
+  .light {
+    /* Light theme fallback */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
+    --primary: 45 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 45 100% 70%;
+    --primary-dark: 45 100% 50%;
+    --secondary: 0 0% 85%;
+    --secondary-foreground: 0 0% 15%;
+    --secondary-dark: 0 0% 75%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 45 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 94%;
+    --ring: 45 100% 60%;
   }
 }
 
@@ -125,21 +79,28 @@
 
   body {
     @apply bg-background text-foreground font-montserrat;
+    background-image: 
+      linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
 }
 
 @layer components {
   /* Shadow Utilities */
   .shadow-elegant {
-    box-shadow: var(--shadow-elegant);
+    box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.3);
   }
   
   .shadow-hover {
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
   }
   
   .shadow-card {
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
 
   /* Hero Button Variants */
@@ -147,11 +108,11 @@
     @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
     @apply px-8 py-4 rounded-lg font-semibold;
     @apply transition-all duration-300 hover:scale-105;
-    box-shadow: var(--shadow-elegant);
+    box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.3);
   }
   
   .btn-hero:hover {
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
   }
 
   .btn-secondary {
@@ -164,11 +125,38 @@
   .card-elegant {
     @apply bg-card rounded-xl border border-border/50;
     @apply transition-all duration-300 hover:scale-105;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, hsl(var(--card)), rgba(255, 255, 255, 0.1));
   }
   
   .card-elegant:hover {
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
+  }
+
+  /* Construction Pattern Background */
+  .construction-pattern {
+    background-image: 
+      linear-gradient(45deg, rgba(245, 158, 11, 0.1) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(245, 158, 11, 0.1) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(245, 158, 11, 0.1) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(245, 158, 11, 0.1) 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+  }
+
+  /* Metal Texture */
+  .metal-texture {
+    background: linear-gradient(145deg, 
+      hsl(var(--card)) 0%, 
+      rgba(255, 255, 255, 0.3) 50%, 
+      hsl(var(--card)) 100%);
+    background-size: 200% 200%;
+    animation: metal-shine 3s ease-in-out infinite;
+  }
+
+  @keyframes metal-shine {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 
   /* Animation Utilities */
@@ -201,5 +189,23 @@
   /* Text Gradients */
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent;
+  }
+
+  /* Product Grid */
+  .product-grid {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* Cart Styles */
+  .cart-item {
+    @apply bg-card border border-border rounded-lg p-4;
+    @apply transition-all duration-300 hover:shadow-hover;
+  }
+
+  /* Checkout Form */
+  .checkout-form {
+    @apply bg-card border border-border rounded-xl p-6;
+    @apply shadow-card;
   }
 }

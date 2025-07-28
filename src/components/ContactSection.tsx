@@ -1,58 +1,26 @@
-import { useState } from 'react';
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Phone, Mail, MapPin, Clock, Shield, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const ContactSection = () => {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Create mailto link
-    const mailtoLink = `mailto:info@apex-gerüste.ch?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nNachricht:\n${formData.message}`)}`;
-    
-    window.location.href = mailtoLink;
-    
-    toast({
-      title: "Nachricht gesendet",
-      description: "Vielen Dank für Ihre Nachricht. Wir melden uns zeitnah bei Ihnen.",
-    });
-    
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
   const contacts = [
     {
       name: "Onur Kajmakci",
       phone: "+41 76 368 10 11",
-      email: "info@apex-gerüste.ch"
+      email: "info@apex-gerüste.ch",
+      role: "Geschäftsführer"
     },
     {
       name: "Arlind Morina",
       phone: "+41 79 422 39 90",
-      email: "info@apex-gerüste.ch"
+      email: "info@apex-gerüste.ch",
+      role: "Projektleiter"
     },
     {
       name: "Flamur Shala",
       phone: "+41 79 830 57 80",
-      email: "info@apex-gerüste.ch"
+      email: "info@apex-gerüste.ch",
+      role: "Technischer Leiter"
     }
   ];
 
@@ -71,96 +39,24 @@ const ContactSection = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Form */}
-          <Card className="p-8">
-            <h3 className="text-2xl font-bold text-foreground mb-6">
-              Schreiben Sie uns
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                    Name *
-                  </label>
-                  <Input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full"
-                    placeholder="Ihr vollständiger Name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                    E-Mail *
-                  </label>
-                  <Input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full"
-                    placeholder="ihre.email@beispiel.ch"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
-                  Betreff *
-                </label>
-                <Input
-                  type="text"
-                  id="subject"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                  placeholder="Worum geht es?"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                  Nachricht *
-                </label>
-                <Textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={5}
-                  className="w-full resize-none"
-                  placeholder="Beschreiben Sie Ihr Projekt oder Ihre Anfrage..."
-                />
-              </div>
-              
-              <Button type="submit" className="btn-hero w-full group">
-                Nachricht senden
-                <Send size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </form>
-          </Card>
-
-          {/* Contact Information */}
+          {/* Team Information */}
           <div className="space-y-8">
             <div>
-              <h3 className="text-2xl font-bold text-foreground mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+                <Users className="w-6 h-6 text-primary" />
                 Unser Team
               </h3>
               <div className="space-y-6">
                 {contacts.map((contact, index) => (
-                  <Card key={index} className="p-6 hover-lift">
-                    <h4 className="text-lg font-semibold text-foreground mb-3">
-                      {contact.name}
-                    </h4>
+                  <Card key={index} className="p-6 hover-lift card-elegant">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="text-lg font-semibold text-foreground">
+                        {contact.name}
+                      </h4>
+                      <Badge variant="outline" className="text-xs">
+                        {contact.role}
+                      </Badge>
+                    </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-3">
                         <Phone size={16} className="text-primary" />
@@ -185,10 +81,14 @@ const ContactSection = () => {
                 ))}
               </div>
             </div>
+          </div>
 
+          {/* Contact Information */}
+          <div className="space-y-8">
             {/* Company Info */}
-            <Card className="p-6">
-              <h4 className="text-lg font-semibold text-foreground mb-4">
+            <Card className="p-6 card-elegant">
+              <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-3">
+                <Shield className="w-5 h-5 text-primary" />
                 Unternehmensinformationen
               </h4>
               <div className="space-y-3">
@@ -203,12 +103,45 @@ const ContactSection = () => {
               </div>
               
               <div className="mt-6 pt-6 border-t border-border">
-                <h5 className="font-semibold text-foreground mb-2">Geschäftszeiten</h5>
+                <h5 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  Geschäftszeiten
+                </h5>
                 <div className="text-sm text-muted-foreground space-y-1">
                   <div>Montag - Freitag: 07:00 - 18:00</div>
                   <div>Samstag: 08:00 - 16:00</div>
                   <div>Sonntag: Nach Vereinbarung</div>
                 </div>
+              </div>
+            </Card>
+
+            {/* Response Time */}
+            <Card className="p-6 card-elegant">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-primary" />
+                </div>
+                <h5 className="font-semibold text-foreground">Schnelle Antwort</h5>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Wir antworten normalerweise innerhalb von 2 Stunden während der Geschäftszeiten.
+              </p>
+            </Card>
+
+            {/* Emergency Contact */}
+            <Card className="p-6 card-elegant border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-primary" />
+                </div>
+                <h5 className="font-semibold text-foreground">24/7 Notdienst</h5>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Für dringende Anfragen außerhalb der Geschäftszeiten.
+              </p>
+              <div className="flex items-center space-x-3">
+                <Phone size={16} className="text-primary" />
+                <span className="text-foreground font-semibold">+41 76 368 10 11</span>
               </div>
             </Card>
           </div>

@@ -1,11 +1,33 @@
-# Logs
-logs
-*.log
+# Dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+
+# Production builds
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
 
 # Runtime data
 pids
@@ -13,37 +35,59 @@ pids
 *.seed
 *.pid.lock
 
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
 # Dependency directories
-node_modules/
-.pnp
-.pnp.js
+jspm_packages/
 
-# Build output
-dist/
-dist-ssr/
-build/
-out/
+# Optional npm cache directory
+.npm
 
-# Cache
-.cache/
-.parcel-cache/
-.turbo/
+# Optional REPL history
+.node_repl_history
 
-# Local env files
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
 .env
-.env.*
-!.env.example
 
-# Misc
-*.local
-.DS_Store
-.idea/
-.vscode/*
-!.vscode/extensions.json
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
 
-# Windows
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Backend specific
+backend/.env
+backend/node_modules/
+backend/logs/
