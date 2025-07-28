@@ -20,10 +20,15 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://your-backend-url.vercel.app"
+    "VITE_API_URL": "https://apex-backend.vercel.app"
   },
   "domains": [
     "xn--apex-gerste-0hb.ch",
     "www.xn--apex-gerste-0hb.ch"
-  ]
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
 } 
