@@ -60,7 +60,7 @@ const Products = () => {
       price: 89.99,
       originalPrice: 119.99,
       description: 'Robuste Arbeitshose mit verstärkten Knien und mehreren Taschen für Werkzeuge.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Arbeitshose',
+      image: '/products/work-clothes/arbeitshose.jpg', // ← Use local image path
       rating: 4.8,
       reviews: 124,
       inStock: true,
@@ -72,7 +72,7 @@ const Products = () => {
       category: 'helmets',
       price: 45.99,
       description: 'TÜV-geprüfter Sicherheitshelm mit integriertem Visier und Belüftung.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Helm',
+      image: '/products/helmets/sicherheitshelm.jpg', // ← Use local image path
       rating: 4.9,
       reviews: 89,
       inStock: true,
@@ -85,7 +85,7 @@ const Products = () => {
       price: 129.99,
       originalPrice: 159.99,
       description: 'Sicherheitsschuhe mit Stahlkappe und rutschfester Sohle für alle Wetterbedingungen.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Schuhe',
+      image: '/products/work-shoes/arbeitsschuhe.jpg', // ← Use local image path
       rating: 4.7,
       reviews: 203,
       inStock: true,
@@ -97,7 +97,7 @@ const Products = () => {
       category: 'tools',
       price: 34.99,
       description: '3-teiliges Hammer Set mit verschiedenen Gewichten für verschiedene Anwendungen.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Hammer',
+      image: '/products/tools/hammer-set.jpg', // ← Use local image path
       rating: 4.6,
       reviews: 67,
       inStock: true,
@@ -109,7 +109,7 @@ const Products = () => {
       category: 'accessories',
       price: 24.99,
       description: 'Praktischer Werkzeuggürtel mit mehreren Taschen und Werkzeughaltern.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Gürtel',
+      image: '/products/accessories/werkzeuggurtel.jpg', // ← Use local image path
       rating: 4.5,
       reviews: 156,
       inStock: true,
@@ -121,7 +121,7 @@ const Products = () => {
       category: 'accessories',
       price: 19.99,
       description: 'Kratzfeste Sicherheitsbrille mit UV-Schutz für alle Arbeiten.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Brille',
+      image: '/products/accessories/sicherheitsbrille.jpg', // ← Use local image path
       rating: 4.4,
       reviews: 98,
       inStock: true,
@@ -133,7 +133,7 @@ const Products = () => {
       category: 'work-clothes',
       price: 149.99,
       description: 'Warme Arbeitsjacke mit reflektierenden Streifen für Sichtbarkeit.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Jacke',
+      image: '/products/work-clothes/arbeitsjacke.jpg', // ← Use local image path
       rating: 4.8,
       reviews: 73,
       inStock: true,
@@ -145,11 +145,25 @@ const Products = () => {
       category: 'tools',
       price: 29.99,
       description: '12-teiliges Schraubendreher Set mit verschiedenen Größen und Spitzen.',
-      image: 'https://via.placeholder.com/300x300/374151/FFFFFF?text=Schraubendreher',
+      image: '/products/tools/schraubendreher-set.jpg', // ← Use local image path
       rating: 4.7,
       reviews: 112,
       inStock: true,
       features: ['12 verschiedene Größen', 'Ergonomische Griffe', 'Hochwertiger Stahl', 'Langlebig']
+    },
+    // Example of how to add a new product:
+    {
+      id: '9',
+      name: 'Neue Arbeitshose Premium',
+      category: 'work-clothes',
+      price: 129.99,
+      originalPrice: 159.99,
+      description: 'Premium Arbeitshose mit zusätzlichen Sicherheitsfeatures und modernem Design.',
+      image: '/products/work-clothes/arbeitshose-premium.jpg', // ← Add your image here
+      rating: 4.9,
+      reviews: 45,
+      inStock: true,
+      features: ['Sicherheitsreflektoren', 'Verstärkte Knien', 'Mehrere Taschen', 'Atmungsaktiv', 'Reißfest']
     }
   ];
 
