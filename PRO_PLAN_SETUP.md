@@ -24,7 +24,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
-FRONTEND_URL=https://xn--apex-gerste-0hb.ch
+FRONTEND_URL=https://apex-gerüste.ch
 JWT_SECRET=your-jwt-secret-key
 ```
 
@@ -33,8 +33,8 @@ JWT_SECRET=your-jwt-secret-key
 1. **In Vercel Dashboard:**
    - Go to your project settings
    - Navigate to "Domains"
-   - Add your custom domain: `xn--apex-gerste-0hb.ch`
-   - Add the www subdomain: `www.xn--apex-gerste-0hb.ch`
+   - Add your custom domain: `apex-gerüste.ch`
+   - Add the www subdomain: `www.apex-gerüste.ch`
 
 2. **DNS Configuration:**
    - Add these DNS records to your domain provider:
