@@ -102,6 +102,97 @@ export const stripeAPI = {
   },
 };
 
+// Admin API
+export const adminAPI = {
+  // Login
+  login: async (credentials: { username: string; password: string }) => {
+    return apiRequest('/admin/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  },
+
+  // Verify token
+  verify: async (token: string) => {
+    return apiRequest('/admin/verify', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Products
+  getProducts: async (token: string) => {
+    return apiRequest('/admin/products', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+
+  addProduct: async (token: string, formData: FormData) => {
+    return apiRequest('/admin/products', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  updateProduct: async (token: string, id: string, formData: FormData) => {
+    return apiRequest(`/admin/products/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  deleteProduct: async (token: string, id: string) => {
+    return apiRequest(`/admin/products/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Projects
+  getProjects: async (token: string) => {
+    return apiRequest('/admin/projects', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+
+  addProject: async (token: string, formData: FormData) => {
+    return apiRequest('/admin/projects', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  deleteProject: async (token: string, id: string) => {
+    return apiRequest(`/admin/projects/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+};
+
 // Health check
 export const healthAPI = {
   check: async () => {
@@ -112,5 +203,6 @@ export const healthAPI = {
 export default {
   contact: contactAPI,
   stripe: stripeAPI,
+  admin: adminAPI,
   health: healthAPI,
 }; 

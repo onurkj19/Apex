@@ -1,12 +1,59 @@
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, Clock, Building2, Home, Factory, Church, School, Hospital } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, MapPin, Users, Clock, Building2, Home, Factory, Church, School, Hospital, Image as ImageIcon, Package } from 'lucide-react';
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  completedDate: string;
+  client?: string;
+  category?: string;
+  duration?: string;
+  images: string[];
+  createdAt: string;
+}
 
 const Projects = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/projects`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      } else {
+        throw new Error('Failed to load projects');
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setError('Fehler beim Laden der Projekte');
+      setProjects([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('de-DE');
+  };
+
   const projectCategories = [
     { icon: Building2, label: "Wohnbau", count: "850+" },
     { icon: Factory, label: "Gewerbebau", count: "420+" },
@@ -14,75 +61,6 @@ const Projects = () => {
     { icon: School, label: "Öffentliche Gebäude", count: "290+" },
     { icon: Hospital, label: "Gesundheitswesen", count: "160+" },
     { icon: Home, label: "Privatkunden", count: "600+" }
-  ];
-
-  const featuredProjects = [
-    {
-      title: "Wohnkomplex Musterstraße",
-      category: "Wohnbau",
-      location: "München",
-      duration: "6 Monate",
-      year: "2024",
-      description: "Komplette Gerüstierung eines 8-stöckigen Wohnkomplexes mit 120 Wohneinheiten. Inklusive Sondergerüst für Balkonarbeiten.",
-      image: "https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a",
-      highlights: ["8 Stockwerke", "2.400m² Gerüstfläche", "Sondergerüst", "Termingerecht"],
-      client: "Bauträger München GmbH"
-    },
-    {
-      title: "Fabrikhalle Industriepark",
-      category: "Gewerbebau", 
-      location: "Augsburg",
-      duration: "4 Monate",
-      year: "2024",
-      description: "Gerüstierung einer 15.000m² Fabrikhalle mit speziellen Anforderungen für Kranarbeiten und Dachsanierung.",
-      image: "https://images.unsplash.com/photo-1581094651181-35ad0a63f3ed",
-      highlights: ["15.000m² Fläche", "25m Höhe", "Krankompatibel", "3-Schicht-Betrieb"],
-      client: "Industrie AG"
-    },
-    {
-      title: "Rathaus Altstadt",
-      category: "Denkmalschutz",
-      location: "Regensburg", 
-      duration: "8 Monate",
-      year: "2023",
-      description: "Sensible Gerüstierung eines denkmalgeschützten Rathauses aus dem 14. Jahrhundert mit speziellen Schutzmaßnahmen.",
-      image: "https://images.unsplash.com/photo-1494891848038-7f47de8d74ac",
-      highlights: ["Denkmalschutz", "14. Jahrhundert", "Spezialgerüst", "Schutzmaßnahmen"],
-      client: "Stadt Regensburg"
-    },
-    {
-      title: "Klinikum Neubau",
-      category: "Gesundheitswesen",
-      location: "Nürnberg",
-      duration: "12 Monate", 
-      year: "2023",
-      description: "Gerüstierung des Neubaus einer Klinik mit besonderen Hygieneanforderungen und laufendem Krankenhausbetrieb.",
-      image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c",
-      highlights: ["Hygieneanforderungen", "Laufender Betrieb", "12 Monate", "Komplexe Logistik"],
-      client: "Klinikum Nürnberg"
-    },
-    {
-      title: "Gymnasium Sanierung",
-      category: "Öffentliche Gebäude",
-      location: "Würzburg",
-      duration: "5 Monate",
-      year: "2023",
-      description: "Schulsanierung mit Gerüstierung während der Sommerferien, inklusive Aufzugsgerüst für Materialzufuhr.",
-      image: "https://images.unsplash.com/photo-1469474968028-56623f02e429",
-      highlights: ["Ferienzeitplan", "Aufzugsgerüst", "Schulsanierung", "Pünktlich fertig"],
-      client: "Stadt Würzburg"
-    },
-    {
-      title: "Villa Bergblick",
-      category: "Privatkunden",
-      location: "Garmisch-Partenkirchen",
-      duration: "3 Monate",
-      year: "2024",
-      description: "Exklusive Sanierung einer Bergvilla mit anspruchsvollem Gelände und besonderen architektonischen Herausforderungen.",
-      image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914",
-      highlights: ["Hanglage", "Exklusive Villa", "Bergregion", "Sonderanfertigung"],
-      client: "Privatkunde"
-    }
   ];
 
   const testimonials = [
@@ -160,67 +138,117 @@ const Projects = () => {
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Ausgewählte Referenzen
+                Unsere Referenzen
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Einblicke in unsere aktuellsten und anspruchsvollsten Projekte - 
+                Einblicke in unsere abgeschlossenen Projekte - 
                 jedes mit seinen eigenen Herausforderungen und Lösungen.
               </p>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              {featuredProjects.map((project, index) => (
-                <Card key={index} className="card-elegant overflow-hidden">
-                  <div className="aspect-video bg-muted overflow-hidden">
-                    <img 
-                      src={project.image} 
-                      alt={project.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge variant="secondary">{project.category}</Badge>
-                      <span className="text-sm text-muted-foreground">{project.year}</span>
-                    </div>
-                    
-                    <h3 className="text-xl font-semibold mb-3">{project.title}</h3>
-                    <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
-                      {project.description}
-                    </p>
+            {/* Loading State */}
+            {isLoading && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Projekte werden geladen...</p>
+              </div>
+            )}
 
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {project.location}
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <Clock className="w-4 h-4 mr-2" />
-                        {project.duration}
-                      </div>
-                    </div>
+            {/* Error State */}
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-                    <div className="mb-4">
-                      <div className="text-sm font-medium mb-2">Projekt-Highlights:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {project.highlights.map((highlight, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {highlight}
-                          </Badge>
-                        ))}
-                      </div>
+            {/* Projects Grid */}
+            {!isLoading && !error && projects.length > 0 && (
+              <div className="grid lg:grid-cols-2 gap-8">
+                {projects.map((project) => (
+                  <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      {project.images.length > 0 ? (
+                        <div className="relative w-full h-full">
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${project.images[0]}`}
+                            alt={project.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                          {project.images.length > 1 && (
+                            <Badge className="absolute bottom-2 right-2 bg-black/70 text-white">
+                              <ImageIcon className="w-3 h-3 mr-1" />
+                              {project.images.length}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-12 w-12 text-gray-400" />
+                        </div>
+                      )}
                     </div>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <Badge variant="secondary">
+                          {project.category || 'Gerüstbau'}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(project.completedDate)}
+                        </span>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-3">{project.title}</h3>
+                      <p className="text-muted-foreground mb-4 text-sm leading-relaxed line-clamp-3">
+                        {project.description}
+                      </p>
 
-                    <div className="pt-4 border-t">
-                      <div className="text-sm text-muted-foreground">
-                        <Users className="w-4 h-4 inline mr-2" />
-                        Auftraggeber: {project.client}
+                      <div className="space-y-2 mb-4 text-sm">
+                        <div className="flex items-center text-muted-foreground">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {project.location}
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {formatDate(project.completedDate)}
+                        </div>
+                        {project.duration && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Clock className="w-4 h-4 mr-2" />
+                            {project.duration}
+                          </div>
+                        )}
+                        {project.client && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Users className="w-4 h-4 mr-2" />
+                            {project.client}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+
+                      <div className="pt-4 border-t">
+                        <div className="text-sm text-muted-foreground">
+                          <ImageIcon className="w-4 h-4 inline mr-2" />
+                          {project.images.length} Projektbild(er)
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && !error && projects.length === 0 && (
+              <div className="text-center py-12">
+                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Keine Projekte verfügbar
+                </h3>
+                <p className="text-muted-foreground">
+                  Derzeit sind keine abgeschlossenen Projekte verfügbar.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
