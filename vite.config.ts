@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  base: mode === 'production' ? '/' : '/',
+  // GitHub Pages serves at the root when using custom domain (CNAME)
+  base: '/',
   plugins: [
     react(),
     mode === 'development' &&
