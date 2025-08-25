@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, MapPin, Users, Clock, Building2, Home, Factory, Church, School, Hospital, Image as ImageIcon, Package } from 'lucide-react';
+import { supabaseAPI } from '@/services/supabase';
 
 interface Project {
   id: string;
@@ -33,14 +34,20 @@ const Projects = () => {
   const loadProjects = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/projects`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data);
-      } else {
-        throw new Error('Failed to load projects');
-      }
+      const data = await supabaseAPI.getPublicProjects();
+      const mapped = data.map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        location: p.location,
+        completedDate: p.completed_date,
+        client: p.client || undefined,
+        category: p.category || undefined,
+        duration: p.duration || undefined,
+        images: (p.images || []).map((img) => img.image_url),
+        createdAt: p.created_at,
+      }));
+      setProjects(mapped);
     } catch (error) {
       console.error('Error loading projects:', error);
       setError('Fehler beim Laden der Projekte');
@@ -170,7 +177,7 @@ const Projects = () => {
                       {project.images.length > 0 ? (
                         <div className="relative w-full h-full">
                           <img 
-                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${project.images[0]}`}
+                            src={project.images[0]}
                             alt={project.title}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                           />

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { adminAPI } from '@/services/api';
+import { supabaseAPI } from '@/services/supabase';
 import { 
   Plus, 
   Trash2, 
@@ -89,23 +90,16 @@ const ProjectManagement = ({ projects, onProjectsChange }: ProjectManagementProp
     setError('');
 
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No admin token found');
-
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('location', formData.location);
-      formDataToSend.append('completedDate', formData.completedDate);
-      formDataToSend.append('client', formData.client);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('duration', formData.duration);
-      
-      formData.images.forEach((image, index) => {
-        formDataToSend.append('images', image);
+      await supabaseAPI.addProject({
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        completed_date: formData.completedDate,
+        client: formData.client,
+        category: formData.category,
+        duration: formData.duration,
+        images: formData.images,
       });
-
-      await adminAPI.addProject(token, formDataToSend);
       
       setSuccess('Projekt erfolgreich hinzugefügt!');
       resetForm();
@@ -125,10 +119,7 @@ const ProjectManagement = ({ projects, onProjectsChange }: ProjectManagementProp
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No admin token found');
-
-      await adminAPI.deleteProject(token, projectId);
+      await supabaseAPI.deleteProject(projectId);
       setSuccess('Projekt erfolgreich gelöscht!');
       onProjectsChange();
     } catch (error) {
@@ -308,7 +299,7 @@ const ProjectManagement = ({ projects, onProjectsChange }: ProjectManagementProp
               {project.images.length > 0 ? (
                 <div className="relative w-full h-full">
                   <img
-                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${project.images[0]}`}
+                    src={project.images[0]}
                     alt={project.title}
                     className="w-full h-full object-cover"
                   />

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { adminAPI } from '@/services/api';
+import { supabaseAPI } from '@/services/supabase';
 import { 
   Plus, 
   Edit, 
@@ -85,20 +86,13 @@ const ProductManagement = ({ products, onProductsChange }: ProductManagementProp
     setError('');
 
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No admin token found');
-
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('price', formData.price);
-      formDataToSend.append('discount', formData.discount || '0');
-      
-      if (formData.image) {
-        formDataToSend.append('image', formData.image);
-      }
-
-      await adminAPI.addProduct(token, formDataToSend);
+      await supabaseAPI.addProduct({
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price || '0'),
+        discount: parseFloat(formData.discount || '0'),
+        imageFile: formData.image,
+      });
       
       setSuccess('Produkt erfolgreich hinzugefügt!');
       resetForm();
@@ -120,20 +114,13 @@ const ProductManagement = ({ products, onProductsChange }: ProductManagementProp
     setError('');
 
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No admin token found');
-
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('price', formData.price);
-      formDataToSend.append('discount', formData.discount || '0');
-      
-      if (formData.image) {
-        formDataToSend.append('image', formData.image);
-      }
-
-      await adminAPI.updateProduct(token, editingProduct.id, formDataToSend);
+      await supabaseAPI.updateProduct(editingProduct.id, {
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price || '0'),
+        discount: parseFloat(formData.discount || '0'),
+        imageFile: formData.image,
+      });
       
       setSuccess('Produkt erfolgreich aktualisiert!');
       resetForm();
@@ -154,10 +141,7 @@ const ProductManagement = ({ products, onProductsChange }: ProductManagementProp
     }
 
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No admin token found');
-
-      await adminAPI.deleteProduct(token, productId);
+      await supabaseAPI.deleteProduct(productId);
       setSuccess('Produkt erfolgreich gelöscht!');
       onProductsChange();
     } catch (error) {
@@ -317,7 +301,7 @@ const ProductManagement = ({ products, onProductsChange }: ProductManagementProp
             <div className="aspect-video bg-gray-100 relative">
               {product.image ? (
                 <img
-                  src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${product.image}`}
+                  src={product.image}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />

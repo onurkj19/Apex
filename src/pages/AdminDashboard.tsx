@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { adminAPI } from '@/services/api';
+import supabase from '@/lib/supabase';
+import { supabaseAPI } from '@/services/supabase';
 import { 
   LogOut, 
   Package, 
@@ -53,67 +54,85 @@ const AdminDashboard = () => {
   }, []);
 
   const verifyAuth = async () => {
-    const token = localStorage.getItem('adminToken');
-    
-    if (!token) {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
       navigate('/admin/login');
+      setIsLoading(false);
       return;
     }
-
-    try {
-      await adminAPI.verify(token);
-      setIsAuthenticated(true);
-      await loadData(token);
-    } catch (error) {
-      console.error('Auth verification failed:', error);
-      localStorage.removeItem('adminToken');
-      navigate('/admin/login');
-    } finally {
-      setIsLoading(false);
-    }
+    setIsAuthenticated(true);
+    await loadData();
+    setIsLoading(false);
   };
 
-  const loadData = async (token: string) => {
+  const loadData = async () => {
     try {
       const [productsResponse, projectsResponse] = await Promise.all([
-        adminAPI.getProducts(token),
-        adminAPI.getProjects(token)
+        supabaseAPI.getPublicProducts(),
+        supabaseAPI.getPublicProjects(),
       ]);
-      
-      setProducts(productsResponse);
-      setProjects(projectsResponse);
+
+      setProducts(productsResponse.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        price: p.price,
+        discount: p.discount || 0,
+        image: p.image_url,
+        createdAt: p.created_at,
+      })));
+      setProjects(projectsResponse.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        location: p.location,
+        completedDate: p.completed_date,
+        images: (p.images || []).map((img: any) => img.image_url),
+        createdAt: p.created_at,
+      })));
     } catch (error) {
       console.error('Failed to load data:', error);
       setError('Fehler beim Laden der Daten');
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('adminToken');
     navigate('/admin/login');
   };
 
   const refreshProducts = async () => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      try {
-        const response = await adminAPI.getProducts(token);
-        setProducts(response);
-      } catch (error) {
-        console.error('Failed to refresh products:', error);
-      }
+    try {
+      const response = await supabaseAPI.getPublicProducts();
+      setProducts(response.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        price: p.price,
+        discount: p.discount || 0,
+        image: p.image_url,
+        createdAt: p.created_at,
+      })));
+    } catch (error) {
+      console.error('Failed to refresh products:', error);
     }
   };
 
   const refreshProjects = async () => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      try {
-        const response = await adminAPI.getProjects(token);
-        setProjects(response);
-      } catch (error) {
-        console.error('Failed to refresh projects:', error);
-      }
+    try {
+      const response = await supabaseAPI.getPublicProjects();
+      setProjects(response.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        location: p.location,
+        completedDate: p.completed_date,
+        images: (p.images || []).map((img: any) => img.image_url),
+        createdAt: p.created_at,
+      })));
+    } catch (error) {
+      console.error('Failed to refresh projects:', error);
     }
   };
 

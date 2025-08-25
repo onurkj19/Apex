@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
@@ -27,6 +27,7 @@ import {
   Package
 } from 'lucide-react';
 import StripeCheckout from '@/components/StripeCheckout';
+import { supabaseAPI, SupabaseProduct } from '@/services/supabase';
 
 interface Product {
   id: string;
@@ -52,6 +53,7 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const cartButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -60,14 +62,18 @@ const Products = () => {
   const loadProducts = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      } else {
-        throw new Error('Failed to load products');
-      }
+      const data = await supabaseAPI.getPublicProducts();
+      const mapped: Product[] = (data as SupabaseProduct[]).map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        price: Number(p.price),
+        discount: Number(p.discount || 0),
+        image: p.image_url,
+        createdAt: p.created_at,
+        updatedAt: undefined,
+      }));
+      setProducts(mapped);
     } catch (error) {
       console.error('Error loading products:', error);
       setError('Fehler beim Laden der Produkte');
@@ -87,6 +93,39 @@ const Products = () => {
     return price - (price * discount / 100);
   };
 
+  const animateAddToCart = (imgSrc: string | null) => {
+    if (!imgSrc || !cartButtonRef.current) return;
+    const cartBtn = cartButtonRef.current;
+    const btnRect = cartBtn.getBoundingClientRect();
+    const image = document.createElement('img');
+    image.src = imgSrc;
+    image.style.position = 'fixed';
+    image.style.left = `${btnRect.left}px`;
+    image.style.top = `${btnRect.top}px`;
+    image.style.width = '40px';
+    image.style.height = '40px';
+    image.style.borderRadius = '8px';
+    image.style.objectFit = 'cover';
+    image.style.zIndex = '9999';
+    image.style.transition = 'transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 600ms';
+    document.body.appendChild(image);
+
+    const targetX = btnRect.left + btnRect.width / 2;
+    const targetY = btnRect.top + btnRect.height / 2;
+    const startX = btnRect.left;
+    const startY = btnRect.top - 200; // start a bit above
+    image.style.transform = `translate(${startX - targetX}px, ${startY - targetY}px) scale(1)`;
+
+    requestAnimationFrame(() => {
+      image.style.transform = `translate(0px, 0px) scale(0.2)`;
+      image.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+      image.remove();
+    }, 650);
+  };
+
   const addToCart = (product: Product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product.id === product.id);
@@ -100,6 +139,7 @@ const Products = () => {
         return [...prevCart, { product, quantity: 1 }];
       }
     });
+    animateAddToCart(product.image);
   };
 
   const removeFromCart = (productId: string) => {
@@ -191,7 +231,7 @@ const Products = () => {
               {/* Cart Button */}
               <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="relative">
+                  <Button ref={cartButtonRef} variant="outline" className="relative">
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Warenkorb
                     {cartItemCount > 0 && (
@@ -217,7 +257,7 @@ const Products = () => {
                             <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
                               {item.product.image ? (
                                 <img 
-                                  src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${item.product.image}`} 
+                                  src={item.product.image || ''} 
                                   alt={item.product.title} 
                                   className="w-full h-full object-cover rounded-lg" 
                                 />
@@ -314,7 +354,7 @@ const Products = () => {
                       <div className="aspect-square bg-muted flex items-center justify-center">
                           {product.image ? (
                             <img 
-                              src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${product.image}`}
+                              src={product.image}
                               alt={product.title} 
                               className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                             />

@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { adminAPI } from '@/services/api';
+import supabase from '@/lib/supabase';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -24,10 +24,15 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await adminAPI.login(credentials);
-      
-      if (response.success) {
-        localStorage.setItem('adminToken', response.token);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
+      if (error) {
+        throw error;
+      }
+      if (data.session) {
+        localStorage.setItem('adminToken', data.session.access_token);
         navigate('/admin/dashboard');
       }
     } catch (error) {
@@ -78,17 +83,17 @@ const AdminLogin = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">Benutzername</Label>
+                <Label htmlFor="email">E-Mail</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="username"
-                    name="username"
-                    type="text"
+                    id="email"
+                    name="email"
+                    type="email"
                     required
                     className="pl-10"
-                    placeholder="Benutzername eingeben"
-                    value={credentials.username}
+                    placeholder="E-Mail eingeben"
+                    value={credentials.email}
                     onChange={handleInputChange}
                   />
                 </div>

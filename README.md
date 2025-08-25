@@ -18,6 +18,7 @@ Apex Gerüstbau is your reliable partner for scaffolding rental and professional
 - **Frontend:** React + TypeScript + Vite
 - **Styling:** Tailwind CSS + shadcn/ui
 - **Payment:** Stripe Integration
+- **Database/Storage:** Supabase (Auth, Postgres, Storage)
 - **Deployment:** Vercel Pro Plan
 - **Domain:** xn--apex-gerste-0hb.ch
 
@@ -29,6 +30,12 @@ git clone https://github.com/onurkj19/Apex.git
 
 # Install dependencies
 npm install
+
+# Configure environment variables (create .env and .env.local)
+# Frontend (Vite)
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_URL=http://localhost:5000/api
 
 # Start development server
 npm run dev
