@@ -1,6 +1,5 @@
 import { Phone, Mail, MapPin, Clock, Shield, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 const ContactSection = () => {
   const contacts = [
@@ -53,9 +52,6 @@ const ContactSection = () => {
                       <h4 className="text-lg font-semibold text-foreground">
                         {contact.name}
                       </h4>
-                      <Badge variant="outline" className="text-xs">
-                        {contact.role}
-                      </Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-3">

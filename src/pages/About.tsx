@@ -187,7 +187,7 @@ const team = [
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {team.map((member, index) => (
                 <Card key={index} className="card-elegant">
                   <CardContent className="p-6 text-center">
@@ -195,7 +195,6 @@ const team = [
                       {member.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <h3 className="text-xl font-semibold mb-2">{member.name}</h3>
-                    <p className="text-primary font-medium mb-2">{member.position}</p>
                     <Badge variant="secondary" className="mb-4">{member.experience}</Badge>
                     
                     <div className="space-y-2 mb-4">
@@ -209,16 +208,7 @@ const team = [
                       </div>
                     </div>
 
-                    <div className="border-t pt-4">
-                      <p className="text-xs text-muted-foreground mb-2">Spezialisierung:</p>
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {member.specialties.map((specialty, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {specialty}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                    
                   </CardContent>
                 </Card>
               ))}

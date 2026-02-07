@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const FUNCTIONS_URL: string | undefined = (import.meta as any).env?.VITE_FUNCTIONS_URL;
 
 // Generic API request function
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
@@ -95,6 +96,19 @@ export const stripeAPI = {
     successUrl?: string;
     cancelUrl?: string;
   }) => {
+    // If Supabase Edge Functions URL is provided, use it; otherwise fall back to backend API
+    if (FUNCTIONS_URL) {
+      const res = await fetch(`${FUNCTIONS_URL.replace(/\/$/, '')}/create-checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.text().catch(() => '');
+        throw new Error(err || `HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    }
     return apiRequest('/stripe/create-checkout-session', {
       method: 'POST',
       body: JSON.stringify(data),
