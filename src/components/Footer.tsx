@@ -75,7 +75,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-border/20 mt-8 pt-8">
+        <div className="mt-8 pt-8 bg-background/80 backdrop-blur-lg border-t border-border/50">
           <div className="flex flex-col gap-4 md:flex-row md:gap-6 justify-between items-center">
             <p className="text-white text-sm">
               © 2024 Apex Gerüstbau. Alle Rechte vorbehalten.
@@ -93,7 +93,7 @@ const Footer = () => {
                 <img
                   src={`${import.meta.env.BASE_URL}vertex-web-solutions.png`}
                   alt="Vertex Web Solutions"
-                  className="h-6 w-auto object-contain"
+                  className="h-8 md:h-9 w-auto object-contain"
                   loading="lazy"
                   onError={(e) => {
                     const el = e.currentTarget;
