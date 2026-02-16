@@ -91,7 +91,7 @@ const Footer = () => {
                 title="Vertex Web Solutions"
               >
                 <img
-                  src="/vertex-web-solutions.png"
+                  src={`${import.meta.env.BASE_URL}vertex-web-solutions.png`}
                   alt="Vertex Web Solutions"
                   className="h-6 w-auto object-contain"
                   loading="lazy"
