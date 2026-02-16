@@ -76,11 +76,34 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border/20 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex flex-col gap-4 md:flex-row md:gap-6 justify-between items-center">
             <p className="text-white text-sm">
               © 2024 Apex Gerüstbau. Alle Rechte vorbehalten.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="text-white/80 text-xs md:text-sm">This website powered by</span>
+              <a
+                href="https://www.vertexwebsolutions.ch/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center"
+                aria-label="Vertex Web Solutions"
+                title="Vertex Web Solutions"
+              >
+                <img
+                  src="/vertex-web-solutions.png"
+                  alt="Vertex Web Solutions"
+                  className="h-6 w-auto object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    const el = e.currentTarget;
+                    el.style.display = 'none';
+                  }}
+                />
+                <span className="sr-only">Vertex Web Solutions</span>
+              </a>
+            </div>
+            <div className="flex space-x-6">
               <a href="#" className="text-white hover:text-primary text-sm transition-colors">
                 Datenschutz
               </a>
