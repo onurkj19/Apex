@@ -43,6 +43,12 @@ export interface Worker {
   is_active: boolean;
 }
 
+export interface WorkerGroup {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
 export interface FinanceEntry {
   id: string;
   title: string;

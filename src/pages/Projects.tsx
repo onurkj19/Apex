@@ -18,6 +18,7 @@ interface Project {
   client?: string;
   category?: string;
   duration?: string;
+  status?: string;
   images: string[];
   createdAt: string;
 }
@@ -37,13 +38,14 @@ const Projects = () => {
       const data = await supabaseAPI.getPublicProjects();
       const mapped = data.map((p) => ({
         id: p.id,
-        title: p.title,
+        title: p.project_name,
         description: p.description,
         location: p.location,
-        completedDate: p.completed_date,
-        client: p.client || undefined,
-        category: p.category || undefined,
-        duration: p.duration || undefined,
+        completedDate: p.end_date || p.start_date || p.created_at,
+        client: undefined,
+        category: p.status || undefined,
+        duration: undefined,
+        status: p.status || undefined,
         images: (p.images || []).map((img) => img.image_url),
         createdAt: p.created_at,
       }));
@@ -205,6 +207,11 @@ const Projects = () => {
                       </div>
                       
                       <h3 className="text-xl font-semibold mb-3">{project.title}</h3>
+                      {project.status && (
+                        <div className="mb-2">
+                          <Badge variant="outline">{project.status}</Badge>
+                        </div>
+                      )}
                       <p className="text-muted-foreground mb-4 text-sm leading-relaxed line-clamp-3">
                         {project.description}
                       </p>
@@ -237,6 +244,18 @@ const Projects = () => {
                           <ImageIcon className="w-4 h-4 inline mr-2" />
                           {project.images.length} Projektbild(er)
                         </div>
+                        {project.images.length > 1 && (
+                          <div className="mt-3 grid grid-cols-4 gap-2">
+                            {project.images.slice(1, 5).map((img, idx) => (
+                              <img
+                                key={`${project.id}-${idx}`}
+                                src={img}
+                                alt={`${project.title} ${idx + 2}`}
+                                className="h-14 w-full object-cover rounded-md border"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -9,6 +9,7 @@ import type {
   Project,
   Quote,
   WorkLog,
+  WorkerGroup,
   Worker,
 } from '@/lib/erp-types';
 
@@ -80,12 +81,44 @@ export const projectApi = {
     if (error) throw error;
     return (data || []) as Project[];
   },
-  async create(payload: Partial<Project>) {
-    const { error } = await supabase.from('projects').insert(payload);
+  async create(payload: Partial<Project> & { imageFiles?: File[] }) {
+    const { imageFiles = [], ...projectPayload } = payload;
+    const { data: created, error } = await supabase
+      .from('projects')
+      .insert(projectPayload)
+      .select('id')
+      .single();
     if (error) throw error;
+
+    if (imageFiles.length > 0) {
+      const imageRows: Array<{ project_id: string; image_url: string; image_path: string }> = [];
+      for (const file of imageFiles) {
+        const path = `projects/${created.id}/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage.from('erp-images').upload(path, file, {
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        const { data: publicUrl } = supabase.storage.from('erp-images').getPublicUrl(path);
+        imageRows.push({
+          project_id: created.id,
+          image_url: publicUrl.publicUrl,
+          image_path: path,
+        });
+      }
+      const { error: imageInsertError } = await supabase.from('project_images').insert(imageRows);
+      if (imageInsertError) throw imageInsertError;
+    }
   },
   async updateStatus(projectId: string, status: Project['status']) {
     const { error } = await supabase.from('projects').update({ status }).eq('id', projectId);
+    if (error) throw error;
+  },
+  async update(projectId: string, payload: Partial<Project>) {
+    const { error } = await supabase.from('projects').update(payload).eq('id', projectId);
+    if (error) throw error;
+  },
+  async remove(projectId: string) {
+    const { error } = await supabase.from('projects').delete().eq('id', projectId);
     if (error) throw error;
   },
   async getProfitLoss() {
@@ -125,8 +158,38 @@ export const workerApi = {
     const { error } = await supabase.from('workers').insert(payload);
     if (error) throw error;
   },
+  async update(workerId: string, payload: Partial<Worker>) {
+    const { error } = await supabase.from('workers').update(payload).eq('id', workerId);
+    if (error) throw error;
+  },
+  async remove(workerId: string) {
+    const { error } = await supabase.from('workers').delete().eq('id', workerId);
+    if (error) throw error;
+  },
   async moveGroup(workerId: string, groupName: string) {
     const { error } = await supabase.from('workers').update({ group_name: groupName }).eq('id', workerId);
+    if (error) throw error;
+  },
+};
+
+export const workerGroupApi = {
+  async list(activeOnly = false): Promise<WorkerGroup[]> {
+    let query = supabase.from('worker_groups').select('*').order('name');
+    if (activeOnly) query = query.eq('is_active', true);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []) as WorkerGroup[];
+  },
+  async create(name: string) {
+    const { error } = await supabase.from('worker_groups').insert({ name, is_active: true });
+    if (error) throw error;
+  },
+  async setActive(id: string, isActive: boolean) {
+    const { error } = await supabase.from('worker_groups').update({ is_active: isActive }).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('worker_groups').delete().eq('id', id);
     if (error) throw error;
   },
 };
@@ -150,6 +213,14 @@ export const financeApi = {
       });
     }
   },
+  async update(id: string, payload: Partial<FinanceEntry>) {
+    const { error } = await supabase.from('finances').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('finances').delete().eq('id', id);
+    if (error) throw error;
+  },
 };
 
 export const contractApi = {
@@ -169,6 +240,14 @@ export const contractApi = {
     const { error } = await supabase.from('contracts').insert(payload);
     if (error) throw error;
   },
+  async update(id: string, payload: Partial<Contract>) {
+    const { error } = await supabase.from('contracts').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('contracts').delete().eq('id', id);
+    if (error) throw error;
+  },
 };
 
 export const inventoryApi = {
@@ -179,6 +258,14 @@ export const inventoryApi = {
   },
   async upsert(payload: Partial<InventoryItem>) {
     const { error } = await supabase.from('inventory').upsert(payload);
+    if (error) throw error;
+  },
+  async update(id: string, payload: Partial<InventoryItem>) {
+    const { error } = await supabase.from('inventory').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('inventory').delete().eq('id', id);
     if (error) throw error;
   },
 };

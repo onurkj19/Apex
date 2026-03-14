@@ -77,6 +77,18 @@ create table if not exists public.workers (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.worker_groups (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null unique,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.worker_groups (name, is_active)
+values ('Grupi A', true), ('Grupi B', true), ('Grupi C', true)
+on conflict (name) do nothing;
+
 create table if not exists public.project_workers (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid not null references public.projects(id) on delete cascade,
@@ -223,6 +235,10 @@ drop trigger if exists trg_workers_updated_at on public.workers;
 create trigger trg_workers_updated_at before update on public.workers
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_worker_groups_updated_at on public.worker_groups;
+create trigger trg_worker_groups_updated_at before update on public.worker_groups
+for each row execute procedure public.set_updated_at();
+
 drop trigger if exists trg_contracts_updated_at on public.contracts;
 create trigger trg_contracts_updated_at before update on public.contracts
 for each row execute procedure public.set_updated_at();
@@ -255,6 +271,7 @@ alter table public.users enable row level security;
 alter table public.clients enable row level security;
 alter table public.projects enable row level security;
 alter table public.workers enable row level security;
+alter table public.worker_groups enable row level security;
 alter table public.project_workers enable row level security;
 alter table public.work_logs enable row level security;
 alter table public.finances enable row level security;
@@ -292,6 +309,11 @@ with check (public.is_admin(auth.uid()));
 
 drop policy if exists admin_all_workers on public.workers;
 create policy admin_all_workers on public.workers for all to authenticated
+using (public.is_admin(auth.uid()))
+with check (public.is_admin(auth.uid()));
+
+drop policy if exists admin_all_worker_groups on public.worker_groups;
+create policy admin_all_worker_groups on public.worker_groups for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
@@ -353,6 +375,10 @@ with check (public.is_admin(auth.uid()));
 insert into storage.buckets (id, name, public)
 values ('erp-images', 'erp-images', false)
 on conflict (id) do nothing;
+
+update storage.buckets
+set public = true
+where id = 'erp-images';
 
 insert into storage.buckets (id, name, public)
 values ('erp-documents', 'erp-documents', false)

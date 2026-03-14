@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { workerApi } from '@/lib/erp-api';
-import type { Worker } from '@/lib/erp-types';
-
-const groups = ['Grupi A', 'Grupi B', 'Grupi C'];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { workerApi, workerGroupApi } from '@/lib/erp-api';
+import type { Worker, WorkerGroup } from '@/lib/erp-types';
 
 const SortableWorker = ({ worker }: { worker: Worker }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: worker.id });
@@ -44,42 +43,157 @@ const GroupColumn = ({ name, workers }: { name: string; workers: Worker[] }) => 
 
 const WorkersPage = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [form, setForm] = useState({ full_name: '', hourly_rate: '', role: '', group_name: groups[0] });
+  const [groups, setGroups] = useState<WorkerGroup[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ full_name: '', hourly_rate: '', role: '', group_name: '' });
 
-  const load = async () => setWorkers(await workerApi.list());
+  const load = async () => {
+    const [workerRows, groupRows] = await Promise.all([workerApi.list(), workerGroupApi.list()]);
+    setWorkers(workerRows);
+    setGroups(groupRows);
+    const firstActive = groupRows.find((g) => g.is_active)?.name || '';
+    setForm((prev) => ({ ...prev, group_name: prev.group_name || firstActive }));
+  };
   useEffect(() => { load(); }, []);
 
   const byGroup = useMemo(
     () => groups.reduce<Record<string, Worker[]>>((acc, group) => {
-      acc[group] = workers.filter((w) => w.group_name === group);
+      acc[group.name] = workers.filter((w) => w.group_name === group.name);
       return acc;
     }, {}),
-    [workers],
+    [workers, groups],
   );
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await workerApi.create({
-      full_name: form.full_name,
-      hourly_rate: Number(form.hourly_rate),
-      role: form.role,
-      group_name: form.group_name,
-    });
-    setForm({ full_name: '', hourly_rate: '', role: '', group_name: groups[0] });
-    await load();
+    if (!confirm('A je i sigurt qe do ta ruash punetorin?')) return;
+    setIsSubmitting(true);
+    try {
+      await workerApi.create({
+        full_name: form.full_name,
+        hourly_rate: Number(form.hourly_rate),
+        role: form.role,
+        group_name: form.group_name,
+      });
+      const firstActive = groups.find((g) => g.is_active)?.name || '';
+      setForm({ full_name: '', hourly_rate: '', role: '', group_name: firstActive });
+      await load();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const onDragEnd = async (event: DragEndEvent) => {
     const workerId = event.active.id as string;
     const targetGroup = event.over?.id as string | undefined;
-    if (!targetGroup || !groups.includes(targetGroup)) return;
+    if (!targetGroup || !groups.some((g) => g.name === targetGroup && g.is_active)) return;
     await workerApi.moveGroup(workerId, targetGroup);
     await load();
+  };
+
+  const deleteWorker = async (id: string) => {
+    if (!confirm('A je i sigurt qe do ta fshish kete punetor?')) return;
+    setActionLoadingId(`delete-worker-${id}`);
+    try {
+      await workerApi.remove(id);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const saveWorkerEdit = async (worker: Worker) => {
+    if (!confirm('A je i sigurt qe do ta ruash editimin e punetorit?')) return;
+    setActionLoadingId(`edit-worker-${worker.id}`);
+    try {
+      await workerApi.update(worker.id, {
+        full_name: worker.full_name,
+        role: worker.role,
+        hourly_rate: worker.hourly_rate,
+        group_name: worker.group_name,
+      });
+      setEditingId(null);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const addGroup = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!groupName.trim()) return;
+    if (!confirm('A je i sigurt qe do ta krijosh grupin e ri?')) return;
+    setActionLoadingId('add-group');
+    try {
+      await workerGroupApi.create(groupName.trim());
+      setGroupName('');
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const toggleGroup = async (group: WorkerGroup) => {
+    if (!confirm(`A je i sigurt qe do ta ${group.is_active ? 'caktivizosh' : 'aktivizosh'} grupin?`)) return;
+    setActionLoadingId(`toggle-group-${group.id}`);
+    try {
+      await workerGroupApi.setActive(group.id, !group.is_active);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const deleteGroup = async (group: WorkerGroup) => {
+    const workersInGroup = workers.filter((w) => w.group_name === group.name).length;
+    if (workersInGroup > 0) {
+      alert('Nuk mund ta fshish grupin sepse ka punetore brenda tij.');
+      return;
+    }
+    if (!confirm('A je i sigurt qe do ta fshish kete grup?')) return;
+    setActionLoadingId(`delete-group-${group.id}`);
+    try {
+      await workerGroupApi.remove(group.id);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Menaxhimi i punetoreve</h2>
+
+      <Card>
+        <CardHeader><CardTitle>Menaxhimi i grupeve</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <form className="flex gap-2" onSubmit={addGroup}>
+            <Input placeholder="Emri i grupit te ri" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
+            <Button type="submit" disabled={actionLoadingId === 'add-group'}>
+              {actionLoadingId === 'add-group' ? 'Duke shtuar...' : 'Shto grup'}
+            </Button>
+          </form>
+          <div className="space-y-2">
+            {groups.map((group) => (
+              <div key={group.id} className="border rounded p-2 flex items-center justify-between">
+                <span>{group.name} {group.is_active ? '(Aktiv)' : '(Jo aktiv)'}</span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => toggleGroup(group)}>
+                    {actionLoadingId === `toggle-group-${group.id}` ? 'Duke ruajtur...' : (group.is_active ? 'Caktivizo' : 'Aktivizo')}
+                  </Button>
+                  <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-group-${group.id}`} onClick={() => deleteGroup(group)}>
+                    {actionLoadingId === `delete-group-${group.id}` ? 'Duke fshire...' : 'Fshi'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle>Shto punetor</CardTitle></CardHeader>
         <CardContent>
@@ -87,17 +201,73 @@ const WorkersPage = () => {
             <div><Label>Emri</Label><Input value={form.full_name} onChange={(e) => setForm((s) => ({ ...s, full_name: e.target.value }))} required /></div>
             <div><Label>Roli</Label><Input value={form.role} onChange={(e) => setForm((s) => ({ ...s, role: e.target.value }))} required /></div>
             <div><Label>Paga/Ore</Label><Input type="number" value={form.hourly_rate} onChange={(e) => setForm((s) => ({ ...s, hourly_rate: e.target.value }))} required /></div>
-            <div><Label>Grupi</Label><Input value={form.group_name} onChange={(e) => setForm((s) => ({ ...s, group_name: e.target.value }))} required /></div>
-            <div className="md:col-span-4"><Button type="submit">Ruaj</Button></div>
+            <div>
+              <Label>Grupi</Label>
+              <Select value={form.group_name} onValueChange={(v) => setForm((s) => ({ ...s, group_name: v }))}>
+                <SelectTrigger><SelectValue placeholder="Zgjidh grupin" /></SelectTrigger>
+                <SelectContent>
+                  {groups.filter((g) => g.is_active).map((g) => (
+                    <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-4">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Duke ruajtur...' : 'Ruaj'}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
 
       <DndContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {groups.map((g) => <GroupColumn key={g} name={g} workers={byGroup[g] || []} />)}
+          {groups.filter((g) => g.is_active).map((g) => <GroupColumn key={g.id} name={g.name} workers={byGroup[g.name] || []} />)}
         </div>
       </DndContext>
+
+      <Card>
+        <CardHeader><CardTitle>Edito / Fshi punetore</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {workers.map((worker) => (
+            <div key={worker.id} className="border rounded p-3">
+              {editingId === worker.id ? (
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                  <Input value={worker.full_name} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, full_name: e.target.value } : w))} />
+                  <Input value={worker.role} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, role: e.target.value } : w))} />
+                  <Input type="number" value={worker.hourly_rate} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, hourly_rate: Number(e.target.value) } : w))} />
+                  <Select value={worker.group_name} onValueChange={(v) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, group_name: v } : w))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {groups.filter((g) => g.is_active).map((g) => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={actionLoadingId === `edit-worker-${worker.id}`} onClick={() => saveWorkerEdit(worker)}>
+                      {actionLoadingId === `edit-worker-${worker.id}` ? 'Duke ruajtur...' : 'Ruaj'}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-worker-${worker.id}`} onClick={() => setEditingId(null)}>Anulo</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{worker.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{worker.role} | {worker.hourly_rate} CHF/h | {worker.group_name}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(worker.id)}>Edito</Button>
+                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-worker-${worker.id}`} onClick={() => deleteWorker(worker.id)}>
+                      {actionLoadingId === `delete-worker-${worker.id}` ? 'Duke fshire...' : 'Fshi'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 };

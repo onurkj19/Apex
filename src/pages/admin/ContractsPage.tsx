@@ -14,6 +14,8 @@ const ContractsPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<ContractStatus>('Active');
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const load = async () => setContracts(await contractApi.list());
   useEffect(() => { load(); }, []);
@@ -21,6 +23,7 @@ const ContractsPage = () => {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!file) return;
+    if (!confirm('A je i sigurt qe do ta ruash kete kontrate?')) return;
     setLoading(true);
     try {
       const uploaded = await contractApi.uploadPdf(file);
@@ -33,6 +36,29 @@ const ContractsPage = () => {
       await load();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveEdit = async (contract: any) => {
+    if (!confirm('A je i sigurt qe do ta ruash editimin e kontrates?')) return;
+    setActionLoadingId(`edit-${contract.id}`);
+    try {
+      await contractApi.update(contract.id, { status: contract.status });
+      setEditingId(null);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const removeContract = async (id: string) => {
+    if (!confirm('A je i sigurt qe do ta fshish kontraten?')) return;
+    setActionLoadingId(`delete-${id}`);
+    try {
+      await contractApi.remove(id);
+      await load();
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -64,11 +90,32 @@ const ContractsPage = () => {
         <CardContent className="space-y-2">
           {contracts.map((c) => (
             <div key={c.id} className="border rounded-md p-3 flex items-center justify-between">
-              <div>
-                <p className="font-medium">Status: {c.status}</p>
-                <p className="text-sm text-muted-foreground">{c.contract_file_url}</p>
-              </div>
-              {c.contract_file_url && <a className="text-sm underline" target="_blank" href={c.contract_file_url}>Shiko PDF</a>}
+              {editingId === c.id ? (
+                <div className="w-full flex items-center gap-2">
+                  <Select value={c.status} onValueChange={(v) => setContracts((prev: any[]) => prev.map((x) => x.id === c.id ? { ...x, status: v } : x))}>
+                    <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                    <SelectContent>{statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={actionLoadingId === `edit-${c.id}`} onClick={() => saveEdit(c)}>
+                    {actionLoadingId === `edit-${c.id}` ? 'Duke ruajtur...' : 'Ruaj'}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${c.id}`} onClick={() => setEditingId(null)}>Anulo</Button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="font-medium">Status: {c.status}</p>
+                    <p className="text-sm text-muted-foreground">{c.contract_file_url}</p>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    {c.contract_file_url && <a className="text-sm underline" target="_blank" href={c.contract_file_url}>Shiko PDF</a>}
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(c.id)}>Edito</Button>
+                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${c.id}`} onClick={() => removeContract(c.id)}>
+                      {actionLoadingId === `delete-${c.id}` ? 'Duke fshire...' : 'Fshi'}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
           {contracts.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka kontrata.</p>}

@@ -14,13 +14,12 @@ export interface SupabaseProduct {
 
 export interface SupabaseProject {
   id: string;
-  title: string;
+  project_name: string;
   description: string;
   location: string;
-  completed_date: string;
-  client?: string | null;
-  category?: string | null;
-  duration?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
   created_at: string;
 }
 
@@ -47,7 +46,7 @@ export const supabaseAPI = {
     const { data, error } = await supabase
       .from('projects')
       .select('*, project_images(*)')
-      .order('completed_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return (data || []).map((project: any) => ({

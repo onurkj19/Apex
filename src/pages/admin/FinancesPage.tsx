@@ -18,11 +18,14 @@ const financeSchema = z.object({
 const FinancesPage = () => {
   const [rows, setRows] = useState<FinanceEntry[]>([]);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '',
     amount: '',
     finance_type: 'expense' as 'income' | 'expense',
-    category: categories[0] as ExpenseCategory,
+    category: '' as ExpenseCategory | '',
     payment_method: 'Bank' as PaymentMethod,
   });
 
@@ -37,19 +40,54 @@ const FinancesPage = () => {
       setError(parsed.error.issues[0]?.message || 'Te dhena te pavlefshme');
       return;
     }
-    await financeApi.create({
-      title: form.title,
-      amount: Number(form.amount),
-      finance_type: form.finance_type,
-      category: form.finance_type === 'expense' ? form.category : null,
-      payment_method: form.payment_method,
-    });
-    setForm({ title: '', amount: '', finance_type: 'expense', category: categories[0], payment_method: 'Bank' });
-    await load();
+    if (!confirm('A je i sigurt qe do ta ruash kete hyrje financiare?')) return;
+    setIsSubmitting(true);
+    try {
+      await financeApi.create({
+        title: form.title,
+        amount: Number(form.amount),
+        finance_type: form.finance_type,
+        category: form.finance_type === 'expense' ? (form.category || null) : null,
+        payment_method: form.payment_method,
+      });
+      setForm({ title: '', amount: '', finance_type: 'expense', category: '', payment_method: 'Bank' });
+      await load();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const cashBalance = rows.reduce((sum, r) => r.payment_method === 'Cash' ? sum + (r.finance_type === 'income' ? r.amount : -r.amount) : sum, 0);
   const bankBalance = rows.reduce((sum, r) => r.payment_method === 'Bank' ? sum + (r.finance_type === 'income' ? r.amount : -r.amount) : sum, 0);
+
+  const saveEdit = async (row: FinanceEntry) => {
+    if (!confirm('A je i sigurt qe do ta ruash editimin?')) return;
+    setActionLoadingId(`edit-${row.id}`);
+    try {
+      await financeApi.update(row.id, {
+        title: row.title,
+        amount: row.amount,
+        finance_type: row.finance_type,
+        category: row.category,
+        payment_method: row.payment_method,
+      });
+      setEditingId(null);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const removeRow = async (id: string) => {
+    if (!confirm('A je i sigurt qe do ta fshish kete transaksion?')) return;
+    setActionLoadingId(`delete-${id}`);
+    try {
+      await financeApi.remove(id);
+      await load();
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -79,9 +117,12 @@ const FinancesPage = () => {
             </div>
             <div>
               <Label>Kategoria</Label>
-              <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v as ExpenseCategory }))}>
+              <Select value={form.category || '__none__'} onValueChange={(v) => setForm((s) => ({ ...s, category: v === '__none__' ? '' : (v as ExpenseCategory) }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="__none__">Pa kategori</SelectItem>
+                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -92,7 +133,11 @@ const FinancesPage = () => {
               </Select>
             </div>
             {error && <p className="md:col-span-5 text-sm text-destructive">{error}</p>}
-            <div className="md:col-span-5"><Button type="submit">Ruaj hyrjen</Button></div>
+            <div className="md:col-span-5">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Duke ruajtur...' : 'Ruaj hyrjen'}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -102,15 +147,47 @@ const FinancesPage = () => {
         <CardContent className="space-y-2">
           {rows.map((row) => (
             <div key={row.id} className="border rounded p-3 flex items-center justify-between">
-              <div>
-                <p className="font-medium">{row.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {row.finance_type === 'income' ? 'Te ardhura' : `Shpenzim - ${row.category || '-'}`} | {row.payment_method}
-                </p>
-              </div>
-              <p className={row.finance_type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                {row.finance_type === 'income' ? '+' : '-'} {Number(row.amount).toFixed(2)} CHF
-              </p>
+              {editingId === row.id ? (
+                <div className="w-full grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                  <Input value={row.title} onChange={(e) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, title: e.target.value } : r))} />
+                  <Input type="number" value={row.amount} onChange={(e) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, amount: Number(e.target.value) } : r))} />
+                  <Select value={row.finance_type} onValueChange={(v) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, finance_type: v as 'income' | 'expense' } : r))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="income">Te ardhura</SelectItem>
+                      <SelectItem value="expense">Shpenzim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={row.payment_method} onValueChange={(v) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, payment_method: v as PaymentMethod } : r))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{methods.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={actionLoadingId === `edit-${row.id}`} onClick={() => saveEdit(row)}>
+                      {actionLoadingId === `edit-${row.id}` ? 'Duke ruajtur...' : 'Ruaj'}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${row.id}`} onClick={() => setEditingId(null)}>Anulo</Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="font-medium">{row.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.finance_type === 'income' ? 'Te ardhura' : `Shpenzim - ${row.category || '-'}`} | {row.payment_method}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className={row.finance_type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                      {row.finance_type === 'income' ? '+' : '-'} {Number(row.amount).toFixed(2)} CHF
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(row.id)}>Edito</Button>
+                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${row.id}`} onClick={() => removeRow(row.id)}>
+                      {actionLoadingId === `delete-${row.id}` ? 'Duke fshire...' : 'Fshi'}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
           {rows.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka transaksione financiare.</p>}
