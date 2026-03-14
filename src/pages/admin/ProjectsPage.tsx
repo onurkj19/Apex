@@ -42,9 +42,18 @@ const ProjectsPage = () => {
     }
     setLoading(true);
     try {
-      await projectApi.create(form);
+      await projectApi.create({
+        project_name: form.project_name.trim(),
+        location: form.location.trim(),
+        description: form.description.trim() || null,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+        status: form.status,
+      });
       setForm({ project_name: '', location: '', description: '', start_date: '', end_date: '', status: 'Ne pritje' });
       await load();
+    } catch (err: any) {
+      setError(err?.message || 'Projekti nuk u ruajt. Provo perseri.');
     } finally {
       setLoading(false);
     }
