@@ -91,3 +91,4 @@ jspm_packages/
 backend/.env
 backend/node_modules/
 backend/logs/
+supabase/.temp/

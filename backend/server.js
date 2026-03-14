@@ -11,8 +11,6 @@ const PORT = process.env.PORT || 5000;
 
 // Import routes
 const contactRoutes = require('./routes/contact');
-const stripeRoutes = require('./routes/stripe');
-const adminRoutes = require('./routes/admin');
 
 // Security middleware
 app.use(helmet({
@@ -20,7 +18,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "https://js.stripe.com"],
+      scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
@@ -57,51 +55,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
-
-// Public products endpoint
-app.get('/api/products', (req, res) => {
-  try {
-    const path = require('path');
-    const fs = require('fs');
-    const productsPath = path.join(__dirname, 'data/products.json');
-    
-    if (fs.existsSync(productsPath)) {
-      const products = JSON.parse(fs.readFileSync(productsPath, 'utf8'));
-      res.json(products);
-    } else {
-      res.json([]);
-    }
-  } catch (error) {
-    console.error('Error loading products:', error);
-    res.status(500).json({ error: 'Failed to load products' });
-  }
-});
-
-// Public projects endpoint
-app.get('/api/projects', (req, res) => {
-  try {
-    const path = require('path');
-    const fs = require('fs');
-    const projectsPath = path.join(__dirname, 'data/projects.json');
-    
-    if (fs.existsSync(projectsPath)) {
-      const projects = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
-      res.json(projects);
-    } else {
-      res.json([]);
-    }
-  } catch (error) {
-    console.error('Error loading projects:', error);
-    res.status(500).json({ error: 'Failed to load projects' });
-  }
-});
-
 // API routes
 app.use('/api/contact', contactRoutes);
-app.use('/api/stripe', stripeRoutes);
-app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
