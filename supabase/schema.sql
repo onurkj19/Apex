@@ -54,13 +54,37 @@ create table if not exists public.users (
 create table if not exists public.clients (
   id uuid primary key default uuid_generate_v4(),
   company_name text not null,
-  contact_person text not null,
+  client_address text not null,
   phone text,
   email text,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.clients
+  add column if not exists client_address text;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'clients'
+      and column_name = 'contact_person'
+  ) then
+    update public.clients
+    set client_address = coalesce(client_address, contact_person)
+    where client_address is null;
+  end if;
+end $$;
+
+alter table if exists public.clients
+  alter column client_address set not null;
+
+alter table if exists public.clients
+  drop column if exists contact_person;
 
 create table if not exists public.projects (
   id uuid primary key default uuid_generate_v4(),

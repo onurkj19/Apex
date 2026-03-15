@@ -562,19 +562,37 @@ export const clientApi = {
     if (error) throw error;
     return data || [];
   },
-  async create(payload: { company_name: string; contact_person: string; phone?: string; email?: string }) {
-    const { data, error } = await supabase.from('clients').insert(payload).select('id, company_name, contact_person').single();
+  async create(payload: { company_name: string; client_address: string; phone?: string; email?: string }) {
+    const clientPayload = {
+      company_name: payload.company_name,
+      client_address: payload.client_address,
+      phone: payload.phone,
+      email: payload.email,
+    };
+
+    const { data, error } = await supabase.from('clients').insert(clientPayload).select('id, company_name, client_address').single();
     if (error) throw error;
 
     await tryCreateNotification({
       type: 'client_created',
       title: 'Klient i ri u shtua',
-      message: `${data.company_name} - Kontakti: ${data.contact_person || 'Pa kontakt'}`,
+      message: `${data.company_name} - Adresa: ${data.client_address || 'Pa adrese'}`,
       metadata: {
         client_id: data.id,
-        ...payload,
+        company_name: payload.company_name,
+        client_address: payload.client_address,
+        phone: payload.phone,
+        email: payload.email,
       },
     });
+  },
+  async update(id: string, payload: { company_name: string; client_address: string; phone?: string; email?: string }) {
+    const { error } = await supabase.from('clients').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
   },
 };
 
@@ -586,6 +604,14 @@ export const equipmentApi = {
   },
   async create(payload: { equipment_name: string; equipment_type: string; status?: string; current_project_id?: string | null; notes?: string }) {
     const { error } = await supabase.from('equipment').insert(payload);
+    if (error) throw error;
+  },
+  async update(id: string, payload: { equipment_name: string; equipment_type: string; status?: string; notes?: string }) {
+    const { error } = await supabase.from('equipment').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('equipment').delete().eq('id', id);
     if (error) throw error;
   },
 };
