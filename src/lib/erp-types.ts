@@ -7,6 +7,8 @@ export type ProjectStatus =
   | 'I deshtuar';
 
 export type ContractStatus = 'Active' | 'Failed' | 'Completed';
+export type QuoteStatus = 'Draft' | 'Derguar' | 'Pranuar' | 'Perfunduar' | 'Refuzuar';
+export type InvoiceStatus = 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'Cash' | 'Bank';
 export type ExpenseCategory = 'Karburant' | 'Pajisje' | 'Blerje Produktesh' | 'Qira Magazine' | 'Mjete Pune';
 
@@ -75,8 +77,11 @@ export interface Contract {
   id: string;
   project_id: string | null;
   client_id: string | null;
+  contract_title: string | null;
+  contract_address: string | null;
   status: ContractStatus;
   contract_file_url: string | null;
+  contract_file_path?: string | null;
   expires_at: string | null;
 }
 
@@ -93,12 +98,16 @@ export interface Quote {
   id: string;
   project_id: string | null;
   client_id: string | null;
-  square_meters: number;
-  assembly_price: number;
-  disassembly_price: number;
-  transport_cost: number;
-  total_amount: number;
-  pdf_url: string | null;
+  quote_title?: string | null;
+  status?: QuoteStatus;
+  quote_file_url?: string | null;
+  quote_file_path?: string | null;
+  square_meters?: number;
+  assembly_price?: number;
+  disassembly_price?: number;
+  transport_cost?: number;
+  total_amount?: number;
+  pdf_url?: string | null;
   created_at?: string;
 }
 
@@ -106,12 +115,15 @@ export interface Invoice {
   id: string;
   project_id: string | null;
   client_id: string | null;
+  invoice_title?: string | null;
   invoice_number: string;
   amount: number;
   issued_at: string;
   due_at: string | null;
-  status: string;
-  pdf_url: string | null;
+  status: InvoiceStatus;
+  invoice_file_url?: string | null;
+  invoice_file_path?: string | null;
+  pdf_url?: string | null;
 }
 
 export interface NotificationItem {

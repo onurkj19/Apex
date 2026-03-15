@@ -11,6 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { workerApi, workerGroupApi } from '@/lib/erp-api';
 import type { Worker, WorkerGroup } from '@/lib/erp-types';
 
+const WORKER_ROLE_OPTIONS = [
+  { value: 'Monter Skele', label: 'Monter Skele', keywords: 'Montim, Demontim, Siguri' },
+  { value: 'Punetor Ndihmes', label: 'Punetor Ndihmes', keywords: 'Ngarkim, Shkarkim, Asistence' },
+  { value: 'Teknik Sigure', label: 'Teknik Sigure', keywords: 'Inspektim, PPE, Standarde' },
+  { value: 'Shofer Transporti', label: 'Shofer Transporti', keywords: 'Logjistike, Dorzim, Mjete' },
+  { value: 'Pergjegjes Ekipi', label: 'Pergjegjes Ekipi', keywords: 'Koordinim, Planifikim, Raportim' },
+  { value: 'Supervisor Kantieri', label: 'Supervisor Kantieri', keywords: 'Mbikqyrje, Cilesi, Afate' },
+  { value: 'Operator Makinerie', label: 'Operator Makinerie', keywords: 'Forklift, Vinç, Pajisje' },
+  { value: 'Pergjegjes Magazina', label: 'Pergjegjes Magazina', keywords: 'Inventar, Evidenca, Furnizim' },
+];
+
 const SortableWorker = ({ worker }: { worker: Worker }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: worker.id });
   return (
@@ -48,7 +59,12 @@ const WorkersPage = () => {
   const [groupName, setGroupName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ full_name: '', hourly_rate: '', role: '', group_name: '' });
+  const [form, setForm] = useState({
+    full_name: '',
+    hourly_rate: '',
+    role: WORKER_ROLE_OPTIONS[0].value,
+    group_name: '',
+  });
 
   const load = async () => {
     const [workerRows, groupRows] = await Promise.all([workerApi.list(), workerGroupApi.list()]);
@@ -69,6 +85,10 @@ const WorkersPage = () => {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!form.role) {
+      alert('Te lutem zgjedh rolin e punetorit.');
+      return;
+    }
     if (!confirm('A je i sigurt qe do ta ruash punetorin?')) return;
     setIsSubmitting(true);
     try {
@@ -79,7 +99,12 @@ const WorkersPage = () => {
         group_name: form.group_name,
       });
       const firstActive = groups.find((g) => g.is_active)?.name || '';
-      setForm({ full_name: '', hourly_rate: '', role: '', group_name: firstActive });
+      setForm({
+        full_name: '',
+        hourly_rate: '',
+        role: WORKER_ROLE_OPTIONS[0].value,
+        group_name: firstActive,
+      });
       await load();
     } finally {
       setIsSubmitting(false);
@@ -163,6 +188,16 @@ const WorkersPage = () => {
     }
   };
 
+  const getRoleOptionsWithCurrent = (currentRole?: string) => {
+    if (!currentRole) return WORKER_ROLE_OPTIONS;
+    const exists = WORKER_ROLE_OPTIONS.some((opt) => opt.value === currentRole);
+    if (exists) return WORKER_ROLE_OPTIONS;
+    return [
+      { value: currentRole, label: `${currentRole} (Ekzistues)`, keywords: 'Rol i ruajtur me pare' },
+      ...WORKER_ROLE_OPTIONS,
+    ];
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Menaxhimi i punetoreve</h2>
@@ -199,7 +234,19 @@ const WorkersPage = () => {
         <CardContent>
           <form className="grid grid-cols-1 md:grid-cols-4 gap-3" onSubmit={onSubmit}>
             <div><Label>Emri</Label><Input value={form.full_name} onChange={(e) => setForm((s) => ({ ...s, full_name: e.target.value }))} required /></div>
-            <div><Label>Roli</Label><Input value={form.role} onChange={(e) => setForm((s) => ({ ...s, role: e.target.value }))} required /></div>
+            <div>
+              <Label>Roli profesional</Label>
+              <Select value={form.role} onValueChange={(v) => setForm((s) => ({ ...s, role: v }))}>
+                <SelectTrigger><SelectValue placeholder="Zgjidh rolin" /></SelectTrigger>
+                <SelectContent>
+                  {WORKER_ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label} - {role.keywords}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Paga/Ore</Label><Input type="number" value={form.hourly_rate} onChange={(e) => setForm((s) => ({ ...s, hourly_rate: e.target.value }))} required /></div>
             <div>
               <Label>Grupi</Label>
@@ -235,7 +282,16 @@ const WorkersPage = () => {
               {editingId === worker.id ? (
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                   <Input value={worker.full_name} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, full_name: e.target.value } : w))} />
-                  <Input value={worker.role} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, role: e.target.value } : w))} />
+                  <Select value={worker.role} onValueChange={(v) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, role: v } : w))}>
+                    <SelectTrigger><SelectValue placeholder="Zgjidh rolin" /></SelectTrigger>
+                    <SelectContent>
+                      {getRoleOptionsWithCurrent(worker.role).map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label} - {role.keywords}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input type="number" value={worker.hourly_rate} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, hourly_rate: Number(e.target.value) } : w))} />
                   <Select value={worker.group_name} onValueChange={(v) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, group_name: v } : w))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

@@ -305,6 +305,11 @@ export const workLogApi = {
     const { error } = await supabase.from('work_logs').insert(payload);
     if (error) throw error;
   },
+  async createMany(payloads: Partial<WorkLog>[]) {
+    if (payloads.length === 0) return;
+    const { error } = await supabase.from('work_logs').insert(payloads);
+    if (error) throw error;
+  },
   async getPayrollByMonth() {
     const { data, error } = await supabase
       .from('work_logs')
@@ -337,10 +342,25 @@ export const quoteApi = {
     if (error) throw error;
     return (data || []) as Quote[];
   },
+  async uploadDocument(file: File) {
+    const path = `quotes/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('erp-documents').upload(path, file, { upsert: false });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from('erp-documents').getPublicUrl(path);
+    return { path, url: data.publicUrl };
+  },
   async create(payload: Partial<Quote>) {
     const { data, error } = await supabase.from('quotes').insert(payload).select('*').single();
     if (error) throw error;
     return data as Quote;
+  },
+  async update(id: string, payload: Partial<Quote>) {
+    const { error } = await supabase.from('quotes').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('quotes').delete().eq('id', id);
+    if (error) throw error;
   },
 };
 
@@ -354,6 +374,21 @@ export const invoiceApi = {
     const { data, error } = await supabase.from('invoices').insert(payload).select('*').single();
     if (error) throw error;
     return data as Invoice;
+  },
+  async uploadDocument(file: File) {
+    const path = `invoices/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('erp-documents').upload(path, file, { upsert: false });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from('erp-documents').getPublicUrl(path);
+    return { path, url: data.publicUrl };
+  },
+  async update(id: string, payload: Partial<Invoice>) {
+    const { error } = await supabase.from('invoices').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) throw error;
   },
   async generateFromCompletedProject(projectId: string) {
     const { data: project, error: projectError } = await supabase

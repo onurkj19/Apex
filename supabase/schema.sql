@@ -25,6 +25,10 @@ begin
   if not exists (select 1 from pg_type where typname = 'notification_type') then
     create type public.notification_type as enum ('project_completed', 'contract_expiring', 'large_expense');
   end if;
+
+  if not exists (select 1 from pg_type where typname = 'quote_status') then
+    create type public.quote_status as enum ('Draft', 'Derguar', 'Pranuar', 'Perfunduar', 'Refuzuar');
+  end if;
 end $$;
 
 create table if not exists public.users (
@@ -126,6 +130,8 @@ create table if not exists public.contracts (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid references public.projects(id) on delete set null,
   client_id uuid references public.clients(id) on delete set null,
+  contract_title text,
+  contract_address text,
   status public.contract_status not null default 'Active',
   contract_file_url text,
   contract_file_path text,
@@ -169,6 +175,10 @@ create table if not exists public.quotes (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid references public.projects(id) on delete set null,
   client_id uuid references public.clients(id) on delete set null,
+  quote_title text,
+  status public.quote_status not null default 'Draft',
+  quote_file_url text,
+  quote_file_path text,
   square_meters numeric(12,2) not null default 0,
   assembly_price numeric(12,2) not null default 0,
   disassembly_price numeric(12,2) not null default 0,
@@ -182,11 +192,14 @@ create table if not exists public.invoices (
   id uuid primary key default uuid_generate_v4(),
   project_id uuid references public.projects(id) on delete set null,
   client_id uuid references public.clients(id) on delete set null,
+  invoice_title text,
   invoice_number text not null unique,
   amount numeric(12,2) not null,
   issued_at date not null default current_date,
   due_at date,
   status text not null default 'pending',
+  invoice_file_url text,
+  invoice_file_path text,
   pdf_url text,
   created_at timestamptz not null default now()
 );
