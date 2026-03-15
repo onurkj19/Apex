@@ -11,7 +11,28 @@ import type {
   WorkLog,
   WorkerGroup,
   Worker,
+  SystemSettings,
 } from '@/lib/erp-types';
+
+type NotificationCreatePayload = Omit<NotificationItem, 'id' | 'created_at' | 'is_read' | 'is_archived'> & {
+  is_read?: boolean;
+  is_archived?: boolean;
+};
+
+const tryCreateNotification = async (payload: NotificationCreatePayload) => {
+  try {
+    await notificationApi.create(payload);
+  } catch (error) {
+    // Notifications should not block main business actions.
+    console.error('Failed to create notification', error);
+  }
+};
+
+const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+  darkMode: true,
+  monthlyEmail: 'finance@apex-geruste.ch',
+  largeExpenseThreshold: '2000',
+};
 
 export const authApi = {
   async login(email: string, password: string) {
@@ -86,7 +107,7 @@ export const projectApi = {
     const { data: created, error } = await supabase
       .from('projects')
       .insert(projectPayload)
-      .select('id')
+      .select('id, project_name, location, client_id, status, revenue')
       .single();
     if (error) throw error;
 
@@ -108,6 +129,20 @@ export const projectApi = {
       const { error: imageInsertError } = await supabase.from('project_images').insert(imageRows);
       if (imageInsertError) throw imageInsertError;
     }
+
+    await tryCreateNotification({
+      type: 'project_created',
+      title: 'Projekt i ri u shtua',
+      message: `${created.project_name || 'Projekt'} - ${created.location || 'Pa lokacion'}`,
+      metadata: {
+        project_id: created.id,
+        project_name: created.project_name,
+        location: created.location,
+        client_id: created.client_id,
+        status: created.status,
+        revenue: created.revenue,
+      },
+    });
   },
   async updateStatus(projectId: string, status: Project['status']) {
     const { error } = await supabase.from('projects').update({ status }).eq('id', projectId);
@@ -204,13 +239,39 @@ export const financeApi = {
     const { error } = await supabase.from('finances').insert(payload);
     if (error) throw error;
 
-    if (payload.finance_type === 'expense' && Number(payload.amount || 0) >= 2000) {
-      await notificationApi.create({
-        type: 'large_expense',
-        title: 'Shpenzim i madh i regjistruar',
-        message: `${payload.title || 'Shpenzim'} - ${Number(payload.amount || 0).toFixed(2)} CHF`,
+    const amount = Number(payload.amount || 0).toFixed(2);
+    const settings = await settingsApi.get();
+    const largeExpenseThreshold = Number(settings.largeExpenseThreshold || '2000');
+
+    if (payload.finance_type === 'income') {
+      await tryCreateNotification({
+        type: 'finance_income_created',
+        title: 'Hyrje e re financiare',
+        message: `${payload.title || 'Hyrje'} - ${amount} CHF`,
         metadata: payload,
       });
+      return;
+    }
+
+    if (payload.finance_type === 'expense') {
+      await tryCreateNotification({
+        type: 'finance_expense_created',
+        title: 'Shpenzim i ri financiar',
+        message: `${payload.title || 'Shpenzim'} - ${amount} CHF`,
+        metadata: payload,
+      });
+
+      if (Number(payload.amount || 0) >= largeExpenseThreshold) {
+        await tryCreateNotification({
+          type: 'large_expense',
+          title: 'Shpenzim i madh i regjistruar',
+          message: `${payload.title || 'Shpenzim'} - ${amount} CHF`,
+          metadata: {
+            ...payload,
+            threshold: largeExpenseThreshold,
+          },
+        });
+      }
     }
   },
   async update(id: string, payload: Partial<FinanceEntry>) {
@@ -442,20 +503,35 @@ export const invoiceApi = {
 };
 
 export const notificationApi = {
-  async list(): Promise<NotificationItem[]> {
-    const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
+  async list(includeArchived = false): Promise<NotificationItem[]> {
+    let query = supabase.from('notifications').select('*').order('created_at', { ascending: false });
+    if (!includeArchived) query = query.eq('is_archived', false);
+    const { data, error } = await query;
     if (error) throw error;
     return (data || []) as NotificationItem[];
   },
-  async create(payload: Omit<NotificationItem, 'id' | 'created_at' | 'is_read'> & { is_read?: boolean }) {
+  async create(payload: NotificationCreatePayload) {
     const { error } = await supabase.from('notifications').insert({
       ...payload,
       is_read: payload.is_read ?? false,
+      is_archived: payload.is_archived ?? false,
     });
     if (error) throw error;
   },
   async markRead(id: string) {
     const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) throw error;
+  },
+  async archive(id: string) {
+    const { error } = await supabase.from('notifications').update({ is_archived: true }).eq('id', id);
+    if (error) throw error;
+  },
+  async unarchive(id: string) {
+    const { error } = await supabase.from('notifications').update({ is_archived: false }).eq('id', id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('notifications').delete().eq('id', id);
     if (error) throw error;
   },
   async runChecks() {
@@ -487,8 +563,18 @@ export const clientApi = {
     return data || [];
   },
   async create(payload: { company_name: string; contact_person: string; phone?: string; email?: string }) {
-    const { error } = await supabase.from('clients').insert(payload);
+    const { data, error } = await supabase.from('clients').insert(payload).select('id, company_name, contact_person').single();
     if (error) throw error;
+
+    await tryCreateNotification({
+      type: 'client_created',
+      title: 'Klient i ri u shtua',
+      message: `${data.company_name} - Kontakti: ${data.contact_person || 'Pa kontakt'}`,
+      metadata: {
+        client_id: data.id,
+        ...payload,
+      },
+    });
   },
 };
 
@@ -501,5 +587,34 @@ export const equipmentApi = {
   async create(payload: { equipment_name: string; equipment_type: string; status?: string; current_project_id?: string | null; notes?: string }) {
     const { error } = await supabase.from('equipment').insert(payload);
     if (error) throw error;
+  },
+};
+
+export const settingsApi = {
+  async get(): Promise<SystemSettings> {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'system')
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!data?.setting_value) return DEFAULT_SYSTEM_SETTINGS;
+
+    return {
+      ...DEFAULT_SYSTEM_SETTINGS,
+      ...(data.setting_value as Partial<SystemSettings>),
+    };
+  },
+  async save(payload: SystemSettings) {
+    const { error } = await supabase.from('app_settings').upsert(
+      {
+        setting_key: 'system',
+        setting_value: payload,
+      },
+      { onConflict: 'setting_key' }
+    );
+    if (error) throw error;
+    return payload;
   },
 };

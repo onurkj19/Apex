@@ -128,10 +128,24 @@ export interface Invoice {
 
 export interface NotificationItem {
   id: string;
-  type: 'project_completed' | 'contract_expiring' | 'large_expense';
+  type:
+    | 'project_completed'
+    | 'contract_expiring'
+    | 'large_expense'
+    | 'client_created'
+    | 'project_created'
+    | 'finance_income_created'
+    | 'finance_expense_created';
   title: string;
   message: string;
   is_read: boolean;
+  is_archived?: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
+}
+
+export interface SystemSettings {
+  darkMode: boolean;
+  monthlyEmail: string;
+  largeExpenseThreshold: string;
 }

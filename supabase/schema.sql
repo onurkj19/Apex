@@ -31,6 +31,16 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  alter type public.notification_type add value if not exists 'client_created';
+  alter type public.notification_type add value if not exists 'project_created';
+  alter type public.notification_type add value if not exists 'finance_income_created';
+  alter type public.notification_type add value if not exists 'finance_expense_created';
+exception
+  when duplicate_object then null;
+end $$;
+
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
@@ -220,8 +230,20 @@ create table if not exists public.notifications (
   title text not null,
   message text not null,
   is_read boolean not null default false,
+  is_archived boolean not null default false,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
+);
+
+alter table if exists public.notifications
+  add column if not exists is_archived boolean not null default false;
+
+create table if not exists public.app_settings (
+  id uuid primary key default uuid_generate_v4(),
+  setting_key text not null unique,
+  setting_value jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create or replace function public.set_updated_at()
@@ -260,6 +282,10 @@ drop trigger if exists trg_website_content_updated_at on public.website_content;
 create trigger trg_website_content_updated_at before update on public.website_content
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_app_settings_updated_at on public.app_settings;
+create trigger trg_app_settings_updated_at before update on public.app_settings
+for each row execute procedure public.set_updated_at();
+
 create or replace function public.is_admin(uid uuid)
 returns boolean
 language sql
@@ -296,6 +322,7 @@ alter table public.quotes enable row level security;
 alter table public.invoices enable row level security;
 alter table public.reports enable row level security;
 alter table public.notifications enable row level security;
+alter table public.app_settings enable row level security;
 
 drop policy if exists users_self_read on public.users;
 create policy users_self_read on public.users for select to authenticated
@@ -382,6 +409,11 @@ with check (public.is_admin(auth.uid()));
 
 drop policy if exists admin_all_notifications on public.notifications;
 create policy admin_all_notifications on public.notifications for all to authenticated
+using (public.is_admin(auth.uid()))
+with check (public.is_admin(auth.uid()));
+
+drop policy if exists admin_all_app_settings on public.app_settings;
+create policy admin_all_app_settings on public.app_settings for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
