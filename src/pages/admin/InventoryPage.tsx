@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { Star } from 'lucide-react';
 import { inventoryApi } from '@/lib/erp-api';
 import type { InventoryItem } from '@/lib/erp-types';
@@ -731,10 +732,18 @@ const InventoryPage = () => {
                         </td>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setEditingId(item.id)}>Edito</Button>
-                            <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${item.id}`} onClick={() => removeItem(item.id)}>
-                              {actionLoadingId === `delete-${item.id}` ? 'Duke fshire...' : 'Fshi'}
-                            </Button>
+                            <RowActionsMenu
+                              disabled={actionLoadingId === `delete-${item.id}`}
+                              actions={[
+                                { label: 'Edito', onClick: () => setEditingId(item.id) },
+                                {
+                                  label: actionLoadingId === `delete-${item.id}` ? 'Duke fshire...' : 'Fshi',
+                                  onClick: () => removeItem(item.id),
+                                  disabled: actionLoadingId === `delete-${item.id}`,
+                                  destructive: true,
+                                },
+                              ]}
+                            />
                           </div>
                         </td>
                       </>

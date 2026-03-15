@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { invoiceApi, projectApi, quoteApi } from '@/lib/erp-api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { AlertTriangle, Ban, CheckCircle2, Clock3, FileCheck2, FileText, Hourglass, Send, XCircle } from 'lucide-react';
 import type { Invoice, InvoiceStatus, Project, Quote, QuoteStatus } from '@/lib/erp-types';
 
@@ -405,10 +406,18 @@ const QuotesInvoicesPage = () => {
                     </a>
                   )}
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditingQuoteId(q.id)}>Edito</Button>
-                    <Button size="sm" variant="destructive" onClick={() => removeQuote(q.id)} disabled={actionLoadingId === `quote-delete-${q.id}`}>
-                      {actionLoadingId === `quote-delete-${q.id}` ? 'Duke fshire...' : 'Fshi'}
-                    </Button>
+                    <RowActionsMenu
+                      disabled={actionLoadingId === `quote-delete-${q.id}`}
+                      actions={[
+                        { label: 'Edito', onClick: () => setEditingQuoteId(q.id) },
+                        {
+                          label: actionLoadingId === `quote-delete-${q.id}` ? 'Duke fshire...' : 'Fshi',
+                          onClick: () => removeQuote(q.id),
+                          disabled: actionLoadingId === `quote-delete-${q.id}`,
+                          destructive: true,
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               )}
@@ -567,10 +576,18 @@ const QuotesInvoicesPage = () => {
                     </a>
                   )}
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditingInvoiceId(inv.id)}>Edito</Button>
-                    <Button size="sm" variant="destructive" onClick={() => removeInvoice(inv.id)} disabled={actionLoadingId === `invoice-delete-${inv.id}`}>
-                      {actionLoadingId === `invoice-delete-${inv.id}` ? 'Duke fshire...' : 'Fshi'}
-                    </Button>
+                    <RowActionsMenu
+                      disabled={actionLoadingId === `invoice-delete-${inv.id}`}
+                      actions={[
+                        { label: 'Edito', onClick: () => setEditingInvoiceId(inv.id) },
+                        {
+                          label: actionLoadingId === `invoice-delete-${inv.id}` ? 'Duke fshire...' : 'Fshi',
+                          onClick: () => removeInvoice(inv.id),
+                          disabled: actionLoadingId === `invoice-delete-${inv.id}`,
+                          destructive: true,
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               )}

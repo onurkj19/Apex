@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { FileText } from 'lucide-react';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import { contractApi } from '@/lib/erp-api';
@@ -230,10 +231,18 @@ const ContractsPage = () => {
                     </a>
                   )}
                   <div className="flex gap-2 items-center">
-                    <Button size="sm" variant="outline" onClick={() => setEditingId(c.id)}>Edito</Button>
-                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${c.id}`} onClick={() => removeContract(c.id)}>
-                      {actionLoadingId === `delete-${c.id}` ? 'Duke fshire...' : 'Fshi'}
-                    </Button>
+                    <RowActionsMenu
+                      disabled={actionLoadingId === `delete-${c.id}`}
+                      actions={[
+                        { label: 'Edito', onClick: () => setEditingId(c.id) },
+                        {
+                          label: actionLoadingId === `delete-${c.id}` ? 'Duke fshire...' : 'Fshi',
+                          onClick: () => removeContract(c.id),
+                          disabled: actionLoadingId === `delete-${c.id}`,
+                          destructive: true,
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               )}

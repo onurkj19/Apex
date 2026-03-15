@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { clientApi, equipmentApi } from '@/lib/erp-api';
 
 const equipmentTypes = ['Trucks', 'Vans', 'Forklifts', 'Machines'];
@@ -199,8 +200,13 @@ const ClientsEquipmentPage = () => {
                     <p className="font-medium">{c.company_name}</p>
                     <p className="text-sm text-muted-foreground">{c.client_address || '-'} - {c.phone || '-'} - {c.email || '-'}</p>
                     <div className="mt-2 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => startEditClient(c)}>Edito</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeClient(c.id)} disabled={savingClient}>Fshi</Button>
+                      <RowActionsMenu
+                        disabled={savingClient}
+                        actions={[
+                          { label: 'Edito', onClick: () => startEditClient(c) },
+                          { label: 'Fshi', onClick: () => removeClient(c.id), destructive: true },
+                        ]}
+                      />
                     </div>
                   </>
                 )}
@@ -240,8 +246,13 @@ const ClientsEquipmentPage = () => {
                     <p className="font-medium">{e.equipment_name} ({e.equipment_type})</p>
                     <p className="text-sm text-muted-foreground">{e.status} - {e.notes || 'Pa shenime'}</p>
                     <div className="mt-2 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => startEditEquipment(e)}>Edito</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeEquipment(e.id)} disabled={savingEquipment}>Fshi</Button>
+                      <RowActionsMenu
+                        disabled={savingEquipment}
+                        actions={[
+                          { label: 'Edito', onClick: () => startEditEquipment(e) },
+                          { label: 'Fshi', onClick: () => removeEquipment(e.id), destructive: true },
+                        ]}
+                      />
                     </div>
                   </>
                 )}

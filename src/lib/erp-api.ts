@@ -54,6 +54,19 @@ const tryCreateNotification = async (payload: NotificationCreatePayload) => {
   }
 };
 
+const createAdminChangeNotification = async (
+  title: string,
+  message: string,
+  metadata: Record<string, unknown> = {}
+) => {
+  await tryCreateNotification({
+    type: 'admin_change',
+    title,
+    message,
+    metadata,
+  });
+};
+
 const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   darkMode: true,
   monthlyEmail: 'finance@apex-geruste.ch',
@@ -195,14 +208,29 @@ export const projectApi = {
   async updateStatus(projectId: string, status: Project['status']) {
     const { error } = await supabase.from('projects').update({ status }).eq('id', projectId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Status projekti u ndryshua',
+      `Projekti ${projectId} u kalua ne statusin "${status}"`,
+      { project_id: projectId, status }
+    );
   },
   async update(projectId: string, payload: Partial<Project>) {
     const { error } = await supabase.from('projects').update(payload).eq('id', projectId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Projekti u editua',
+      `${payload.project_name || `Projekti ${projectId}`} u perditesua`,
+      { project_id: projectId, changes: payload }
+    );
   },
   async remove(projectId: string) {
     const { error } = await supabase.from('projects').delete().eq('id', projectId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Projekti u fshi',
+      `Projekti me ID ${projectId} u fshi nga paneli`,
+      { project_id: projectId }
+    );
   },
   async getProfitLoss() {
     const [
@@ -263,18 +291,38 @@ export const workerApi = {
   async create(payload: Partial<Worker>) {
     const { error } = await supabase.from('workers').insert(payload);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Punetor i ri u shtua',
+      `${payload.full_name || 'Punetor'} u shtua me sukses`,
+      { worker: payload }
+    );
   },
   async update(workerId: string, payload: Partial<Worker>) {
     const { error } = await supabase.from('workers').update(payload).eq('id', workerId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Punetori u editua',
+      `${payload.full_name || `Punetori ${workerId}`} u perditesua`,
+      { worker_id: workerId, changes: payload }
+    );
   },
   async remove(workerId: string) {
     const { error } = await supabase.from('workers').delete().eq('id', workerId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Punetori u fshi',
+      `Punetori me ID ${workerId} u fshi`,
+      { worker_id: workerId }
+    );
   },
   async moveGroup(workerId: string, groupName: string) {
     const { error } = await supabase.from('workers').update({ group_name: groupName }).eq('id', workerId);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Punetori ndryshoi grup',
+      `Punetori ${workerId} u kalua ne grupin ${groupName}`,
+      { worker_id: workerId, group_name: groupName }
+    );
   },
 };
 
@@ -289,14 +337,21 @@ export const workerGroupApi = {
   async create(name: string) {
     const { error } = await supabase.from('worker_groups').insert({ name, is_active: true });
     if (error) throw error;
+    await createAdminChangeNotification('Grup i ri u shtua', `Grupi "${name}" u krijua`, { group_name: name });
   },
   async setActive(id: string, isActive: boolean) {
     const { error } = await supabase.from('worker_groups').update({ is_active: isActive }).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Statusi i grupit u ndryshua',
+      `Grupi ${id} u ${isActive ? 'aktivizua' : 'caktivizua'}`,
+      { group_id: id, is_active: isActive }
+    );
   },
   async remove(id: string) {
     const { error } = await supabase.from('worker_groups').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Grupi u fshi', `Grupi me ID ${id} u fshi`, { group_id: id });
   },
 };
 
@@ -348,10 +403,20 @@ export const financeApi = {
   async update(id: string, payload: Partial<FinanceEntry>) {
     const { error } = await supabase.from('finances').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Transaksioni financiar u editua',
+      `${payload.title || `Transaksioni ${id}`} u perditesua`,
+      { finance_id: id, changes: payload }
+    );
   },
   async remove(id: string) {
     const { error } = await supabase.from('finances').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Transaksioni financiar u fshi',
+      `Transaksioni me ID ${id} u fshi`,
+      { finance_id: id }
+    );
   },
 };
 
@@ -371,14 +436,25 @@ export const contractApi = {
   async create(payload: Partial<Contract>) {
     const { error } = await supabase.from('contracts').insert(payload);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Kontrate e re u shtua',
+      `${payload.contract_title || 'Kontrate'} u regjistrua`,
+      { contract: payload }
+    );
   },
   async update(id: string, payload: Partial<Contract>) {
     const { error } = await supabase.from('contracts').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Kontrata u editua',
+      `${payload.contract_title || `Kontrata ${id}`} u perditesua`,
+      { contract_id: id, changes: payload }
+    );
   },
   async remove(id: string) {
     const { error } = await supabase.from('contracts').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Kontrata u fshi', `Kontrata me ID ${id} u fshi`, { contract_id: id });
   },
 };
 
@@ -408,6 +484,11 @@ export const inventoryApi = {
         .update({ total_quantity: Number(existing.total_quantity || 0) + payload.quantity })
         .eq('id', existing.id);
       if (updateError) throw updateError;
+      await createAdminChangeNotification(
+        'Inventari u perditesua',
+        `U shtua +${payload.quantity} te "${itemName}"`,
+        { category: payload.category, item_name: itemName, quantity: payload.quantity }
+      );
       return;
     }
 
@@ -418,18 +499,26 @@ export const inventoryApi = {
       used_quantity: 0,
     });
     if (insertError) throw insertError;
+    await createAdminChangeNotification(
+      'Artikull i ri ne inventar',
+      `"${itemName}" u shtua me sasi ${payload.quantity}`,
+      { category: payload.category, item_name: itemName, quantity: payload.quantity }
+    );
   },
   async upsert(payload: Partial<InventoryItem>) {
     const { error } = await supabase.from('inventory').upsert(payload);
     if (error) throw error;
+    await createAdminChangeNotification('Inventari u perditesua', 'Ndryshim/upsert ne inventar u krye', { changes: payload });
   },
   async update(id: string, payload: Partial<InventoryItem>) {
     const { error } = await supabase.from('inventory').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Inventari u editua', `Artikulli ${id} u perditesua`, { inventory_id: id, changes: payload });
   },
   async remove(id: string) {
     const { error } = await supabase.from('inventory').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Artikulli i inventarit u fshi', `Artikulli ${id} u fshi`, { inventory_id: id });
   },
 };
 
@@ -455,6 +544,7 @@ export const websiteContentApi = {
       .from('website_content')
       .upsert({ section_key: 'home_hero', ...payload }, { onConflict: 'section_key' });
     if (error) throw error;
+    await createAdminChangeNotification('Permbajtja e web u perditesua', 'Seksioni home_hero u perditesua', { section_key: 'home_hero' });
   },
 };
 
@@ -467,11 +557,22 @@ export const workLogApi = {
   async create(payload: Partial<WorkLog>) {
     const { error } = await supabase.from('work_logs').insert(payload);
     if (error) throw error;
+    await createAdminChangeNotification(
+      'Ore pune u regjistruan',
+      `U regjistrua evidence pune per projektin ${payload.project_id || '-'}`,
+      { work_log: payload }
+    );
   },
   async createMany(payloads: Partial<WorkLog>[]) {
     if (payloads.length === 0) return;
     const { error } = await supabase.from('work_logs').insert(payloads);
     if (error) throw error;
+    const totalHours = payloads.reduce((sum, row) => sum + Number(row.hours_worked || 0), 0);
+    await createAdminChangeNotification(
+      'Ore pune u regjistruan',
+      `U ruajten ${payloads.length} evidenca pune (${totalHours.toFixed(2)} ore totale)`,
+      { count: payloads.length, total_hours: totalHours, project_id: payloads[0]?.project_id || null }
+    );
   },
   async getPayrollByMonth() {
     const { data, error } = await supabase
@@ -515,15 +616,18 @@ export const quoteApi = {
   async create(payload: Partial<Quote>) {
     const { data, error } = await supabase.from('quotes').insert(payload).select('*').single();
     if (error) throw error;
+    await createAdminChangeNotification('Oferte e re u shtua', `${payload.quote_title || 'Oferte'} u ruajt`, { quote: payload });
     return data as Quote;
   },
   async update(id: string, payload: Partial<Quote>) {
     const { error } = await supabase.from('quotes').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Oferta u editua', `${payload.quote_title || `Oferta ${id}`} u perditesua`, { quote_id: id, changes: payload });
   },
   async remove(id: string) {
     const { error } = await supabase.from('quotes').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Oferta u fshi', `Oferta me ID ${id} u fshi`, { quote_id: id });
   },
 };
 
@@ -536,6 +640,7 @@ export const invoiceApi = {
   async create(payload: Partial<Invoice>) {
     const { data, error } = await supabase.from('invoices').insert(payload).select('*').single();
     if (error) throw error;
+    await createAdminChangeNotification('Fature e re u shtua', `${payload.invoice_title || payload.invoice_number || 'Fature'} u ruajt`, { invoice: payload });
     return data as Invoice;
   },
   async uploadDocument(file: File) {
@@ -548,10 +653,12 @@ export const invoiceApi = {
   async update(id: string, payload: Partial<Invoice>) {
     const { error } = await supabase.from('invoices').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Fatura u editua', `${payload.invoice_title || payload.invoice_number || `Fatura ${id}`} u perditesua`, { invoice_id: id, changes: payload });
   },
   async remove(id: string) {
     const { error } = await supabase.from('invoices').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Fatura u fshi', `Fatura me ID ${id} u fshi`, { invoice_id: id });
   },
   async generateFromCompletedProject(projectId: string) {
     const { data: project, error: projectError } = await supabase
@@ -670,10 +777,12 @@ export const clientApi = {
   async update(id: string, payload: { company_name: string; client_address: string; phone?: string; email?: string }) {
     const { error } = await supabase.from('clients').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Klienti u editua', `${payload.company_name} u perditesua`, { client_id: id, changes: payload });
   },
   async remove(id: string) {
     const { error } = await supabase.from('clients').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Klienti u fshi', `Klienti me ID ${id} u fshi`, { client_id: id });
   },
 };
 
@@ -686,14 +795,17 @@ export const equipmentApi = {
   async create(payload: { equipment_name: string; equipment_type: string; status?: string; current_project_id?: string | null; notes?: string }) {
     const { error } = await supabase.from('equipment').insert(payload);
     if (error) throw error;
+    await createAdminChangeNotification('Pajisje e re u shtua', `${payload.equipment_name} u shtua`, { equipment: payload });
   },
   async update(id: string, payload: { equipment_name: string; equipment_type: string; status?: string; notes?: string }) {
     const { error } = await supabase.from('equipment').update(payload).eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Pajisja u editua', `${payload.equipment_name || `Pajisja ${id}`} u perditesua`, { equipment_id: id, changes: payload });
   },
   async remove(id: string) {
     const { error } = await supabase.from('equipment').delete().eq('id', id);
     if (error) throw error;
+    await createAdminChangeNotification('Pajisja u fshi', `Pajisja me ID ${id} u fshi`, { equipment_id: id });
   },
 };
 
@@ -722,6 +834,7 @@ export const settingsApi = {
       { onConflict: 'setting_key' }
     );
     if (error) throw error;
+    await createAdminChangeNotification('Cilesimet u perditesuan', 'Ndryshime ne cilesimet e sistemit u ruajten', { settings: payload });
     return payload;
   },
 };

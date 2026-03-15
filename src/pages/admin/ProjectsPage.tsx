@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { clientApi, projectApi } from '@/lib/erp-api';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
 import { z } from 'zod';
@@ -256,10 +257,18 @@ const ProjectsPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm">Progress: {p.progress}%</p>
-                    <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>Edito</Button>
-                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${p.id}`} onClick={() => removeProject(p.id)}>
-                      {actionLoadingId === `delete-${p.id}` ? 'Duke fshire...' : 'Fshi'}
-                    </Button>
+                    <RowActionsMenu
+                      disabled={actionLoadingId === `delete-${p.id}`}
+                      actions={[
+                        { label: 'Edito', onClick: () => setEditingId(p.id) },
+                        {
+                          label: actionLoadingId === `delete-${p.id}` ? 'Duke fshire...' : 'Fshi',
+                          onClick: () => removeProject(p.id),
+                          disabled: actionLoadingId === `delete-${p.id}`,
+                          destructive: true,
+                        },
+                      ]}
+                    />
                   </div>
                 </>
               )}

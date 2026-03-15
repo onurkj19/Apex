@@ -37,6 +37,7 @@ begin
   alter type public.notification_type add value if not exists 'project_created';
   alter type public.notification_type add value if not exists 'finance_income_created';
   alter type public.notification_type add value if not exists 'finance_expense_created';
+  alter type public.notification_type add value if not exists 'admin_change';
 exception
   when duplicate_object then null;
 end $$;

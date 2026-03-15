@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { workerApi, workerGroupApi } from '@/lib/erp-api';
 import type { Worker, WorkerGroup } from '@/lib/erp-types';
 
@@ -216,12 +217,24 @@ const WorkersPage = () => {
               <div key={group.id} className="border rounded p-2 flex items-center justify-between">
                 <span>{group.name} {group.is_active ? '(Aktiv)' : '(Jo aktiv)'}</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => toggleGroup(group)}>
-                    {actionLoadingId === `toggle-group-${group.id}` ? 'Duke ruajtur...' : (group.is_active ? 'Caktivizo' : 'Aktivizo')}
-                  </Button>
-                  <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-group-${group.id}`} onClick={() => deleteGroup(group)}>
-                    {actionLoadingId === `delete-group-${group.id}` ? 'Duke fshire...' : 'Fshi'}
-                  </Button>
+                  <RowActionsMenu
+                    disabled={actionLoadingId === `toggle-group-${group.id}` || actionLoadingId === `delete-group-${group.id}`}
+                    actions={[
+                      {
+                        label: actionLoadingId === `toggle-group-${group.id}`
+                          ? 'Duke ruajtur...'
+                          : (group.is_active ? 'Caktivizo' : 'Aktivizo'),
+                        onClick: () => toggleGroup(group),
+                        disabled: actionLoadingId === `toggle-group-${group.id}`,
+                      },
+                      {
+                        label: actionLoadingId === `delete-group-${group.id}` ? 'Duke fshire...' : 'Fshi',
+                        onClick: () => deleteGroup(group),
+                        disabled: actionLoadingId === `delete-group-${group.id}`,
+                        destructive: true,
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             ))}
@@ -313,10 +326,18 @@ const WorkersPage = () => {
                     <p className="text-sm text-muted-foreground">{worker.role} | {worker.hourly_rate} CHF/h | {worker.group_name}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditingId(worker.id)}>Edito</Button>
-                    <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-worker-${worker.id}`} onClick={() => deleteWorker(worker.id)}>
-                      {actionLoadingId === `delete-worker-${worker.id}` ? 'Duke fshire...' : 'Fshi'}
-                    </Button>
+                    <RowActionsMenu
+                      disabled={actionLoadingId === `delete-worker-${worker.id}`}
+                      actions={[
+                        { label: 'Edito', onClick: () => setEditingId(worker.id) },
+                        {
+                          label: actionLoadingId === `delete-worker-${worker.id}` ? 'Duke fshire...' : 'Fshi',
+                          onClick: () => deleteWorker(worker.id),
+                          disabled: actionLoadingId === `delete-worker-${worker.id}`,
+                          destructive: true,
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               )}

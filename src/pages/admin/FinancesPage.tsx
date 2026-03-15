@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { financeApi } from '@/lib/erp-api';
 import type { ExpenseCategory, FinanceEntry, PaymentMethod } from '@/lib/erp-types';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
@@ -238,10 +239,18 @@ const FinancesPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-green-600 font-semibold">+ {Number(row.amount).toFixed(2)} CHF</p>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(row.id)}>Edito</Button>
-                      <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${row.id}`} onClick={() => removeRow(row.id)}>
-                        {actionLoadingId === `delete-${row.id}` ? 'Duke fshire...' : 'Fshi'}
-                      </Button>
+                      <RowActionsMenu
+                        disabled={actionLoadingId === `delete-${row.id}`}
+                        actions={[
+                          { label: 'Edito', onClick: () => setEditingId(row.id) },
+                          {
+                            label: actionLoadingId === `delete-${row.id}` ? 'Duke fshire...' : 'Fshi',
+                            onClick: () => removeRow(row.id),
+                            disabled: actionLoadingId === `delete-${row.id}`,
+                            destructive: true,
+                          },
+                        ]}
+                      />
                     </div>
                   </>
                 )}
@@ -288,10 +297,18 @@ const FinancesPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-red-600 font-semibold">- {Number(row.amount).toFixed(2)} CHF</p>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(row.id)}>Edito</Button>
-                      <Button size="sm" variant="destructive" disabled={actionLoadingId === `delete-${row.id}`} onClick={() => removeRow(row.id)}>
-                        {actionLoadingId === `delete-${row.id}` ? 'Duke fshire...' : 'Fshi'}
-                      </Button>
+                      <RowActionsMenu
+                        disabled={actionLoadingId === `delete-${row.id}`}
+                        actions={[
+                          { label: 'Edito', onClick: () => setEditingId(row.id) },
+                          {
+                            label: actionLoadingId === `delete-${row.id}` ? 'Duke fshire...' : 'Fshi',
+                            onClick: () => removeRow(row.id),
+                            disabled: actionLoadingId === `delete-${row.id}`,
+                            destructive: true,
+                          },
+                        ]}
+                      />
                     </div>
                   </>
                 )}

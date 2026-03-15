@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { notificationApi } from '@/lib/erp-api';
 import type { NotificationItem } from '@/lib/erp-types';
 
@@ -125,31 +126,24 @@ const NotificationsPage = () => {
                           Ndryshimi: {(actionAt && !Number.isNaN(actionAt.getTime()) ? actionAt : createdAt).toLocaleString('sq-AL')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Nga admini: {actorName || actorEmail || 'Sistemi'}
+                          Nga admini: {actorName ? `${actorName}${actorEmail ? ` (${actorEmail})` : ''}` : (actorEmail || 'Sistemi')}
                         </p>
                       </>
                     );
                   })()}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {!item.is_read && (
-                    <Button size="sm" variant="outline" onClick={() => markRead(item.id)} disabled={actionId === item.id}>
-                      Lexuar
-                    </Button>
-                  )}
-                  {!item.is_archived ? (
-                    <Button size="sm" variant="outline" onClick={() => archive(item.id)} disabled={actionId === item.id}>
-                      Arkivo
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => unarchive(item.id)} disabled={actionId === item.id}>
-                      Rikthe
-                    </Button>
-                  )}
-                  <Button size="sm" variant="destructive" onClick={() => removeItem(item.id)} disabled={actionId === item.id}>
-                    Fshi
-                  </Button>
-                </div>
+                <RowActionsMenu
+                  disabled={actionId === item.id}
+                  actions={[
+                    ...(!item.is_read
+                      ? [{ label: 'Lexuar', onClick: () => markRead(item.id), disabled: actionId === item.id }]
+                      : []),
+                    !item.is_archived
+                      ? { label: 'Arkivo', onClick: () => archive(item.id), disabled: actionId === item.id }
+                      : { label: 'Rikthe', onClick: () => unarchive(item.id), disabled: actionId === item.id },
+                    { label: 'Fshi', onClick: () => removeItem(item.id), disabled: actionId === item.id, destructive: true },
+                  ]}
+                />
               </div>
             </div>
           ))}
