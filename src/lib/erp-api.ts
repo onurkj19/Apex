@@ -256,6 +256,37 @@ export const inventoryApi = {
     if (error) throw error;
     return (data || []) as InventoryItem[];
   },
+  async addStock(payload: { category: InventoryItem['category']; item_name: string; quantity: number }) {
+    const itemName = payload.item_name.trim();
+    if (!itemName) throw new Error('Item name is required');
+    if (payload.quantity <= 0) throw new Error('Quantity must be greater than zero');
+
+    const { data: existingRows, error: findError } = await supabase
+      .from('inventory')
+      .select('id, total_quantity, used_quantity')
+      .eq('category', payload.category)
+      .eq('item_name', itemName)
+      .limit(1);
+    if (findError) throw findError;
+
+    const existing = (existingRows || [])[0];
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('inventory')
+        .update({ total_quantity: Number(existing.total_quantity || 0) + payload.quantity })
+        .eq('id', existing.id);
+      if (updateError) throw updateError;
+      return;
+    }
+
+    const { error: insertError } = await supabase.from('inventory').insert({
+      category: payload.category,
+      item_name: itemName,
+      total_quantity: payload.quantity,
+      used_quantity: 0,
+    });
+    if (insertError) throw insertError;
+  },
   async upsert(payload: Partial<InventoryItem>) {
     const { error } = await supabase.from('inventory').upsert(payload);
     if (error) throw error;
