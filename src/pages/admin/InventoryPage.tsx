@@ -28,6 +28,14 @@ const sectionConfigs: SectionConfig[] = [
     label: 'MONTAGEGERUESTE (Kuadro Montimi)',
     category: 'Frames',
     products: [
+      {
+        name: 'Montagerahmen, Stahl; 0,73 m',
+        measures: ['0,67 × 0,73 m', '1,00 × 0,73 m', '1,50 × 0,73 m', '2,00 × 0,73 m'],
+      },
+      {
+        name: 'Montagerahmen, Stahl; 0,73 m (mit eingepressten Rohrverbindern)',
+        measures: ['0,67 × 0,73 m', '1,00 × 0,73 m', '1,50 × 0,73 m', '2,00 × 0,73 m'],
+      },
       { name: 'Rahmentafel, Stahl; 0,73 m', measures: ['0,67 × 0,73 m', '1,00 × 0,73 m', '1,50 × 0,73 m', '2,00 × 0,73 m'] },
       { name: 'Rahmentafel, Stahl; 0,73 m (mit 4 Geländer-Keilgehäusen)', measures: ['2,00 × 0,73 m'] },
       { name: 'Rahmentafel, Aluminium; 0,73 m', measures: ['0,67 × 0,73 m', '1,00 × 0,73 m', '1,50 × 0,73 m', '2,00 × 0,73 m'] },
