@@ -47,9 +47,17 @@ create table if not exists public.users (
   email text not null unique,
   role public.app_role not null default 'admin',
   is_active boolean not null default true,
+  is_online boolean not null default false,
+  last_seen_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.users
+  add column if not exists is_online boolean not null default false;
+
+alter table if exists public.users
+  add column if not exists last_seen_at timestamptz;
 
 create table if not exists public.clients (
   id uuid primary key default uuid_generate_v4(),

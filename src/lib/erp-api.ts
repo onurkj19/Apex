@@ -19,9 +19,35 @@ type NotificationCreatePayload = Omit<NotificationItem, 'id' | 'created_at' | 'i
   is_archived?: boolean;
 };
 
+const getCurrentAdminMeta = async () => {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id, full_name, email')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+  if (profileError || !profile) return null;
+
+  return {
+    actor_admin_id: profile.id,
+    actor_admin_name: profile.full_name,
+    actor_admin_email: profile.email,
+    action_at: new Date().toISOString(),
+  };
+};
+
 const tryCreateNotification = async (payload: NotificationCreatePayload) => {
   try {
-    await notificationApi.create(payload);
+    const actorMeta = await getCurrentAdminMeta();
+    await notificationApi.create({
+      ...payload,
+      metadata: {
+        ...(payload.metadata || {}),
+        ...(actorMeta || {}),
+      },
+    });
   } catch (error) {
     // Notifications should not block main business actions.
     console.error('Failed to create notification', error);
@@ -51,13 +77,35 @@ export const authApi = {
 
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('id, role, is_active, full_name, email')
+      .select('id, role, is_active, full_name, email, is_online, last_seen_at')
       .eq('id', sessionData.session.user.id)
       .single();
 
     if (profileError) throw profileError;
     if (!profile || profile.role !== 'admin' || !profile.is_active) return null;
     return { session: sessionData.session, profile };
+  },
+  async setPresence(isOnline: boolean) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) return;
+
+    const { error } = await supabase
+      .from('users')
+      .update({
+        is_online: isOnline,
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq('id', userData.user.id);
+    if (error) throw error;
+  },
+  async listAdminPresence() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, role, is_active, is_online, last_seen_at')
+      .eq('role', 'admin')
+      .order('full_name', { ascending: true });
+    if (error) throw error;
+    return data || [];
   },
 };
 
@@ -534,10 +582,20 @@ export const notificationApi = {
     return (data || []) as NotificationItem[];
   },
   async create(payload: NotificationCreatePayload) {
+    const hasActor = Boolean(
+      (payload.metadata as Record<string, unknown> | undefined)?.actor_admin_id ||
+      (payload.metadata as Record<string, unknown> | undefined)?.actor_admin_name
+    );
+    const actorMeta = hasActor ? null : await getCurrentAdminMeta();
+
     const { error } = await supabase.from('notifications').insert({
       ...payload,
       is_read: payload.is_read ?? false,
       is_archived: payload.is_archived ?? false,
+      metadata: {
+        ...(payload.metadata || {}),
+        ...(actorMeta || {}),
+      },
     });
     if (error) throw error;
   },

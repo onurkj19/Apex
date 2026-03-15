@@ -36,6 +36,11 @@ const AdminLayout = () => {
   );
 
   const onLogout = async () => {
+    try {
+      await authApi.setPresence(false);
+    } catch {
+      // Continue logout even if presence update fails.
+    }
     await authApi.logout();
     navigate('/admin/login');
   };

@@ -110,11 +110,26 @@ const NotificationsPage = () => {
             <div key={item.id} className={`border rounded p-3 ${item.is_read ? 'opacity-70' : ''}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
-                  <p className="font-medium">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.message}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString('sq-AL')}
-                  </p>
+                  {(() => {
+                    const metadata = (item.metadata || {}) as Record<string, unknown>;
+                    const actorName = String(metadata.actor_admin_name || '');
+                    const actorEmail = String(metadata.actor_admin_email || '');
+                    const actionAtRaw = String(metadata.action_at || '');
+                    const actionAt = actionAtRaw ? new Date(actionAtRaw) : null;
+                    const createdAt = new Date(item.created_at);
+                    return (
+                      <>
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">{item.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Ndryshimi: {(actionAt && !Number.isNaN(actionAt.getTime()) ? actionAt : createdAt).toLocaleString('sq-AL')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Nga admini: {actorName || actorEmail || 'Sistemi'}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!item.is_read && (
