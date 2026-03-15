@@ -157,25 +157,48 @@ export const projectApi = {
     if (error) throw error;
   },
   async getProfitLoss() {
-    const [{ data: projects, error: projectsError }, { data: finances, error: financeError }] = await Promise.all([
+    const [
+      { data: projects, error: projectsError },
+      { data: finances, error: financeError },
+      { data: workLogs, error: workLogsError },
+    ] = await Promise.all([
       supabase.from('projects').select('id, project_name, revenue, worker_cost'),
       supabase.from('finances').select('project_id, amount, finance_type').eq('finance_type', 'expense'),
+      supabase.from('work_logs').select('project_id, hours_worked, total_amount'),
     ]);
     if (projectsError) throw projectsError;
     if (financeError) throw financeError;
+    if (workLogsError) throw workLogsError;
+
+    const workByProject = (workLogs || []).reduce<
+      Record<string, { hours: number; amount: number }>
+    >((acc, row: any) => {
+      if (!row.project_id) return acc;
+      if (!acc[row.project_id]) acc[row.project_id] = { hours: 0, amount: 0 };
+      acc[row.project_id].hours += Number(row.hours_worked || 0);
+      acc[row.project_id].amount += Number(row.total_amount || 0);
+      return acc;
+    }, {});
 
     return (projects || []).map((project: any) => {
       const expense = (finances || [])
         .filter((f: any) => f.project_id === project.id)
         .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0);
+
+      const workTotals = workByProject[project.id] || { hours: 0, amount: 0 };
       const revenue = Number(project.revenue || 0);
-      const workerCost = Number(project.worker_cost || 0);
+      const workerCostFromLogs = Number(workTotals.amount || 0);
+      const manualWorkerCost = Number(project.worker_cost || 0);
+      const workerCost = workerCostFromLogs > 0 ? workerCostFromLogs : manualWorkerCost;
       const profitLoss = revenue - workerCost - expense;
       return {
         id: project.id,
         project_name: project.project_name,
         revenue,
         worker_cost: workerCost,
+        worker_hours: Number(workTotals.hours || 0),
+        worker_cost_logs: workerCostFromLogs,
+        worker_cost_manual: manualWorkerCost,
         expenses: expense,
         profit_loss: profitLoss,
       };

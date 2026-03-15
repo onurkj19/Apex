@@ -50,14 +50,20 @@ const ProfitLossPage = () => {
           {rows.map((row) => (
             <div key={row.id} className="border rounded p-3">
               <p className="font-medium">{row.project_name}</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm mt-2">
                 <span>Te ardhura: {row.revenue.toFixed(2)} CHF</span>
                 <span>Kosto punetoresh: {row.worker_cost.toFixed(2)} CHF</span>
+                <span>Ore pune: {Number(row.worker_hours || 0).toFixed(2)} h</span>
                 <span>Shpenzime: {row.expenses.toFixed(2)} CHF</span>
                 <span className={row.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}>
                   Rezultati: {row.profit_loss.toFixed(2)} CHF
                 </span>
               </div>
+              {Number(row.worker_cost_logs || 0) > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Kosto e punetoreve po merret automatikisht nga oret e punes (Work Logs).
+                </p>
+              )}
             </div>
           ))}
           {rows.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka te dhena financiare per projekte.</p>}
