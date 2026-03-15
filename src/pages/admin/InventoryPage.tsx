@@ -29,6 +29,15 @@ const sectionConfigs: SectionConfig[] = [
     category: 'Frames',
     products: [
       {
+        name: '1a Assembly frame, steel; 0.73 m',
+        measures: [
+          '0.67 × 0.73 m | 10.4 kg | 10 11 067L',
+          '1.00 × 0.73 m | 12.9 kg | 10 11 100L',
+          '1.50 × 0.73 m | 16.5 kg | 10 11 150L',
+          '2.00 × 0.73 m | 18.6 kg | 10 11 200L',
+        ],
+      },
+      {
         name: 'Montagerahmen, Stahl; 0,73 m',
         measures: ['0,67 × 0,73 m', '1,00 × 0,73 m', '1,50 × 0,73 m', '2,00 × 0,73 m'],
       },
@@ -351,7 +360,10 @@ const InventoryPage = () => {
   const filteredSectionProducts = useMemo(
     () =>
       selectedSection.products.filter((p) =>
-        p.name.toLowerCase().includes(productSearch.trim().toLowerCase()),
+        [p.name, ...(p.measures || [])]
+          .join(' ')
+          .toLowerCase()
+          .includes(productSearch.trim().toLowerCase()),
       ),
     [selectedSection, productSearch],
   );
