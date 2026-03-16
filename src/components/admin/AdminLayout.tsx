@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Bell, Boxes, BriefcaseBusiness, Clock3, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Truck, Users, Wallet } from 'lucide-react';
+import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Truck, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { authApi, notificationApi } from '@/lib/erp-api';
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
+import { canAccessRoute } from '@/lib/permissions';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
+import type { AppRole } from '@/lib/erp-types';
 
 const items = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,10 +24,14 @@ const items = [
   { to: '/admin/content', label: 'Permbajtja Web', icon: BriefcaseBusiness },
   { to: '/admin/reports', label: 'Raportet', icon: BarChart3 },
   { to: '/admin/notifications', label: 'Njoftime', icon: Bell },
+  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
+  { to: '/admin/team-planning', label: 'Team Planning', icon: CalendarDays },
   { to: '/admin/settings', label: 'Cilesimet', icon: Settings },
 ];
 
 const AdminLayout = () => {
+  const { profile } = useAdminAuth();
+  const role = (profile?.role as AppRole | undefined) || null;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -36,9 +43,9 @@ const AdminLayout = () => {
   const filteredItems = useMemo(
     () =>
       items.filter((item) =>
-        item.label.toLowerCase().includes(search.trim().toLowerCase()),
+        item.label.toLowerCase().includes(search.trim().toLowerCase()) && canAccessRoute(role, item.to),
       ),
-    [search],
+    [search, role],
   );
 
   useEffect(() => {

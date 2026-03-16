@@ -11,6 +11,7 @@ export type QuoteStatus = 'Draft' | 'Derguar' | 'Pranuar' | 'Perfunduar' | 'Refu
 export type InvoiceStatus = 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'Cash' | 'Bank';
 export type ExpenseCategory = 'Karburant' | 'Pajisje' | 'Blerje Produktesh' | 'Qira Magazine' | 'Mjete Pune';
+export type AppRole = 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer';
 
 export interface DashboardStats {
   total_projects: number;
@@ -149,4 +150,35 @@ export interface SystemSettings {
   darkMode: boolean;
   monthlyEmail: string;
   largeExpenseThreshold: string;
+}
+
+export interface AuditLogItem {
+  id: string;
+  table_name: string;
+  operation: string;
+  record_id: string | null;
+  user_id: string | null;
+  old_data: Record<string, unknown> | null;
+  new_data: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface TeamPlanItem {
+  id: string;
+  title: string;
+  plan_date: string;
+  plan_type: 'daily' | 'weekly';
+  location: string | null;
+  task_details: string | null;
+  project_id: string | null;
+  group_name: string | null;
+  worker_ids: string[];
+  vehicle_label: string | null;
+  trailer_required: boolean;
+  attachment_url: string | null;
+  attachment_path: string | null;
+  notes: string | null;
+  status: 'planned' | 'in_progress' | 'done' | 'cancelled';
+  created_at: string;
+  updated_at: string;
 }

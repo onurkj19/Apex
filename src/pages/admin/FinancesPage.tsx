@@ -118,6 +118,8 @@ const FinancesPage = () => {
     try {
       await financeApi.remove(id);
       await load();
+    } catch (error: any) {
+      alert(error?.message || 'Nuk u arrit fshirja e transaksionit.');
     } finally {
       setActionLoadingId(null);
     }

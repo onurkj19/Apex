@@ -1,18 +1,22 @@
 import supabase from '@/lib/supabase';
 import type {
+  AuditLogItem,
   Contract,
   DashboardStats,
   FinanceEntry,
   Invoice,
   InventoryItem,
   NotificationItem,
+  AppRole,
   Project,
   Quote,
+  TeamPlanItem,
   WorkLog,
   WorkerGroup,
   Worker,
   SystemSettings,
 } from '@/lib/erp-types';
+import { canDeleteFinance } from '@/lib/permissions';
 
 type NotificationCreatePayload = Omit<NotificationItem, 'id' | 'created_at' | 'is_read' | 'is_archived'> & {
   is_read?: boolean;
@@ -36,6 +40,11 @@ const getCurrentAdminMeta = async () => {
     actor_admin_email: profile.email,
     action_at: new Date().toISOString(),
   };
+};
+
+const getCurrentRole = async (): Promise<AppRole | null> => {
+  const session = await authApi.getAdminSession();
+  return (session?.profile?.role as AppRole | undefined) || null;
 };
 
 const tryCreateNotification = async (payload: NotificationCreatePayload) => {
@@ -95,7 +104,7 @@ export const authApi = {
       .single();
 
     if (profileError) throw profileError;
-    if (!profile || profile.role !== 'admin' || !profile.is_active) return null;
+    if (!profile || !profile.is_active) return null;
     return { session: sessionData.session, profile };
   },
   async setPresence(isOnline: boolean) {
@@ -115,10 +124,18 @@ export const authApi = {
     const { data, error } = await supabase
       .from('users')
       .select('id, full_name, email, role, is_active, is_online, last_seen_at')
-      .eq('role', 'admin')
+      .in('role', ['admin', 'super_admin', 'finance', 'project_manager', 'viewer'])
       .order('full_name', { ascending: true });
     if (error) throw error;
     return data || [];
+  },
+  async updateUserRole(userId: string, role: AppRole) {
+    const { error } = await supabase.from('users').update({ role }).eq('id', userId);
+    if (error) throw error;
+    await createAdminChangeNotification('Roli i perdoruesit u ndryshua', `Perdoruesi ${userId} u caktua si ${role}`, {
+      user_id: userId,
+      role,
+    });
   },
 };
 
@@ -154,6 +171,64 @@ export const dashboardApi = {
       else item.shpenzime += Number(row.amount || 0);
     });
     return Array.from(monthly.values());
+  },
+  async getTrendAlarms() {
+    const now = new Date();
+    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const [{ data: financeRows, error: financeError }, { data: projectRows, error: projectError }] = await Promise.all([
+      supabase
+        .from('finances')
+        .select('amount, finance_type, finance_date')
+        .gte('finance_date', previousStart.toISOString().slice(0, 10)),
+      supabase.from('projects').select('status, progress'),
+    ]);
+
+    if (financeError) throw financeError;
+    if (projectError) throw projectError;
+
+    const rows = financeRows || [];
+    const sumRange = (from: Date, to: Date, type: 'income' | 'expense') =>
+      rows
+        .filter((x: any) => {
+          const d = new Date(x.finance_date);
+          return x.finance_type === type && d >= from && d <= to;
+        })
+        .reduce((sum: number, x: any) => sum + Number(x.amount || 0), 0);
+
+    const currentIncome = sumRange(currentStart, now, 'income');
+    const currentExpense = sumRange(currentStart, now, 'expense');
+    const prevIncome = sumRange(previousStart, previousEnd, 'income');
+    const prevExpense = sumRange(previousStart, previousEnd, 'expense');
+
+    const currentMargin = currentIncome > 0 ? ((currentIncome - currentExpense) / currentIncome) * 100 : 0;
+    const prevMargin = prevIncome > 0 ? ((prevIncome - prevExpense) / prevIncome) * 100 : 0;
+    const marginDrop = prevMargin - currentMargin;
+    const expenseSpikePct = prevExpense > 0 ? ((currentExpense - prevExpense) / prevExpense) * 100 : 0;
+
+    const activeProjects = (projectRows || []).filter((p: any) => p.status === 'Ne pune').length;
+    const stalledProjects = (projectRows || []).filter((p: any) => p.status === 'Ne pune' && Number(p.progress || 0) < 20).length;
+
+    const alarms: Array<{ type: string; severity: 'low' | 'medium' | 'high'; message: string; value: number }> = [];
+    if (marginDrop > 8) alarms.push({ type: 'margin_drop', severity: 'high', message: 'Profit margin ka renie te ndjeshme', value: marginDrop });
+    if (expenseSpikePct > 20) alarms.push({ type: 'expense_spike', severity: 'high', message: 'Shpenzimet mujore jane rritur ndjeshem', value: expenseSpikePct });
+    if (stalledProjects >= 3) alarms.push({ type: 'project_stall', severity: 'medium', message: 'Ka disa projekte aktive me progres te ulet', value: stalledProjects });
+
+    return {
+      metrics: {
+        currentMargin,
+        prevMargin,
+        marginDrop,
+        currentExpense,
+        prevExpense,
+        expenseSpikePct,
+        activeProjects,
+        stalledProjects,
+      },
+      alarms,
+    };
   },
 };
 
@@ -410,6 +485,10 @@ export const financeApi = {
     );
   },
   async remove(id: string) {
+    const role = await getCurrentRole();
+    if (!canDeleteFinance(role)) {
+      throw new Error('Nuk ke leje per te fshire transaksione financiare.');
+    }
     const { error } = await supabase.from('finances').delete().eq('id', id);
     if (error) throw error;
     await createAdminChangeNotification(
@@ -750,6 +829,52 @@ export const notificationApi = {
         metadata: c,
       });
     }
+  },
+};
+
+export const auditApi = {
+  async list(filters?: { tableName?: string; operation?: string; userId?: string; search?: string; from?: string; to?: string }) {
+    let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500);
+    if (filters?.tableName) query = query.eq('table_name', filters.tableName);
+    if (filters?.operation) query = query.eq('operation', filters.operation);
+    if (filters?.userId) query = query.eq('user_id', filters.userId);
+    if (filters?.from) query = query.gte('created_at', filters.from);
+    if (filters?.to) query = query.lte('created_at', filters.to);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = (data || []) as AuditLogItem[];
+    if (!filters?.search) return rows;
+
+    const q = filters.search.toLowerCase();
+    return rows.filter((row) =>
+      [row.table_name, row.operation, row.record_id || '', JSON.stringify(row.old_data || {}), JSON.stringify(row.new_data || {})]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  },
+};
+
+export const teamPlanApi = {
+  async list(): Promise<TeamPlanItem[]> {
+    const { data, error } = await supabase.from('team_plans').select('*').order('plan_date', { ascending: true });
+    if (error) throw error;
+    return (data || []) as TeamPlanItem[];
+  },
+  async create(payload: Partial<TeamPlanItem>) {
+    const { error } = await supabase.from('team_plans').insert(payload);
+    if (error) throw error;
+    await createAdminChangeNotification('Plan i ekipit u shtua', `${payload.title || 'Plan'} u krijua`, { team_plan: payload });
+  },
+  async update(id: string, payload: Partial<TeamPlanItem>) {
+    const { error } = await supabase.from('team_plans').update(payload).eq('id', id);
+    if (error) throw error;
+    await createAdminChangeNotification('Plan i ekipit u perditesua', `${payload.title || `Plan ${id}`} u perditesua`, { team_plan_id: id, changes: payload });
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('team_plans').delete().eq('id', id);
+    if (error) throw error;
+    await createAdminChangeNotification('Plan i ekipit u fshi', `Plani ${id} u fshi`, { team_plan_id: id });
   },
 };
 

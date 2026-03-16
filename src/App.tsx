@@ -27,6 +27,8 @@ const WebsiteContentPage = lazy(() => import("./pages/admin/WebsiteContentPage")
 const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const NotificationsPage = lazy(() => import("./pages/admin/NotificationsPage"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
+const AuditLogsPage = lazy(() => import("./pages/admin/AuditLogsPage"));
+const TeamPlanningPage = lazy(() => import("./pages/admin/TeamPlanningPage"));
 const ProtectedRoute = lazy(() => import("./components/admin/ProtectedRoute"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
@@ -64,6 +66,8 @@ const App = () => (
                 <Route path="content" element={<WebsiteContentPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="audit-logs" element={<AuditLogsPage />} />
+                <Route path="team-planning" element={<TeamPlanningPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>

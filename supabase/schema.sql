@@ -3,7 +3,7 @@ create extension if not exists "uuid-ossp";
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'app_role') then
-    create type public.app_role as enum ('admin', 'viewer');
+    create type public.app_role as enum ('admin', 'super_admin', 'finance', 'project_manager', 'viewer');
   end if;
 
   if not exists (select 1 from pg_type where typname = 'project_status') then
@@ -29,6 +29,16 @@ begin
   if not exists (select 1 from pg_type where typname = 'quote_status') then
     create type public.quote_status as enum ('Draft', 'Derguar', 'Pranuar', 'Perfunduar', 'Refuzuar');
   end if;
+end $$;
+
+do $$
+begin
+  alter type public.app_role add value if not exists 'super_admin';
+  alter type public.app_role add value if not exists 'finance';
+  alter type public.app_role add value if not exists 'project_manager';
+  alter type public.app_role add value if not exists 'viewer';
+exception
+  when duplicate_object then null;
 end $$;
 
 do $$
@@ -279,6 +289,27 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.team_plans (
+  id uuid primary key default uuid_generate_v4(),
+  title text not null,
+  plan_date date not null,
+  plan_type text not null default 'daily' check (plan_type in ('daily', 'weekly')),
+  project_id uuid references public.projects(id) on delete set null,
+  location text,
+  task_details text,
+  group_name text,
+  worker_ids uuid[] not null default '{}',
+  vehicle_label text,
+  trailer_required boolean not null default false,
+  attachment_url text,
+  attachment_path text,
+  notes text,
+  status text not null default 'planned' check (status in ('planned', 'in_progress', 'done', 'cancelled')),
+  created_by uuid references public.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -319,6 +350,10 @@ drop trigger if exists trg_app_settings_updated_at on public.app_settings;
 create trigger trg_app_settings_updated_at before update on public.app_settings
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_team_plans_updated_at on public.team_plans;
+create trigger trg_team_plans_updated_at before update on public.team_plans
+for each row execute procedure public.set_updated_at();
+
 create or replace function public.is_admin(uid uuid)
 returns boolean
 language sql
@@ -326,7 +361,40 @@ stable
 as $$
   select exists (
     select 1 from public.users u
-    where u.id = uid and u.role = 'admin' and u.is_active = true
+    where u.id = uid and u.role in ('admin', 'super_admin', 'finance', 'project_manager') and u.is_active = true
+  );
+$$;
+
+create or replace function public.can_read_panel(uid uuid)
+returns boolean
+language sql
+stable
+as $$
+  select exists (
+    select 1 from public.users u
+    where u.id = uid and u.role in ('admin', 'super_admin', 'finance', 'project_manager', 'viewer') and u.is_active = true
+  );
+$$;
+
+create or replace function public.can_manage_finance(uid uuid)
+returns boolean
+language sql
+stable
+as $$
+  select exists (
+    select 1 from public.users u
+    where u.id = uid and u.role in ('admin', 'super_admin', 'finance') and u.is_active = true
+  );
+$$;
+
+create or replace function public.can_delete_finance(uid uuid)
+returns boolean
+language sql
+stable
+as $$
+  select exists (
+    select 1 from public.users u
+    where u.id = uid and u.role in ('super_admin', 'finance') and u.is_active = true
   );
 $$;
 
@@ -356,6 +424,7 @@ alter table public.invoices enable row level security;
 alter table public.reports enable row level security;
 alter table public.notifications enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.team_plans enable row level security;
 
 drop policy if exists users_self_read on public.users;
 create policy users_self_read on public.users for select to authenticated
@@ -368,7 +437,7 @@ with check (public.is_admin(auth.uid()));
 
 drop policy if exists public_read_projects on public.projects;
 create policy public_read_projects on public.projects for select to authenticated
-using (public.is_admin(auth.uid()));
+using (public.can_read_panel(auth.uid()));
 
 drop policy if exists admin_all_projects on public.projects;
 create policy admin_all_projects on public.projects for all to authenticated
@@ -395,15 +464,31 @@ create policy admin_all_project_workers on public.project_workers for all to aut
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
+drop policy if exists read_project_workers_panel on public.project_workers;
+create policy read_project_workers_panel on public.project_workers for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
 drop policy if exists admin_all_work_logs on public.work_logs;
 create policy admin_all_work_logs on public.work_logs for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
 drop policy if exists admin_all_finances on public.finances;
-create policy admin_all_finances on public.finances for all to authenticated
-using (public.is_admin(auth.uid()))
-with check (public.is_admin(auth.uid()));
+create policy admin_all_finances on public.finances for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists finance_insert_finances on public.finances;
+create policy finance_insert_finances on public.finances for insert to authenticated
+with check (public.can_manage_finance(auth.uid()));
+
+drop policy if exists finance_update_finances on public.finances;
+create policy finance_update_finances on public.finances for update to authenticated
+using (public.can_manage_finance(auth.uid()))
+with check (public.can_manage_finance(auth.uid()));
+
+drop policy if exists finance_delete_finances on public.finances;
+create policy finance_delete_finances on public.finances for delete to authenticated
+using (public.can_delete_finance(auth.uid()));
 
 drop policy if exists admin_all_contracts on public.contracts;
 create policy admin_all_contracts on public.contracts for all to authenticated
@@ -424,6 +509,10 @@ drop policy if exists admin_all_website_content on public.website_content;
 create policy admin_all_website_content on public.website_content for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
+
+drop policy if exists read_website_content_panel on public.website_content;
+create policy read_website_content_panel on public.website_content for select to authenticated
+using (public.can_read_panel(auth.uid()));
 
 drop policy if exists admin_all_quotes on public.quotes;
 create policy admin_all_quotes on public.quotes for all to authenticated
@@ -447,6 +536,63 @@ with check (public.is_admin(auth.uid()));
 
 drop policy if exists admin_all_app_settings on public.app_settings;
 create policy admin_all_app_settings on public.app_settings for all to authenticated
+using (public.is_admin(auth.uid()))
+with check (public.is_admin(auth.uid()));
+
+drop policy if exists read_clients_panel on public.clients;
+create policy read_clients_panel on public.clients for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_workers_panel on public.workers;
+create policy read_workers_panel on public.workers for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_worker_groups_panel on public.worker_groups;
+create policy read_worker_groups_panel on public.worker_groups for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_work_logs_panel on public.work_logs;
+create policy read_work_logs_panel on public.work_logs for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_contracts_panel on public.contracts;
+create policy read_contracts_panel on public.contracts for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_inventory_panel on public.inventory;
+create policy read_inventory_panel on public.inventory for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_equipment_panel on public.equipment;
+create policy read_equipment_panel on public.equipment for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_quotes_panel on public.quotes;
+create policy read_quotes_panel on public.quotes for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_invoices_panel on public.invoices;
+create policy read_invoices_panel on public.invoices for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_reports_panel on public.reports;
+create policy read_reports_panel on public.reports for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_notifications_panel on public.notifications;
+create policy read_notifications_panel on public.notifications for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_audit_logs_panel on public.audit_logs;
+create policy read_audit_logs_panel on public.audit_logs for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists read_team_plans_panel on public.team_plans;
+create policy read_team_plans_panel on public.team_plans for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists manage_team_plans_panel on public.team_plans;
+create policy manage_team_plans_panel on public.team_plans for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
@@ -549,6 +695,10 @@ for each row execute procedure public.log_audit_event();
 
 drop trigger if exists trg_audit_contracts on public.contracts;
 create trigger trg_audit_contracts after insert or update or delete on public.contracts
+for each row execute procedure public.log_audit_event();
+
+drop trigger if exists trg_audit_team_plans on public.team_plans;
+create trigger trg_audit_team_plans after insert or update or delete on public.team_plans
 for each row execute procedure public.log_audit_event();
 
 create or replace function public.on_project_completed_generate_invoice()

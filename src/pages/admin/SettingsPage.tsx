@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { authApi, settingsApi } from '@/lib/erp-api';
+import { ROLE_LABELS } from '@/lib/permissions';
+import type { AppRole } from '@/lib/erp-types';
 
 const SettingsPage = () => {
   const [state, setState] = useState({
@@ -131,6 +133,24 @@ const SettingsPage = () => {
               <div>
                 <p className="font-medium">{admin.full_name}</p>
                 <p className="text-sm text-muted-foreground">{admin.email}</p>
+                <div className="mt-2">
+                  <label className="text-xs text-muted-foreground mr-2">Roli:</label>
+                  <select
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                    value={admin.role}
+                    onChange={async (e) => {
+                      const nextRole = e.target.value as AppRole;
+                      await authApi.updateUserRole(admin.id, nextRole);
+                      setAdmins((prev) => prev.map((x) => (x.id === admin.id ? { ...x, role: nextRole } : x)));
+                    }}
+                  >
+                    {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="text-right">
                 <p className={`text-sm font-medium ${admin.is_online ? 'text-green-600' : 'text-muted-foreground'}`}>
