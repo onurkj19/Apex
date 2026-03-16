@@ -35,19 +35,19 @@ export default defineConfig(({ mode }) => ({
         start_url: "./#/admin/login",
         icons: [
           {
-            src: "./pwa-192.svg",
+            src: "./pwa-192-v2.svg",
             sizes: "192x192",
             type: "image/svg+xml",
             purpose: "any",
           },
           {
-            src: "./pwa-512.svg",
+            src: "./pwa-512-v2.svg",
             sizes: "512x512",
             type: "image/svg+xml",
             purpose: "any",
           },
           {
-            src: "./pwa-maskable.svg",
+            src: "./pwa-maskable-v2.svg",
             sizes: "512x512",
             type: "image/svg+xml",
             purpose: "maskable",

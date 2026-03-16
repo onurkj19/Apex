@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <pattern id="checkerMaskableV2" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="#1f1f1f" />
+      <rect width="32" height="32" fill="#2f2f2f" />
+      <rect x="32" y="32" width="32" height="32" fill="#2f2f2f" />
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="url(#checkerMaskableV2)" />
+  <rect x="72" y="72" width="368" height="368" rx="84" fill="#0f172a" />
+  <path d="M256 152L346 336H306L284 296H228L206 336H166L256 152ZM240.3 266H271.7L256 233.4L240.3 266Z" fill="#facc15"/>
+</svg>

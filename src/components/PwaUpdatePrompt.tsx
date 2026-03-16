@@ -2,8 +2,17 @@ import { useEffect, useRef } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { toast } from "sonner";
 
+const isStandaloneApp = () => {
+  if (typeof window === "undefined") return false;
+
+  const standaloneMedia = window.matchMedia?.("(display-mode: standalone)").matches;
+  const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+  return Boolean(standaloneMedia || iosStandalone);
+};
+
 const PwaUpdatePrompt = () => {
   const toastIdRef = useRef<string | number | null>(null);
+  const isPwaAppRef = useRef(isStandaloneApp());
   const {
     needRefresh: [needRefresh],
     offlineReady: [offlineReady],
@@ -19,11 +28,13 @@ const PwaUpdatePrompt = () => {
   });
 
   useEffect(() => {
+    if (!isPwaAppRef.current) return;
     if (!offlineReady) return;
     toast.success("App eshte gati per perdorim ne mode offline.");
   }, [offlineReady]);
 
   useEffect(() => {
+    if (!isPwaAppRef.current) return;
     if (!needRefresh) return;
     if (toastIdRef.current) return;
 
