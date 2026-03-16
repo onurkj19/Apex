@@ -120,8 +120,8 @@ const AdminLayout = () => {
         if (registration) {
           await registration.showNotification(title, {
             body,
-            icon: '/pwa-192-v4.svg',
-            badge: '/pwa-192-v4.svg',
+            icon: '/pwa-192-custom.png',
+            badge: '/pwa-192-custom.png',
             tag: `notif-${Date.now()}`,
             requireInteraction: true,
           });
@@ -132,7 +132,7 @@ const AdminLayout = () => {
       }
 
       try {
-        new Notification(title, { body, icon: '/pwa-192-v4.svg' });
+        new Notification(title, { body, icon: '/pwa-192-custom.png' });
       } catch {
         // Ignore unsupported notification calls.
       }
@@ -194,6 +194,8 @@ const AdminLayout = () => {
   };
 
   const onLogout = async () => {
+    if (!window.confirm('A je i sigurt qe do te besh sign out?')) return;
+
     try {
       await authApi.setPresence(false);
     } catch {
