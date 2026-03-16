@@ -138,10 +138,15 @@ const SettingsPage = () => {
                   <select
                     className="h-8 rounded-md border bg-background px-2 text-xs"
                     value={admin.role}
+                    disabled={admin.role === 'super_admin'}
                     onChange={async (e) => {
                       const nextRole = e.target.value as AppRole;
-                      await authApi.updateUserRole(admin.id, nextRole);
-                      setAdmins((prev) => prev.map((x) => (x.id === admin.id ? { ...x, role: nextRole } : x)));
+                      try {
+                        await authApi.updateUserRole(admin.id, nextRole);
+                        setAdmins((prev) => prev.map((x) => (x.id === admin.id ? { ...x, role: nextRole } : x)));
+                      } catch (error: any) {
+                        alert(error?.message || 'Nuk u arrit ndryshimi i rolit.');
+                      }
                     }}
                   >
                     {Object.entries(ROLE_LABELS).map(([value, label]) => (
@@ -150,6 +155,9 @@ const SettingsPage = () => {
                       </option>
                     ))}
                   </select>
+                  {admin.role === 'super_admin' && (
+                    <p className="text-[11px] text-red-500 mt-1">I mbrojtur (nuk preket)</p>
+                  )}
                 </div>
               </div>
               <div className="text-right">

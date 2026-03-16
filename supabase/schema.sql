@@ -322,6 +322,43 @@ drop trigger if exists trg_users_updated_at on public.users;
 create trigger trg_users_updated_at before update on public.users
 for each row execute procedure public.set_updated_at();
 
+create or replace function public.protect_super_admin_user()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- Never allow delete of super_admin row.
+  if tg_op = 'DELETE' and old.role = 'super_admin' then
+    raise exception 'Super admin user is protected and cannot be deleted.';
+  end if;
+
+  -- Block updates to super_admin row except presence fields.
+  if tg_op = 'UPDATE' and old.role = 'super_admin' then
+    if (
+      new.id is distinct from old.id or
+      new.full_name is distinct from old.full_name or
+      new.email is distinct from old.email or
+      new.role is distinct from old.role or
+      new.is_active is distinct from old.is_active or
+      new.created_at is distinct from old.created_at
+    ) then
+      raise exception 'Super admin user is protected and cannot be modified.';
+    end if;
+  end if;
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_protect_super_admin_user on public.users;
+create trigger trg_protect_super_admin_user
+before update or delete on public.users
+for each row
+execute procedure public.protect_super_admin_user();
+
 drop trigger if exists trg_clients_updated_at on public.clients;
 create trigger trg_clients_updated_at before update on public.clients
 for each row execute procedure public.set_updated_at();

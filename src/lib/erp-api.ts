@@ -130,6 +130,16 @@ export const authApi = {
     return data || [];
   },
   async updateUserRole(userId: string, role: AppRole) {
+    const { data: targetUser, error: targetError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .single();
+    if (targetError) throw targetError;
+    if (targetUser.role === 'super_admin') {
+      throw new Error('Super admini eshte i mbrojtur dhe nuk mund te ndryshohet.');
+    }
+
     const { error } = await supabase.from('users').update({ role }).eq('id', userId);
     if (error) throw error;
     await createAdminChangeNotification('Roli i perdoruesit u ndryshua', `Perdoruesi ${userId} u caktua si ${role}`, {
