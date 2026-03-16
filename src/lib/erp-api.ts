@@ -706,6 +706,15 @@ export const notificationApi = {
     });
     if (error) throw error;
   },
+  async unreadCount() {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .eq('is_archived', false);
+    if (error) throw error;
+    return count || 0;
+  },
   async markRead(id: string) {
     const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
     if (error) throw error;

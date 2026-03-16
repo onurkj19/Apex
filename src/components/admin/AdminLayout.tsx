@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BarChart3, Bell, Boxes, BriefcaseBusiness, Clock3, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Truck, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { authApi } from '@/lib/erp-api';
+import { authApi, notificationApi } from '@/lib/erp-api';
+import supabase from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const items = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,6 +28,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const filteredItems = useMemo(
     () =>
@@ -34,6 +37,113 @@ const AdminLayout = () => {
       ),
     [search],
   );
+
+  useEffect(() => {
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const isStandaloneApp = () => {
+      const standaloneMedia = window.matchMedia?.('(display-mode: standalone)').matches;
+      const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+      return Boolean(standaloneMedia || iosStandalone);
+    };
+
+    const updateAppBadge = async (count: number) => {
+      const nav = navigator as Navigator & {
+        setAppBadge?: (value?: number) => Promise<void>;
+        clearAppBadge?: () => Promise<void>;
+      };
+
+      try {
+        if (count > 0 && nav.setAppBadge) await nav.setAppBadge(count);
+        if (count === 0 && nav.clearAppBadge) await nav.clearAppBadge();
+      } catch {
+        // Ignore unsupported badge API errors.
+      }
+    };
+
+    const refreshUnreadCount = async () => {
+      try {
+        const count = await notificationApi.unreadCount();
+        if (!mounted) return;
+        setUnreadCount(count);
+        await updateAppBadge(count);
+        document.title = count > 0 ? `(${count}) Apex Admin` : 'Apex Gerüstbau - Professionelle Gerüstlösungen in der Schweiz';
+      } catch {
+        // Keep UI functional if unread counter fails.
+      }
+    };
+
+    const ensureNotificationPermission = async () => {
+      if (!isStandaloneApp()) return;
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'default') return;
+
+      try {
+        await Notification.requestPermission();
+      } catch {
+        // Ignore notification permission errors.
+      }
+    };
+
+    const sendLiveNotification = async (title: string, body: string) => {
+      if (!isStandaloneApp()) return;
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+
+      try {
+        const registration = await navigator.serviceWorker?.getRegistration();
+        if (registration) {
+          await registration.showNotification(title, {
+            body,
+            icon: '/pwa-192-v4.svg',
+            badge: '/pwa-192-v4.svg',
+            tag: `notif-${Date.now()}`,
+          });
+          return;
+        }
+      } catch {
+        // fallback below
+      }
+
+      try {
+        new Notification(title, { body, icon: '/pwa-192-v4.svg' });
+      } catch {
+        // Ignore unsupported notification calls.
+      }
+    };
+
+    void ensureNotificationPermission();
+    void refreshUnreadCount();
+
+    const interval = window.setInterval(() => {
+      void refreshUnreadCount();
+    }, 30_000);
+
+    channel = supabase
+      .channel(`admin-notifications-live-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        (payload) => {
+          void refreshUnreadCount();
+
+          if (payload.eventType !== 'INSERT') return;
+          const row = payload.new as Record<string, unknown>;
+          const title = String(row.title || 'Njoftim i ri');
+          const message = String(row.message || '');
+          toast.message(title, { description: message });
+          void sendLiveNotification(title, message);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const onLogout = async () => {
     try {
@@ -60,7 +170,14 @@ const AdminLayout = () => {
             }`
           }
         >
-          <item.icon className="h-4 w-4" />
+          <span className="relative inline-flex">
+            <item.icon className="h-4 w-4" />
+            {item.to === '/admin/notifications' && unreadCount > 0 && (
+              <span className="absolute -right-2 -top-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </span>
           {item.label}
         </NavLink>
       ))}

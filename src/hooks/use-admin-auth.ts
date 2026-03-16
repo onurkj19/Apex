@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { authApi } from '@/lib/erp-api';
+import supabase from '@/lib/supabase';
 
 interface AdminState {
   loading: boolean;
@@ -33,6 +34,14 @@ export const useAdminAuth = () => {
 
   useEffect(() => {
     checkAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      void checkAuth();
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {

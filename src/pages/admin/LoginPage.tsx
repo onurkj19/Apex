@@ -8,10 +8,11 @@ import { authApi } from '@/lib/erp-api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('apex_admin_email') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberUser, setRememberUser] = useState(() => localStorage.getItem('apex_admin_remember_user') !== '0');
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,6 +20,14 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await authApi.login(email, password);
+
+      if (rememberUser) {
+        localStorage.setItem('apex_admin_email', email.trim());
+      } else {
+        localStorage.removeItem('apex_admin_email');
+      }
+      localStorage.setItem('apex_admin_remember_user', rememberUser ? '1' : '0');
+
       const admin = await authApi.getAdminSession();
       if (!admin) {
         setError('Akses i ndaluar. Vetem admin mund te hyje.');
@@ -48,6 +57,17 @@ const LoginPage = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Fjalekalimi</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberUser}
+                  onChange={(e) => setRememberUser(e.target.checked)}
+                />
+                <span>Remember user</span>
+              </label>
+              <span className="text-muted-foreground">Stay logged in</span>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button className="w-full" type="submit" disabled={loading}>
