@@ -91,6 +91,14 @@ const SettingsPage = () => {
       alert('Ploteso emrin, email-in dhe password.');
       return;
     }
+    if (!userForm.email.includes('@')) {
+      alert('Email nuk eshte valid.');
+      return;
+    }
+    if (userForm.password.length < 6) {
+      alert('Password duhet te kete te pakten 6 karaktere.');
+      return;
+    }
     setCreatingUser(true);
     try {
       await authApi.createAppUser({

@@ -169,9 +169,35 @@ export const authApi = {
     role: AppRole;
     worker_id?: string | null;
   }) {
-    const { data, error } = await supabase.functions.invoke('create-app-user', { body: payload });
-    if (error) throw error;
-    return data;
+    const normalizedEmail = payload.email.trim().toLowerCase();
+
+    const { data: existingUser, error: existingError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existingUser?.id) {
+      throw new Error('Ky email ekziston tashme.');
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-app-user', {
+        body: { ...payload, email: normalizedEmail },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      if (typeof error?.context?.json === 'function') {
+        try {
+          const details = await error.context.json();
+          if (details?.error) throw new Error(String(details.error));
+        } catch {
+          // ignore parsing failures and throw fallback below
+        }
+      }
+      throw new Error(error?.message || 'Nuk u arrit krijimi i user-it.');
+    }
   },
 };
 
