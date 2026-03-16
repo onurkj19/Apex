@@ -262,7 +262,11 @@ const AdminLayout = () => {
                     <Menu className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[320px] sm:w-[360px] p-0 flex flex-col">
+                <SheetContent
+                  side="left"
+                  className="w-[320px] sm:w-[360px] p-0 flex flex-col"
+                  onOpenAutoFocus={(event) => event.preventDefault()}
+                >
                   <SheetHeader className="p-4 pb-0 shrink-0">
                     <SheetTitle>Menu Administrimi</SheetTitle>
                   </SheetHeader>
