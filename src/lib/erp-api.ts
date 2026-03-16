@@ -186,6 +186,9 @@ export const authApi = {
         body: { ...payload, email: normalizedEmail },
       });
       if (error) throw error;
+      if (data && typeof data === 'object' && 'success' in data && (data as any).success === false) {
+        throw new Error(String((data as any).error || 'Nuk u arrit krijimi i user-it.'));
+      }
       return data;
     } catch (error: any) {
       let parsedMessage: string | null = null;
