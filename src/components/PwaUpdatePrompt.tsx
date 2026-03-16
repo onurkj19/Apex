@@ -32,13 +32,25 @@ const PwaUpdatePrompt = () => {
       duration: Infinity,
       action: {
         label: "Perditeso tani",
-        onClick: () => {
+        onClick: async () => {
           toast.dismiss();
           toast.loading("Po perditesohet app-i...", { id: "pwa-updating" });
-          void updateServiceWorker(true);
-          window.setTimeout(() => {
+
+          let reloaded = false;
+          const forceReload = () => {
+            if (reloaded) return;
+            reloaded = true;
             window.location.reload();
-          }, 1500);
+          };
+
+          navigator.serviceWorker?.addEventListener("controllerchange", forceReload, { once: true });
+
+          try {
+            await updateServiceWorker(true);
+            window.setTimeout(forceReload, 1500);
+          } catch {
+            window.setTimeout(forceReload, 500);
+          }
         },
       },
       cancel: {

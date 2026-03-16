@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "prompt",
       injectRegister: "auto",
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
       },
       manifest: {
