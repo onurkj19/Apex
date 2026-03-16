@@ -1,5 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="32" fill="#0f172a"/>
-  <circle cx="96" cy="96" r="72" fill="#111827"/>
-  <path d="M96 34L154 146H128L114 119H78L64 146H38L96 34ZM85.6 102H106.4L96 80.5L85.6 102Z" fill="#facc15"/>
+  <defs>
+    <pattern id="checker192" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#1f1f1f" />
+      <rect width="12" height="12" fill="#2f2f2f" />
+      <rect x="12" y="12" width="12" height="12" fill="#2f2f2f" />
+    </pattern>
+  </defs>
+  <rect width="192" height="192" rx="36" fill="url(#checker192)" />
+  <rect x="34" y="34" width="124" height="124" rx="26" fill="#0f172a" />
+  <path d="M96 53L134 128H117L108 111H84L75 128H58L96 53ZM89.2 99H102.8L96 84.8L89.2 99Z" fill="#facc15"/>
 </svg>
