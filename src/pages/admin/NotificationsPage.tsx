@@ -10,6 +10,8 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'active' | 'archived' | 'all'>('active');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -81,13 +83,74 @@ const NotificationsPage = () => {
     return true;
   });
 
+  useEffect(() => {
+    const visibleSet = new Set(visibleItems.map((item) => item.id));
+    setSelectedIds((prev) => prev.filter((id) => visibleSet.has(id)));
+  }, [items, filter]);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const selectAllVisible = () => {
+    setSelectionMode(true);
+    setSelectedIds(visibleItems.map((item) => item.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+    setSelectionMode(false);
+  };
+
+  const markSelectedRead = async () => {
+    if (selectedIds.length === 0) return;
+    setActionId('bulk-mark-read');
+    try {
+      await Promise.all(selectedIds.map((id) => notificationApi.markRead(id)));
+      await load();
+      clearSelection();
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const removeSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`A je i sigurt qe do t'i fshish ${selectedIds.length} njoftime?`)) return;
+    setActionId('bulk-remove');
+    try {
+      await Promise.all(selectedIds.map((id) => notificationApi.remove(id)));
+      await load();
+      clearSelection();
+    } finally {
+      setActionId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Njoftime</h2>
-        <Button onClick={runChecks} disabled={actionId === 'run-checks'}>
-          {actionId === 'run-checks' ? 'Duke kontrolluar...' : 'Kontrollo afatet tani'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={runChecks} disabled={actionId === 'run-checks'}>
+            {actionId === 'run-checks' ? 'Duke kontrolluar...' : 'Kontrollo afatet tani'}
+          </Button>
+          <RowActionsMenu
+            disabled={loading || actionId === 'run-checks' || actionId === 'bulk-mark-read' || actionId === 'bulk-remove'}
+            actions={[
+              {
+                label: selectionMode ? 'Hiq Select' : 'Select',
+                onClick: () => {
+                  if (selectionMode) clearSelection();
+                  else setSelectionMode(true);
+                },
+              },
+              { label: 'Select all', onClick: selectAllVisible, disabled: visibleItems.length === 0 },
+              { label: 'Mark selected as read', onClick: markSelectedRead, disabled: selectedIds.length === 0 },
+              { label: 'Delete selected', onClick: removeSelected, disabled: selectedIds.length === 0, destructive: true },
+            ]}
+          />
+        </div>
       </div>
 
       <Card>
@@ -107,10 +170,29 @@ const NotificationsPage = () => {
 
           {loading && <p className="text-sm text-muted-foreground">Duke ngarkuar njoftimet...</p>}
 
+          {!loading && selectionMode && (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm flex items-center justify-between">
+              <span>{selectedIds.length} te zgjedhura</span>
+              <Button size="sm" variant="outline" onClick={clearSelection}>
+                Anulo zgjedhjen
+              </Button>
+            </div>
+          )}
+
           {!loading && visibleItems.map((item) => (
             <div key={item.id} className={`border rounded p-3 ${item.is_read ? 'opacity-70' : ''}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1">
+                  {selectionMode && (
+                    <label className="inline-flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleSelected(item.id)}
+                      />
+                      Zgjidh
+                    </label>
+                  )}
                   {(() => {
                     const metadata = (item.metadata || {}) as Record<string, unknown>;
                     const actorName = String(metadata.actor_admin_name || '');
