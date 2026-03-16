@@ -4,7 +4,11 @@ import { toast } from "sonner";
 
 const PwaUpdatePrompt = () => {
   const toastIdRef = useRef<string | number | null>(null);
-  const { needRefresh, offlineReady, updateServiceWorker } = useRegisterSW({
+  const {
+    needRefresh: [needRefresh],
+    offlineReady: [offlineReady],
+    updateServiceWorker,
+  } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       if (!registration) return;
       // Check for updates periodically while app is open.
@@ -29,7 +33,12 @@ const PwaUpdatePrompt = () => {
       action: {
         label: "Perditeso tani",
         onClick: () => {
+          toast.dismiss();
+          toast.loading("Po perditesohet app-i...", { id: "pwa-updating" });
           void updateServiceWorker(true);
+          window.setTimeout(() => {
+            window.location.reload();
+          }, 1500);
         },
       },
       cancel: {
