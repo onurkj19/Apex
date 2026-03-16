@@ -193,7 +193,15 @@ export const authApi = {
           const details = await error.context.json();
           if (details?.error) throw new Error(String(details.error));
         } catch {
-          // ignore parsing failures and throw fallback below
+          // Try plain text body when JSON parsing fails.
+          if (typeof error?.context?.text === 'function') {
+            try {
+              const raw = await error.context.text();
+              if (raw) throw new Error(String(raw));
+            } catch {
+              // ignore and use fallback below
+            }
+          }
         }
       }
       throw new Error(error?.message || 'Nuk u arrit krijimi i user-it.');
