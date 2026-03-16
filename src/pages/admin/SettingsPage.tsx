@@ -91,11 +91,6 @@ const SettingsPage = () => {
       alert('Ploteso emrin, email-in dhe password.');
       return;
     }
-    if (userForm.role === 'worker' && !userForm.worker_id) {
-      alert('Per rolin worker duhet te zgjedhesh punetorin.');
-      return;
-    }
-
     setCreatingUser(true);
     try {
       await authApi.createAppUser({
@@ -189,18 +184,23 @@ const SettingsPage = () => {
                 ))}
               </select>
               {userForm.role === 'worker' && (
-                <select
-                  className="h-10 rounded-md border bg-background px-3 text-sm md:col-span-2"
-                  value={userForm.worker_id}
-                  onChange={(e) => setUserForm((s) => ({ ...s, worker_id: e.target.value }))}
-                >
-                  <option value="">Zgjidh punetorin</option>
-                  {workers.map((worker) => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.full_name}
-                    </option>
-                  ))}
-                </select>
+                <div className="md:col-span-2 space-y-1">
+                  <select
+                    className="h-10 rounded-md border bg-background px-3 text-sm w-full"
+                    value={userForm.worker_id}
+                    onChange={(e) => setUserForm((s) => ({ ...s, worker_id: e.target.value }))}
+                  >
+                    <option value="">Pa lidhje me punetor (opsionale)</option>
+                    {workers.map((worker) => (
+                      <option key={worker.id} value={worker.id}>
+                        {worker.full_name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Mund ta krijosh user-in edhe pa lidhje. Lidhjen me punetor mund ta vendosesh me vone.
+                  </p>
+                </div>
               )}
               <div className="md:col-span-2">
                 <Button onClick={createAppUser} disabled={creatingUser}>
