@@ -201,3 +201,23 @@ export interface LeaveRequest {
   created_at: string;
   updated_at: string;
 }
+
+export type WorkerTimeStatus = 'running' | 'submitted' | 'approved' | 'rejected';
+
+export interface WorkerTimeEntry {
+  id: string;
+  worker_user_id: string;
+  worker_id: string | null;
+  work_date: string;
+  start_at: string;
+  end_at: string | null;
+  break_minutes: number;
+  worked_minutes: number | null;
+  status: WorkerTimeStatus;
+  submitted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  super_admin_comment: string | null;
+  created_at: string;
+  updated_at: string;
+}

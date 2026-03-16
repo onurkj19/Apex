@@ -30,6 +30,7 @@ const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
 const AuditLogsPage = lazy(() => import("./pages/admin/AuditLogsPage"));
 const TeamPlanningPage = lazy(() => import("./pages/admin/TeamPlanningPage"));
 const LeaveRequestsPage = lazy(() => import("./pages/admin/LeaveRequestsPage"));
+const WorkApprovalsPage = lazy(() => import("./pages/admin/WorkApprovalsPage"));
 const ProtectedRoute = lazy(() => import("./components/admin/ProtectedRoute"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="audit-logs" element={<AuditLogsPage />} />
                 <Route path="team-planning" element={<TeamPlanningPage />} />
                 <Route path="leave-requests" element={<LeaveRequestsPage />} />
+                <Route path="work-approvals" element={<WorkApprovalsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>

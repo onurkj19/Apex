@@ -345,6 +345,24 @@ create table if not exists public.leave_requests (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.worker_time_entries (
+  id uuid primary key default uuid_generate_v4(),
+  worker_user_id uuid not null references public.users(id) on delete cascade,
+  worker_id uuid references public.workers(id) on delete set null,
+  work_date date not null default current_date,
+  start_at timestamptz not null,
+  end_at timestamptz,
+  break_minutes integer not null default 90,
+  worked_minutes integer,
+  status text not null default 'running' check (status in ('running', 'submitted', 'approved', 'rejected')),
+  submitted_at timestamptz,
+  approved_by uuid references public.users(id) on delete set null,
+  approved_at timestamptz,
+  super_admin_comment text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -430,6 +448,10 @@ drop trigger if exists trg_leave_requests_updated_at on public.leave_requests;
 create trigger trg_leave_requests_updated_at before update on public.leave_requests
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_worker_time_entries_updated_at on public.worker_time_entries;
+create trigger trg_worker_time_entries_updated_at before update on public.worker_time_entries
+for each row execute procedure public.set_updated_at();
+
 create or replace function public.is_admin(uid uuid)
 returns boolean
 language sql
@@ -502,6 +524,7 @@ alter table public.notifications enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.team_plans enable row level security;
 alter table public.leave_requests enable row level security;
+alter table public.worker_time_entries enable row level security;
 
 drop policy if exists users_self_read on public.users;
 create policy users_self_read on public.users for select to authenticated
@@ -718,6 +741,37 @@ with check (
   )
 );
 
+drop policy if exists worker_time_read_own on public.worker_time_entries;
+create policy worker_time_read_own on public.worker_time_entries for select to authenticated
+using (
+  worker_user_id = auth.uid()
+  or exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'super_admin' and u.is_active = true
+  )
+);
+
+drop policy if exists worker_time_insert_own on public.worker_time_entries;
+create policy worker_time_insert_own on public.worker_time_entries for insert to authenticated
+with check (worker_user_id = auth.uid());
+
+drop policy if exists worker_time_update_own on public.worker_time_entries;
+create policy worker_time_update_own on public.worker_time_entries for update to authenticated
+using (
+  worker_user_id = auth.uid()
+  or exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'super_admin' and u.is_active = true
+  )
+)
+with check (
+  worker_user_id = auth.uid()
+  or exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'super_admin' and u.is_active = true
+  )
+);
+
 insert into storage.buckets (id, name, public)
 values ('erp-images', 'erp-images', false)
 on conflict (id) do nothing;
@@ -825,6 +879,10 @@ for each row execute procedure public.log_audit_event();
 
 drop trigger if exists trg_audit_leave_requests on public.leave_requests;
 create trigger trg_audit_leave_requests after insert or update or delete on public.leave_requests
+for each row execute procedure public.log_audit_event();
+
+drop trigger if exists trg_audit_worker_time_entries on public.worker_time_entries;
+create trigger trg_audit_worker_time_entries after insert or update or delete on public.worker_time_entries
 for each row execute procedure public.log_audit_event();
 
 create or replace function public.on_project_completed_generate_invoice()

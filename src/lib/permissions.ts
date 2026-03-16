@@ -15,18 +15,18 @@ export const canDeleteFinance = (role?: AppRole | null) =>
 export const canAccessRoute = (role: AppRole | null | undefined, path: string) => {
   if (!role) return false;
   if (role === 'super_admin') return true;
-  if (role === 'admin') return path !== '/admin/leave-requests';
+  if (role === 'admin') return !['/admin/leave-requests', '/admin/work-approvals'].includes(path);
 
   if (role === 'worker') {
     return ['/admin/dashboard'].includes(path);
   }
 
   if (role === 'finance') {
-    return !['/admin/workers', '/admin/content', '/admin/settings', '/admin/leave-requests'].includes(path);
+    return !['/admin/workers', '/admin/content', '/admin/settings', '/admin/leave-requests', '/admin/work-approvals'].includes(path);
   }
 
   if (role === 'project_manager') {
-    return !['/admin/finances', '/admin/profit-loss', '/admin/settings', '/admin/leave-requests'].includes(path);
+    return !['/admin/finances', '/admin/profit-loss', '/admin/settings', '/admin/leave-requests', '/admin/work-approvals'].includes(path);
   }
 
   if (role === 'viewer') {

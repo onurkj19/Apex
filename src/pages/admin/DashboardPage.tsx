@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { dashboardApi, leaveRequestApi, workerPortalApi } from '@/lib/erp-api';
-import type { DashboardStats, LeaveRequest } from '@/lib/erp-types';
+import { dashboardApi, leaveRequestApi, workerPortalApi, workerTimeApi } from '@/lib/erp-api';
+import type { DashboardStats, LeaveRequest, WorkerTimeEntry } from '@/lib/erp-types';
 import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import supabase from '@/lib/supabase';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
@@ -18,6 +18,10 @@ const DashboardPage = () => {
   const [trend, setTrend] = useState<any | null>(null);
   const [workerPlans, setWorkerPlans] = useState<any[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [todayTimeEntry, setTodayTimeEntry] = useState<WorkerTimeEntry | null>(null);
+  const [recentTimeEntries, setRecentTimeEntries] = useState<WorkerTimeEntry[]>([]);
+  const [timeActionLoading, setTimeActionLoading] = useState(false);
+  const [nowTick, setNowTick] = useState(Date.now());
   const [leaveForm, setLeaveForm] = useState({
     request_type: 'day_off' as LeaveRequest['request_type'],
     requested_start_date: new Date().toISOString().slice(0, 10),
@@ -30,9 +34,16 @@ const DashboardPage = () => {
     const load = async () => {
       if (!profile) return;
       if (profile?.role === 'worker') {
-        const [plans, leaves] = await Promise.all([workerPortalApi.getAssignedPlans(), leaveRequestApi.listMine()]);
+        const [plans, leaves, todayEntry, recentEntries] = await Promise.all([
+          workerPortalApi.getAssignedPlans(),
+          leaveRequestApi.listMine(),
+          workerTimeApi.getMyTodayEntry(),
+          workerTimeApi.listMineRecent(10),
+        ]);
         setWorkerPlans(plans);
         setLeaveRequests(leaves);
+        setTodayTimeEntry(todayEntry);
+        setRecentTimeEntries(recentEntries);
         return;
       }
 
@@ -83,9 +94,92 @@ const DashboardPage = () => {
   ].filter((x) => x.visible);
 
   const refreshWorkerData = async () => {
-    const [plans, leaves] = await Promise.all([workerPortalApi.getAssignedPlans(), leaveRequestApi.listMine()]);
+    const [plans, leaves, todayEntry, recentEntries] = await Promise.all([
+      workerPortalApi.getAssignedPlans(),
+      leaveRequestApi.listMine(),
+      workerTimeApi.getMyTodayEntry(),
+      workerTimeApi.listMineRecent(10),
+    ]);
     setWorkerPlans(plans);
     setLeaveRequests(leaves);
+    setTodayTimeEntry(todayEntry);
+    setRecentTimeEntries(recentEntries);
+  };
+
+  useEffect(() => {
+    if (profile?.role !== 'worker') return;
+    const interval = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, [profile?.role]);
+
+  useEffect(() => {
+    if (profile?.role !== 'worker') return;
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const showReminder = (title: string, body: string, key: string) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const storageKey = `apex-worker-reminder-${key}-${today}`;
+      if (localStorage.getItem(storageKey) === '1') return;
+      localStorage.setItem(storageKey, '1');
+      try {
+        const registrationPromise = navigator.serviceWorker?.getRegistration();
+        void registrationPromise?.then((registration) => {
+          if (registration) {
+            void registration.showNotification(title, {
+              body,
+              icon: '/pwa-192-custom.png',
+              badge: '/pwa-192-custom.png',
+              requireInteraction: true,
+              tag: `worker-reminder-${key}-${today}`,
+            });
+          } else {
+            new Notification(title, { body, icon: '/pwa-192-custom.png' });
+          }
+        });
+      } catch {
+        // ignore notification errors
+      }
+    };
+
+    const schedule = (hour: number, minute: number, key: string, title: string, body: string) => {
+      const now = new Date();
+      const target = new Date();
+      target.setHours(hour, minute, 0, 0);
+      if (target.getTime() <= now.getTime()) return;
+      const delay = target.getTime() - now.getTime();
+      const timerId = window.setTimeout(() => showReminder(title, body, key), delay);
+      return timerId;
+    };
+
+    const timers: number[] = [];
+    const startTimer = schedule(6, 45, 'start', 'Kujtese Start', 'Ora 07:00 po afrohet. Kliko Start per regjistrim.');
+    const stopTimer = schedule(17, 15, 'stop', 'Kujtese Stop', 'Ora 17:15. Kliko Stop per dorezim te oreve ditore.');
+    if (startTimer) timers.push(startTimer);
+    if (stopTimer) timers.push(stopTimer);
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [profile?.role]);
+
+  const getLiveWorkedMinutes = () => {
+    if (!todayTimeEntry) return 0;
+    if (todayTimeEntry.status !== 'running' || !todayTimeEntry.start_at) {
+      return Number(todayTimeEntry.worked_minutes || 0);
+    }
+    const start = new Date(todayTimeEntry.start_at);
+    const end = new Date(nowTick);
+    const gross = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+    const y = start.getFullYear();
+    const m = start.getMonth();
+    const d = start.getDate();
+    const overlap = (s1: Date, e1: Date, s2: Date, e2: Date) => {
+      const s = Math.max(s1.getTime(), s2.getTime());
+      const e = Math.min(e1.getTime(), e2.getTime());
+      if (e <= s) return 0;
+      return Math.floor((e - s) / 60000);
+    };
+    const b1 = overlap(start, end, new Date(y, m, d, 9, 0, 0, 0), new Date(y, m, d, 9, 30, 0, 0));
+    const b2 = overlap(start, end, new Date(y, m, d, 12, 0, 0, 0), new Date(y, m, d, 13, 0, 0, 0));
+    return Math.max(0, gross - b1 - b2);
   };
 
   if (!profile) {
@@ -96,6 +190,59 @@ const DashboardPage = () => {
     return (
       <div className="space-y-6">
         <h2 className="text-2xl font-bold">Dashboard i Punetorit</h2>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Oraret e dites (Start / Stop)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Pauzat fikse nuk llogariten automatikisht: 09:00-09:30 dhe 12:00-13:00.
+            </p>
+            {todayTimeEntry?.status === 'running' ? (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Sesioni aktiv nga: {new Date(todayTimeEntry.start_at).toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p className="font-medium">Ore efektive deri tani: {(getLiveWorkedMinutes() / 60).toFixed(2)}h</p>
+                <Button
+                  disabled={timeActionLoading}
+                  onClick={async () => {
+                    setTimeActionLoading(true);
+                    try {
+                      await workerTimeApi.stopDay();
+                      await refreshWorkerData();
+                    } finally {
+                      setTimeActionLoading(false);
+                    }
+                  }}
+                >
+                  {timeActionLoading ? 'Duke ndalur...' : 'Stop dhe dergo per aprovim'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Statusi i sotem: {todayTimeEntry ? todayTimeEntry.status : 'Nuk ka sesion te regjistruar'}
+                </p>
+                <Button
+                  disabled={timeActionLoading}
+                  onClick={async () => {
+                    setTimeActionLoading(true);
+                    try {
+                      await workerTimeApi.startDay();
+                      await refreshWorkerData();
+                    } finally {
+                      setTimeActionLoading(false);
+                    }
+                  }}
+                >
+                  {timeActionLoading ? 'Duke filluar...' : 'Start'}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -111,6 +258,31 @@ const DashboardPage = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">Statusi: {plan.status}</p>
                 {plan.task_details && <p className="text-sm mt-1">{plan.task_details}</p>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Historiku i oreve ditore</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {recentTimeEntries.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka regjistrime ende.</p>}
+            {recentTimeEntries.map((entry) => (
+              <div key={entry.id} className="border rounded-md p-3">
+                <p className="font-medium">{entry.work_date}</p>
+                <p className="text-sm text-muted-foreground">
+                  Start: {new Date(entry.start_at).toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' })}
+                  {entry.end_at
+                    ? ` | Stop: ${new Date(entry.end_at).toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' })}`
+                    : ''}
+                </p>
+                <p className="text-sm">Ore efektive: {(Number(entry.worked_minutes || 0) / 60).toFixed(2)}h</p>
+                <p className="text-xs text-muted-foreground">Statusi: {entry.status}</p>
+                {entry.super_admin_comment && (
+                  <p className="text-xs text-muted-foreground">Koment admini: {entry.super_admin_comment}</p>
+                )}
               </div>
             ))}
           </CardContent>

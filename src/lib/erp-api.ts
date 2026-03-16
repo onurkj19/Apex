@@ -12,6 +12,7 @@ import type {
   Project,
   Quote,
   TeamPlanItem,
+  WorkerTimeEntry,
   WorkLog,
   WorkerGroup,
   Worker,
@@ -52,6 +53,36 @@ const getCurrentUser = async () => {
   const { data: userData, error } = await supabase.auth.getUser();
   if (error || !userData.user) return null;
   return userData.user;
+};
+
+const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
+
+const overlapMinutes = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) => {
+  const start = Math.max(aStart.getTime(), bStart.getTime());
+  const end = Math.min(aEnd.getTime(), bEnd.getTime());
+  if (end <= start) return 0;
+  return Math.floor((end - start) / 60000);
+};
+
+const calculateWorkedMinutesWithFixedBreaks = (startAtIso: string, endAtIso: string) => {
+  const start = new Date(startAtIso);
+  const end = new Date(endAtIso);
+  if (!(end.getTime() > start.getTime())) return 0;
+
+  const grossMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
+  const y = start.getFullYear();
+  const m = start.getMonth();
+  const d = start.getDate();
+
+  const break1Start = new Date(y, m, d, 9, 0, 0, 0);
+  const break1End = new Date(y, m, d, 9, 30, 0, 0);
+  const break2Start = new Date(y, m, d, 12, 0, 0, 0);
+  const break2End = new Date(y, m, d, 13, 0, 0, 0);
+
+  const breakMinutes =
+    overlapMinutes(start, end, break1Start, break1End) +
+    overlapMinutes(start, end, break2Start, break2End);
+  return Math.max(0, grossMinutes - breakMinutes);
 };
 
 const tryCreateNotification = async (payload: NotificationCreatePayload) => {
@@ -1083,6 +1114,141 @@ export const leaveRequestApi = {
         admin_counter_start_date: payload.counter_start_date,
         admin_counter_end_date: payload.counter_end_date,
         admin_comment: payload.admin_comment || null,
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+};
+
+export const workerTimeApi = {
+  async getMyTodayEntry(): Promise<WorkerTimeEntry | null> {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const today = toIsoDate(new Date());
+    const { data, error } = await supabase
+      .from('worker_time_entries')
+      .select('*')
+      .eq('worker_user_id', user.id)
+      .eq('work_date', today)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as WorkerTimeEntry | null) || null;
+  },
+  async listMineRecent(limit = 14): Promise<WorkerTimeEntry[]> {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('worker_time_entries')
+      .select('*')
+      .eq('worker_user_id', user.id)
+      .order('work_date', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data || []) as WorkerTimeEntry[];
+  },
+  async startDay() {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Nuk je i kycur.');
+    const now = new Date();
+    const today = toIsoDate(now);
+
+    const { data: existingRunning } = await supabase
+      .from('worker_time_entries')
+      .select('id')
+      .eq('worker_user_id', user.id)
+      .eq('status', 'running')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingRunning?.id) {
+      throw new Error('Ke nje sesion aktiv. Duhet ta ndalesh para se te fillosh nje te ri.');
+    }
+
+    const { data: profile } = await supabase.from('users').select('worker_id').eq('id', user.id).maybeSingle();
+    const { error } = await supabase.from('worker_time_entries').insert({
+      worker_user_id: user.id,
+      worker_id: profile?.worker_id || null,
+      work_date: today,
+      start_at: now.toISOString(),
+      break_minutes: 90,
+      status: 'running',
+    });
+    if (error) throw error;
+  },
+  async stopDay() {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Nuk je i kycur.');
+
+    const { data: running, error: runningError } = await supabase
+      .from('worker_time_entries')
+      .select('*')
+      .eq('worker_user_id', user.id)
+      .eq('status', 'running')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (runningError) throw runningError;
+    if (!running) throw new Error('Nuk ke sesion aktiv per ta ndalur.');
+
+    const endAt = new Date().toISOString();
+    const workedMinutes = calculateWorkedMinutesWithFixedBreaks(String(running.start_at), endAt);
+
+    const { error } = await supabase
+      .from('worker_time_entries')
+      .update({
+        end_at: endAt,
+        worked_minutes: workedMinutes,
+        break_minutes: 90,
+        status: 'submitted',
+        submitted_at: endAt,
+      })
+      .eq('id', running.id);
+    if (error) throw error;
+
+    await tryCreateNotification({
+      type: 'admin_change',
+      title: 'Kerkese per aprovimin e oreve',
+      message: `Punetori ${user.email || user.id} dergoi oret per aprovim (${(workedMinutes / 60).toFixed(2)} ore).`,
+      metadata: {
+        worker_user_id: user.id,
+        worker_time_entry_id: running.id,
+        worked_minutes: workedMinutes,
+      },
+    });
+  },
+  async listForApproval(status: WorkerTimeEntry['status'] | 'all' = 'submitted'): Promise<WorkerTimeEntry[]> {
+    let query = supabase.from('worker_time_entries').select('*').order('work_date', { ascending: false }).limit(200);
+    if (status !== 'all') query = query.eq('status', status);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []) as WorkerTimeEntry[];
+  },
+  async approve(id: string, comment?: string) {
+    const role = await getCurrentRole();
+    if (role !== 'super_admin') throw new Error('Vetem super admin mund te aprovoje oret.');
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Nuk je i kycur.');
+    const { error } = await supabase
+      .from('worker_time_entries')
+      .update({
+        status: 'approved',
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+        super_admin_comment: comment || null,
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+  async reject(id: string, comment?: string) {
+    const role = await getCurrentRole();
+    if (role !== 'super_admin') throw new Error('Vetem super admin mund te refuzoje oret.');
+    const { error } = await supabase
+      .from('worker_time_entries')
+      .update({
+        status: 'rejected',
+        super_admin_comment: comment || null,
       })
       .eq('id', id);
     if (error) throw error;
