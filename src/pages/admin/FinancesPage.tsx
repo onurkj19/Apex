@@ -9,6 +9,7 @@ import { financeApi } from '@/lib/erp-api';
 import type { ExpenseCategory, FinanceEntry, PaymentMethod } from '@/lib/erp-types';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { z } from 'zod';
+import { formatChf } from '@/lib/utils';
 
 const categories: ExpenseCategory[] = ['Karburant', 'Pajisje', 'Blerje Produktesh', 'Qira Magazine', 'Mjete Pune'];
 const methods: PaymentMethod[] = ['Cash', 'Bank'];
@@ -130,9 +131,9 @@ const FinancesPage = () => {
       <h2 className="text-2xl font-bold">Financat</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardHeader><CardTitle>Bilanci Cash</CardTitle></CardHeader><CardContent>{cashBalance.toFixed(2)} CHF</CardContent></Card>
-        <Card><CardHeader><CardTitle>Bilanci Bank</CardTitle></CardHeader><CardContent>{bankBalance.toFixed(2)} CHF</CardContent></Card>
-        <Card><CardHeader><CardTitle>Bilanci total</CardTitle></CardHeader><CardContent>{(cashBalance + bankBalance).toFixed(2)} CHF</CardContent></Card>
+        <Card><CardHeader><CardTitle>Bilanci Cash</CardTitle></CardHeader><CardContent>{formatChf(cashBalance)}</CardContent></Card>
+        <Card><CardHeader><CardTitle>Bilanci Bank</CardTitle></CardHeader><CardContent>{formatChf(bankBalance)}</CardContent></Card>
+        <Card><CardHeader><CardTitle>Bilanci total</CardTitle></CardHeader><CardContent>{formatChf(cashBalance + bankBalance)}</CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -240,7 +241,7 @@ const FinancesPage = () => {
                       <p className="text-xs text-muted-foreground">Te ardhura | {row.payment_method}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-green-600 font-semibold">+ {Number(row.amount).toFixed(2)} CHF</p>
+                      <p className="text-green-600 font-semibold">+ {formatChf(Number(row.amount))}</p>
                       <RowActionsMenu
                         disabled={actionLoadingId === `delete-${row.id}`}
                         actions={[
@@ -298,7 +299,7 @@ const FinancesPage = () => {
                       <p className="text-xs text-muted-foreground">Shpenzim - {row.category || '-'} | {row.payment_method}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-red-600 font-semibold">- {Number(row.amount).toFixed(2)} CHF</p>
+                      <p className="text-red-600 font-semibold">- {formatChf(Number(row.amount))}</p>
                       <RowActionsMenu
                         disabled={actionLoadingId === `delete-${row.id}`}
                         actions={[

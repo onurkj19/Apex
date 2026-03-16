@@ -8,6 +8,7 @@ import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { clientApi, projectApi } from '@/lib/erp-api';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
 import { z } from 'zod';
+import { formatChf } from '@/lib/utils';
 
 const statuses: ProjectStatus[] = ['Ne pritje', 'I pranuar', 'I refuzuar', 'Ne pune', 'I perfunduar', 'I deshtuar'];
 const projectSchema = z.object({
@@ -253,7 +254,7 @@ const ProjectsPage = () => {
                   <div>
                     <p className="font-medium">{p.project_name}</p>
                     <p className="text-sm text-muted-foreground">{p.location} - {p.status}</p>
-                    <p className="text-xs text-muted-foreground">Cmimi kontrates: {Number(p.revenue || 0).toFixed(2)} CHF</p>
+                    <p className="text-xs text-muted-foreground">Cmimi kontrates: {formatChf(Number(p.revenue || 0))}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm">Progress: {p.progress}%</p>

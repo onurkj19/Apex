@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { workerApi, workerGroupApi } from '@/lib/erp-api';
 import type { Worker, WorkerGroup } from '@/lib/erp-types';
+import { formatNumberWithDots } from '@/lib/utils';
 
 const WORKER_ROLE_OPTIONS = [
   { value: 'Monter Skele', label: 'Monter Skele', keywords: 'Montim, Demontim, Siguri' },
@@ -34,7 +35,7 @@ const SortableWorker = ({ worker }: { worker: Worker }) => {
       {...listeners}
     >
       <p className="font-medium">{worker.full_name}</p>
-      <p className="text-xs text-muted-foreground">{worker.role} - {worker.hourly_rate} CHF/h</p>
+      <p className="text-xs text-muted-foreground">{worker.role} - {formatNumberWithDots(worker.hourly_rate)} CHF/h</p>
     </div>
   );
 };
@@ -323,7 +324,7 @@ const WorkersPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">{worker.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{worker.role} | {worker.hourly_rate} CHF/h | {worker.group_name}</p>
+                    <p className="text-sm text-muted-foreground">{worker.role} | {formatNumberWithDots(worker.hourly_rate)} CHF/h | {worker.group_name}</p>
                   </div>
                   <div className="flex gap-2">
                     <RowActionsMenu

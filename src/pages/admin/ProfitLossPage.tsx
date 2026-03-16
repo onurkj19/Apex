@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { projectApi } from '@/lib/erp-api';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { formatChf } from '@/lib/utils';
 
 const ProfitLossPage = () => {
   const [rows, setRows] = useState<any[]>([]);
@@ -24,7 +25,7 @@ const ProfitLossPage = () => {
         <CardHeader><CardTitle>Rezultati total</CardTitle></CardHeader>
         <CardContent>
           <p className={`text-2xl font-bold ${totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {totalProfitLoss.toFixed(2)} CHF
+            {formatChf(totalProfitLoss)}
           </p>
         </CardContent>
       </Card>
@@ -51,12 +52,12 @@ const ProfitLossPage = () => {
             <div key={row.id} className="border rounded p-3">
               <p className="font-medium">{row.project_name}</p>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm mt-2">
-                <span>Te ardhura: {row.revenue.toFixed(2)} CHF</span>
-                <span>Kosto punetoresh: {row.worker_cost.toFixed(2)} CHF</span>
+                <span>Te ardhura: {formatChf(row.revenue)}</span>
+                <span>Kosto punetoresh: {formatChf(row.worker_cost)}</span>
                 <span>Ore pune: {Number(row.worker_hours || 0).toFixed(2)} h</span>
-                <span>Shpenzime: {row.expenses.toFixed(2)} CHF</span>
+                <span>Shpenzime: {formatChf(row.expenses)}</span>
                 <span className={row.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  Rezultati: {row.profit_loss.toFixed(2)} CHF
+                  Rezultati: {formatChf(row.profit_loss)}
                 </span>
               </div>
               {Number(row.worker_cost_logs || 0) > 0 && (

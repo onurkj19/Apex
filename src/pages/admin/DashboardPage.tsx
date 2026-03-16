@@ -7,6 +7,7 @@ import supabase from '@/lib/supabase';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatChf } from '@/lib/utils';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
@@ -55,9 +56,9 @@ const DashboardPage = () => {
     { label: 'Total Projekte', value: stats?.total_projects ?? 0 },
     { label: 'Projekte Aktive', value: stats?.active_projects ?? 0 },
     { label: 'Projekte Perfunduara', value: stats?.completed_projects ?? 0 },
-    { label: 'Te ardhura mujore', value: `${(stats?.monthly_revenue ?? 0).toFixed(2)} CHF` },
-    { label: 'Shpenzime mujore', value: `${(stats?.monthly_expenses ?? 0).toFixed(2)} CHF` },
-    { label: 'Bilanci i kompanise', value: `${(stats?.company_balance ?? 0).toFixed(2)} CHF` },
+    { label: 'Te ardhura mujore', value: formatChf(stats?.monthly_revenue ?? 0) },
+    { label: 'Shpenzime mujore', value: formatChf(stats?.monthly_expenses ?? 0) },
+    { label: 'Bilanci i kompanise', value: formatChf(stats?.company_balance ?? 0) },
   ];
 
   const roleWidgets = [

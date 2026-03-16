@@ -15,6 +15,7 @@ import {
 import { Menu, UserPlus } from 'lucide-react';
 import { clientApi, projectApi, workLogApi, workerApi } from '@/lib/erp-api';
 import type { Project, WorkLog, Worker } from '@/lib/erp-types';
+import { formatChf, formatNumberWithDots } from '@/lib/utils';
 
 const QUICK_ROLES = [
   'Monter Skele',
@@ -270,7 +271,7 @@ const WorkLogsPage = () => {
                         checked={selectedWorkerIds.includes(w.id)}
                         onCheckedChange={(checked) => toggleWorkerSelection(w.id, checked === true)}
                       >
-                        {w.full_name} ({Number(w.hourly_rate).toFixed(2)} CHF/h)
+                        {w.full_name} ({formatNumberWithDots(Number(w.hourly_rate))} CHF/h)
                       </DropdownMenuCheckboxItem>
                     ))}
                     {workers.length === 0 && (
@@ -427,7 +428,7 @@ const WorkLogsPage = () => {
                 <p className="font-medium">{p.worker_name}</p>
                 <p className="text-sm text-muted-foreground">Ore totale: {p.total_hours.toFixed(2)}</p>
               </div>
-              <p className="font-semibold">{p.total_salary.toFixed(2)} CHF</p>
+              <p className="font-semibold">{formatChf(p.total_salary)}</p>
             </div>
           ))}
           {payroll.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka evidence per kete muaj.</p>}
@@ -443,7 +444,7 @@ const WorkLogsPage = () => {
                 <p className="font-medium">{log.location}</p>
                 <p className="text-sm text-muted-foreground">{log.work_date} - {Number(log.hours_worked).toFixed(2)} ore</p>
               </div>
-              <p className="font-semibold">{Number(log.total_amount).toFixed(2)} CHF</p>
+              <p className="font-semibold">{formatChf(Number(log.total_amount))}</p>
             </div>
           ))}
         </CardContent>

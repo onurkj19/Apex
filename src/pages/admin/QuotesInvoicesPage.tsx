@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { AlertTriangle, Ban, CheckCircle2, Clock3, FileCheck2, FileText, Hourglass, Send, XCircle } from 'lucide-react';
 import type { Invoice, InvoiceStatus, Project, Quote, QuoteStatus } from '@/lib/erp-types';
+import { formatChf } from '@/lib/utils';
 
 const quoteStatuses: QuoteStatus[] = ['Draft', 'Derguar', 'Pranuar', 'Perfunduar', 'Refuzuar'];
 const invoiceStatuses: InvoiceStatus[] = ['pending', 'paid', 'partial', 'overdue', 'cancelled'];
@@ -554,7 +555,7 @@ const QuotesInvoicesPage = () => {
                         {getInvoiceStatusIcon(inv.status)}
                         {inv.status}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">Shuma: {Number(inv.amount || 0).toFixed(2)} CHF</span>
+                      <span className="text-sm text-muted-foreground">Shuma: {formatChf(Number(inv.amount || 0))}</span>
                     </div>
                   </div>
                   {(inv.invoice_file_url || inv.pdf_url) && (
