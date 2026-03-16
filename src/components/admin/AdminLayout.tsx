@@ -29,6 +29,9 @@ const AdminLayout = () => {
   const [search, setSearch] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
+  );
 
   const filteredItems = useMemo(
     () =>
@@ -41,6 +44,8 @@ const AdminLayout = () => {
   useEffect(() => {
     let mounted = true;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    const seenNotificationIds = new Set<string>();
+    let initializedLiveFeed = false;
 
     const isStandaloneApp = () => {
       const standaloneMedia = window.matchMedia?.('(display-mode: standalone)').matches;
@@ -74,15 +79,34 @@ const AdminLayout = () => {
       }
     };
 
-    const ensureNotificationPermission = async () => {
-      if (!isStandaloneApp()) return;
-      if (!('Notification' in window)) return;
-      if (Notification.permission !== 'default') return;
-
+    const pollLatestNotifications = async () => {
       try {
-        await Notification.requestPermission();
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id, title, message, is_archived')
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (error || !data) return;
+
+        const rows = data as Array<{ id: string; title: string; message: string; is_archived: boolean }>;
+
+        if (!initializedLiveFeed) {
+          rows.forEach((row) => seenNotificationIds.add(row.id));
+          initializedLiveFeed = true;
+          return;
+        }
+
+        const freshRows = rows.filter((row) => !seenNotificationIds.has(row.id));
+        rows.forEach((row) => seenNotificationIds.add(row.id));
+
+        if (freshRows.length === 0) return;
+        for (const row of freshRows.reverse()) {
+          toast.message(row.title || 'Njoftim i ri', { description: row.message || '' });
+          void sendLiveNotification(row.title || 'Njoftim i ri', row.message || '');
+        }
       } catch {
-        // Ignore notification permission errors.
+        // Keep app working even if polling fails.
       }
     };
 
@@ -99,6 +123,7 @@ const AdminLayout = () => {
             icon: '/pwa-192-v4.svg',
             badge: '/pwa-192-v4.svg',
             tag: `notif-${Date.now()}`,
+            requireInteraction: true,
           });
           return;
         }
@@ -113,12 +138,14 @@ const AdminLayout = () => {
       }
     };
 
-    void ensureNotificationPermission();
+    setNotificationPermission('Notification' in window ? Notification.permission : 'unsupported');
     void refreshUnreadCount();
+    void pollLatestNotifications();
 
     const interval = window.setInterval(() => {
       void refreshUnreadCount();
-    }, 30_000);
+      void pollLatestNotifications();
+    }, 5_000);
 
     channel = supabase
       .channel(`admin-notifications-live-${Date.now()}`)
@@ -130,6 +157,8 @@ const AdminLayout = () => {
 
           if (payload.eventType !== 'INSERT') return;
           const row = payload.new as Record<string, unknown>;
+          const rowId = String(row.id || '');
+          if (rowId) seenNotificationIds.add(rowId);
           const title = String(row.title || 'Njoftim i ri');
           const message = String(row.message || '');
           toast.message(title, { description: message });
@@ -144,6 +173,25 @@ const AdminLayout = () => {
       if (channel) void supabase.removeChannel(channel);
     };
   }, []);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      toast.error('Ky telefon/browser nuk e suporton Notification API.');
+      setNotificationPermission('unsupported');
+      return;
+    }
+    try {
+      const result = await Notification.requestPermission();
+      setNotificationPermission(result);
+      if (result === 'granted') {
+        toast.success('Njoftimet u aktivizuan me sukses.');
+      } else {
+        toast.error('Leja per njoftime nuk u dha.');
+      }
+    } catch {
+      toast.error('Nuk u arrit te aktivizohet leja e njoftimeve.');
+    }
+  };
 
   const onLogout = async () => {
     try {
@@ -244,10 +292,17 @@ const AdminLayout = () => {
               </Sheet>
               <p className="font-medium">Paneli administrativ</p>
             </div>
-            <Button variant="outline" onClick={onLogout} className="hidden md:inline-flex">
-              <LogOut className="h-4 w-4 mr-2" />
-              Dil
-            </Button>
+            <div className="flex items-center gap-2">
+              {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
+                <Button variant="outline" size="sm" onClick={requestNotificationPermission}>
+                  Aktivizo njoftimet
+                </Button>
+              )}
+              <Button variant="outline" onClick={onLogout} className="hidden md:inline-flex">
+                <LogOut className="h-4 w-4 mr-2" />
+                Dil
+              </Button>
+            </div>
           </header>
           <section className="p-3 sm:p-4 md:p-6">
             <Outlet />

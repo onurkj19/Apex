@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,31 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberUser, setRememberUser] = useState(() => localStorage.getItem('apex_admin_remember_user') !== '0');
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const autoRedirectIfAuthenticated = async () => {
+      try {
+        const admin = await authApi.getAdminSession();
+        if (!mounted) return;
+        if (admin) {
+          navigate('/admin/dashboard', { replace: true });
+          return;
+        }
+      } catch {
+        // Keep login form visible if session fetch fails.
+      } finally {
+        if (mounted) setCheckingSession(false);
+      }
+    };
+
+    void autoRedirectIfAuthenticated();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,6 +75,9 @@ const LoginPage = () => {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
+            {checkingSession && (
+              <p className="text-sm text-muted-foreground">Po kontrollohet sesioni ekzistues...</p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -70,7 +98,7 @@ const LoginPage = () => {
               <span className="text-muted-foreground">Stay logged in</span>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" type="submit" disabled={loading}>
+            <Button className="w-full" type="submit" disabled={loading || checkingSession}>
               {loading ? 'Duke u identifikuar...' : 'Hyr'}
             </Button>
           </form>
