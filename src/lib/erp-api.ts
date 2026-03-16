@@ -188,23 +188,29 @@ export const authApi = {
       if (error) throw error;
       return data;
     } catch (error: any) {
+      let parsedMessage: string | null = null;
+
       if (typeof error?.context?.json === 'function') {
         try {
           const details = await error.context.json();
-          if (details?.error) throw new Error(String(details.error));
+          if (details?.error) {
+            parsedMessage = String(details.error);
+          }
         } catch {
           // Try plain text body when JSON parsing fails.
           if (typeof error?.context?.text === 'function') {
             try {
               const raw = await error.context.text();
-              if (raw) throw new Error(String(raw));
+              if (raw) {
+                parsedMessage = String(raw);
+              }
             } catch {
               // ignore and use fallback below
             }
           }
         }
       }
-      throw new Error(error?.message || 'Nuk u arrit krijimi i user-it.');
+      throw new Error(parsedMessage || error?.message || 'Nuk u arrit krijimi i user-it.');
     }
   },
 };
