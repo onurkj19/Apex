@@ -1,6 +1,6 @@
 ## Monthly Report Automation
 
-Edge Functions: `monthly-report`, `daily-notifications`
+Edge Functions: `monthly-report`, `daily-notifications`, `create-app-user`
 
 ### Required secrets
 
@@ -14,6 +14,7 @@ Edge Functions: `monthly-report`, `daily-notifications`
 ```bash
 supabase functions deploy monthly-report
 supabase functions deploy daily-notifications
+supabase functions deploy create-app-user
 ```
 
 ### Cron (every first day of month at 08:00)

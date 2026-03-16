@@ -37,6 +37,7 @@ begin
   alter type public.app_role add value if not exists 'finance';
   alter type public.app_role add value if not exists 'project_manager';
   alter type public.app_role add value if not exists 'viewer';
+  alter type public.app_role add value if not exists 'worker';
 exception
   when duplicate_object then null;
 end $$;
@@ -63,6 +64,9 @@ create table if not exists public.users (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.users
+  add column if not exists worker_id uuid;
 
 alter table if exists public.users
   add column if not exists is_online boolean not null default false;
@@ -141,6 +145,21 @@ create table if not exists public.worker_groups (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.table_constraints
+    where constraint_schema = 'public'
+      and table_name = 'users'
+      and constraint_name = 'users_worker_id_fkey'
+  ) then
+    alter table public.users
+      add constraint users_worker_id_fkey
+      foreign key (worker_id) references public.workers(id) on delete set null;
+  end if;
+end $$;
 
 insert into public.worker_groups (name, is_active)
 values ('Grupi A', true), ('Grupi B', true), ('Grupi C', true)
@@ -310,6 +329,22 @@ create table if not exists public.team_plans (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.leave_requests (
+  id uuid primary key default uuid_generate_v4(),
+  worker_user_id uuid not null references public.users(id) on delete cascade,
+  worker_id uuid references public.workers(id) on delete set null,
+  request_type text not null check (request_type in ('day_off', 'annual_leave')),
+  requested_start_date date not null,
+  requested_end_date date not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'counter_offered', 'worker_countered')),
+  admin_counter_start_date date,
+  admin_counter_end_date date,
+  worker_comment text,
+  admin_comment text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -391,6 +426,10 @@ drop trigger if exists trg_team_plans_updated_at on public.team_plans;
 create trigger trg_team_plans_updated_at before update on public.team_plans
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_leave_requests_updated_at on public.leave_requests;
+create trigger trg_leave_requests_updated_at before update on public.leave_requests
+for each row execute procedure public.set_updated_at();
+
 create or replace function public.is_admin(uid uuid)
 returns boolean
 language sql
@@ -462,6 +501,7 @@ alter table public.reports enable row level security;
 alter table public.notifications enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.team_plans enable row level security;
+alter table public.leave_requests enable row level security;
 
 drop policy if exists users_self_read on public.users;
 create policy users_self_read on public.users for select to authenticated
@@ -628,10 +668,55 @@ drop policy if exists read_team_plans_panel on public.team_plans;
 create policy read_team_plans_panel on public.team_plans for select to authenticated
 using (public.can_read_panel(auth.uid()));
 
+drop policy if exists worker_read_assigned_team_plans on public.team_plans;
+create policy worker_read_assigned_team_plans on public.team_plans for select to authenticated
+using (
+  exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and u.role = 'worker'
+      and u.is_active = true
+      and u.worker_id is not null
+      and u.worker_id = any(public.team_plans.worker_ids)
+  )
+);
+
 drop policy if exists manage_team_plans_panel on public.team_plans;
 create policy manage_team_plans_panel on public.team_plans for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
+
+drop policy if exists read_leave_requests_panel on public.leave_requests;
+create policy read_leave_requests_panel on public.leave_requests for select to authenticated
+using (
+  public.is_admin(auth.uid())
+  or worker_user_id = auth.uid()
+);
+
+drop policy if exists worker_create_leave_requests on public.leave_requests;
+create policy worker_create_leave_requests on public.leave_requests for insert to authenticated
+with check (worker_user_id = auth.uid());
+
+drop policy if exists worker_update_own_leave_requests on public.leave_requests;
+create policy worker_update_own_leave_requests on public.leave_requests for update to authenticated
+using (worker_user_id = auth.uid())
+with check (worker_user_id = auth.uid());
+
+drop policy if exists super_admin_manage_leave_requests on public.leave_requests;
+create policy super_admin_manage_leave_requests on public.leave_requests for all to authenticated
+using (
+  exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'super_admin' and u.is_active = true
+  )
+)
+with check (
+  exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'super_admin' and u.is_active = true
+  )
+);
 
 insert into storage.buckets (id, name, public)
 values ('erp-images', 'erp-images', false)
@@ -736,6 +821,10 @@ for each row execute procedure public.log_audit_event();
 
 drop trigger if exists trg_audit_team_plans on public.team_plans;
 create trigger trg_audit_team_plans after insert or update or delete on public.team_plans
+for each row execute procedure public.log_audit_event();
+
+drop trigger if exists trg_audit_leave_requests on public.leave_requests;
+create trigger trg_audit_leave_requests after insert or update or delete on public.leave_requests
 for each row execute procedure public.log_audit_event();
 
 create or replace function public.on_project_completed_generate_invoice()

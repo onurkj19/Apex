@@ -26,6 +26,7 @@ const items = [
   { to: '/admin/notifications', label: 'Njoftime', icon: Bell },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/admin/team-planning', label: 'Team Planning', icon: CalendarDays },
+  { to: '/admin/leave-requests', label: 'Kerkesa Pushimi', icon: ClipboardList },
   { to: '/admin/settings', label: 'Cilesimet', icon: Settings },
 ];
 

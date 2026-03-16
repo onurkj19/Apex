@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { authApi, settingsApi } from '@/lib/erp-api';
+import { authApi, settingsApi, workerApi } from '@/lib/erp-api';
 import { ROLE_LABELS } from '@/lib/permissions';
 import type { AppRole } from '@/lib/erp-types';
 
@@ -18,6 +18,15 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [admins, setAdmins] = useState<any[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [userForm, setUserForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    role: 'worker' as AppRole,
+    worker_id: '',
+  });
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -35,7 +44,7 @@ const SettingsPage = () => {
     const loadAdmins = async () => {
       setLoadingAdmins(true);
       try {
-        const rows = await authApi.listAdminPresence();
+        const rows = await authApi.listAppUsers();
         setAdmins(rows);
       } catch (error: any) {
         alert(error?.message || 'Gabim gjate ngarkimit te statusit te adminave.');
@@ -44,8 +53,17 @@ const SettingsPage = () => {
       }
     };
 
+    const loadWorkers = async () => {
+      try {
+        setWorkers(await workerApi.list());
+      } catch {
+        // keep page usable
+      }
+    };
+
     loadSettings();
     loadAdmins();
+    loadWorkers();
     const interval = window.setInterval(loadAdmins, 60_000);
     return () => window.clearInterval(interval);
   }, []);
@@ -65,6 +83,35 @@ const SettingsPage = () => {
       alert(error?.message || 'Gabim gjate ruajtjes se cilesimeve.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const createAppUser = async () => {
+    if (!userForm.full_name || !userForm.email || !userForm.password) {
+      alert('Ploteso emrin, email-in dhe password.');
+      return;
+    }
+    if (userForm.role === 'worker' && !userForm.worker_id) {
+      alert('Per rolin worker duhet te zgjedhesh punetorin.');
+      return;
+    }
+
+    setCreatingUser(true);
+    try {
+      await authApi.createAppUser({
+        full_name: userForm.full_name,
+        email: userForm.email,
+        password: userForm.password,
+        role: userForm.role,
+        worker_id: userForm.role === 'worker' ? userForm.worker_id : null,
+      });
+      alert('Perdoruesi i ri u krijua.');
+      setUserForm({ full_name: '', email: '', password: '', role: 'worker', worker_id: '' });
+      setAdmins(await authApi.listAppUsers());
+    } catch (error: any) {
+      alert(error?.message || 'Nuk u arrit krijimi i perdoruesit.');
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -109,8 +156,59 @@ const SettingsPage = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Statusi i adminave</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Perdoruesit e app-it</CardTitle></CardHeader>
         <CardContent className="space-y-2">
+          <div className="border rounded-md p-3 space-y-3">
+            <p className="font-medium">Krijo user te ri (admin/worker)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <Input
+                placeholder="Emri i plote"
+                value={userForm.full_name}
+                onChange={(e) => setUserForm((s) => ({ ...s, full_name: e.target.value }))}
+              />
+              <Input
+                placeholder="Email"
+                value={userForm.email}
+                onChange={(e) => setUserForm((s) => ({ ...s, email: e.target.value }))}
+              />
+              <Input
+                placeholder="Password"
+                type="password"
+                value={userForm.password}
+                onChange={(e) => setUserForm((s) => ({ ...s, password: e.target.value }))}
+              />
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={userForm.role}
+                onChange={(e) => setUserForm((s) => ({ ...s, role: e.target.value as AppRole }))}
+              >
+                {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {userForm.role === 'worker' && (
+                <select
+                  className="h-10 rounded-md border bg-background px-3 text-sm md:col-span-2"
+                  value={userForm.worker_id}
+                  onChange={(e) => setUserForm((s) => ({ ...s, worker_id: e.target.value }))}
+                >
+                  <option value="">Zgjidh punetorin</option>
+                  {workers.map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.full_name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="md:col-span-2">
+                <Button onClick={createAppUser} disabled={creatingUser}>
+                  {creatingUser ? 'Duke krijuar...' : 'Krijo userin'}
+                </Button>
+              </div>
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button
               variant="outline"
@@ -118,7 +216,7 @@ const SettingsPage = () => {
               onClick={async () => {
                 setLoadingAdmins(true);
                 try {
-                  setAdmins(await authApi.listAdminPresence());
+                  setAdmins(await authApi.listAppUsers());
                 } finally {
                   setLoadingAdmins(false);
                 }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { dashboardApi } from '@/lib/erp-api';
-import type { DashboardStats } from '@/lib/erp-types';
+import { dashboardApi, leaveRequestApi, workerPortalApi } from '@/lib/erp-api';
+import type { DashboardStats, LeaveRequest } from '@/lib/erp-types';
 import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import supabase from '@/lib/supabase';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
@@ -13,9 +15,26 @@ const DashboardPage = () => {
   const [statusChart, setStatusChart] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [trend, setTrend] = useState<any | null>(null);
+  const [workerPlans, setWorkerPlans] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [leaveForm, setLeaveForm] = useState({
+    request_type: 'day_off' as LeaveRequest['request_type'],
+    requested_start_date: new Date().toISOString().slice(0, 10),
+    requested_end_date: new Date().toISOString().slice(0, 10),
+    worker_comment: '',
+  });
+  const [submittingLeave, setSubmittingLeave] = useState(false);
 
   useEffect(() => {
     const load = async () => {
+      if (!profile) return;
+      if (profile?.role === 'worker') {
+        const [plans, leaves] = await Promise.all([workerPortalApi.getAssignedPlans(), leaveRequestApi.listMine()]);
+        setWorkerPlans(plans);
+        setLeaveRequests(leaves);
+        return;
+      }
+
       const [statsRes, financeRes, statusRes, notificationsRes, trendRes] = await Promise.all([
         dashboardApi.getStats(),
         dashboardApi.getMonthlyFinance(),
@@ -29,8 +48,8 @@ const DashboardPage = () => {
       setNotifications(notificationsRes.data || []);
       setTrend(trendRes);
     };
-    load();
-  }, []);
+    void load();
+  }, [profile?.role]);
 
   const boxes = [
     { label: 'Total Projekte', value: stats?.total_projects ?? 0 },
@@ -61,6 +80,148 @@ const DashboardPage = () => {
       content: 'Ke akses vetem per lexim ne modulet kryesore.',
     },
   ].filter((x) => x.visible);
+
+  const refreshWorkerData = async () => {
+    const [plans, leaves] = await Promise.all([workerPortalApi.getAssignedPlans(), leaveRequestApi.listMine()]);
+    setWorkerPlans(plans);
+    setLeaveRequests(leaves);
+  };
+
+  if (!profile) {
+    return <p className="text-sm text-muted-foreground">Duke ngarkuar profilin...</p>;
+  }
+
+  if (profile?.role === 'worker') {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Dashboard i Punetorit</h2>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Planning (detyrat e mia)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {workerPlans.length === 0 && <p className="text-sm text-muted-foreground">Nuk ke plane aktive.</p>}
+            {workerPlans.map((plan) => (
+              <div key={plan.id} className="border rounded-md p-3">
+                <p className="font-medium">{plan.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(plan.plan_date).toLocaleDateString('sq-AL')} - {plan.location || 'Pa lokacion'}
+                </p>
+                <p className="text-sm text-muted-foreground">Statusi: {plan.status}</p>
+                {plan.task_details && <p className="text-sm mt-1">{plan.task_details}</p>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Kerko dite te lire / pushim vjetor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="grid grid-cols-1 md:grid-cols-2 gap-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSubmittingLeave(true);
+                try {
+                  await leaveRequestApi.createMine(leaveForm);
+                  setLeaveForm((s) => ({ ...s, worker_comment: '' }));
+                  await refreshWorkerData();
+                } finally {
+                  setSubmittingLeave(false);
+                }
+              }}
+            >
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={leaveForm.request_type}
+                onChange={(e) => setLeaveForm((s) => ({ ...s, request_type: e.target.value as LeaveRequest['request_type'] }))}
+              >
+                <option value="day_off">Dite e lire</option>
+                <option value="annual_leave">Pushim vjetor</option>
+              </select>
+              <Input
+                type="date"
+                value={leaveForm.requested_start_date}
+                onChange={(e) => setLeaveForm((s) => ({ ...s, requested_start_date: e.target.value }))}
+              />
+              <Input
+                type="date"
+                value={leaveForm.requested_end_date}
+                onChange={(e) => setLeaveForm((s) => ({ ...s, requested_end_date: e.target.value }))}
+              />
+              <Input
+                placeholder="Shenim (opsionale)"
+                value={leaveForm.worker_comment}
+                onChange={(e) => setLeaveForm((s) => ({ ...s, worker_comment: e.target.value }))}
+              />
+              <div className="md:col-span-2">
+                <Button type="submit" disabled={submittingLeave}>
+                  {submittingLeave ? 'Duke derguar...' : 'Dergo kerkesen'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Kerkesat e mia</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {leaveRequests.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka kerkesa ende.</p>}
+            {leaveRequests.map((req) => (
+              <div key={req.id} className="border rounded-md p-3 space-y-1">
+                <p className="font-medium">
+                  {req.request_type === 'annual_leave' ? 'Pushim vjetor' : 'Dite e lire'} ({req.requested_start_date} - {req.requested_end_date})
+                </p>
+                <p className="text-sm text-muted-foreground">Statusi: {req.status}</p>
+                {req.admin_comment && <p className="text-sm">Admini: {req.admin_comment}</p>}
+                {req.status === 'counter_offered' && (
+                  <div className="mt-2 p-2 rounded bg-muted/20 space-y-2">
+                    <p className="text-sm">
+                      Kunderoferte: {req.admin_counter_start_date || '-'} deri {req.admin_counter_end_date || '-'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          await leaveRequestApi.respondToCounter(req.id, { accept: true, worker_comment: 'Pranuar' });
+                          await refreshWorkerData();
+                        }}
+                      >
+                        Prano daten
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const start = prompt('Data e re nga (YYYY-MM-DD):', req.requested_start_date);
+                          const end = prompt('Data e re deri (YYYY-MM-DD):', req.requested_end_date);
+                          if (!start || !end) return;
+                          await leaveRequestApi.respondToCounter(req.id, {
+                            accept: false,
+                            new_start_date: start,
+                            new_end_date: end,
+                            worker_comment: 'Kunderoferte nga punetori',
+                          });
+                          await refreshWorkerData();
+                        }}
+                      >
+                        Ofro date tjeter
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

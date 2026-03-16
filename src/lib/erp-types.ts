@@ -11,7 +11,7 @@ export type QuoteStatus = 'Draft' | 'Derguar' | 'Pranuar' | 'Perfunduar' | 'Refu
 export type InvoiceStatus = 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'Cash' | 'Bank';
 export type ExpenseCategory = 'Karburant' | 'Pajisje' | 'Blerje Produktesh' | 'Qira Magazine' | 'Mjete Pune';
-export type AppRole = 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer';
+export type AppRole = 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer' | 'worker';
 
 export interface DashboardStats {
   total_projects: number;
@@ -179,6 +179,25 @@ export interface TeamPlanItem {
   attachment_path: string | null;
   notes: string | null;
   status: 'planned' | 'in_progress' | 'done' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+}
+
+export type LeaveRequestType = 'day_off' | 'annual_leave';
+export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'counter_offered' | 'worker_countered';
+
+export interface LeaveRequest {
+  id: string;
+  worker_user_id: string;
+  worker_id: string | null;
+  request_type: LeaveRequestType;
+  requested_start_date: string;
+  requested_end_date: string;
+  status: LeaveRequestStatus;
+  admin_counter_start_date: string | null;
+  admin_counter_end_date: string | null;
+  worker_comment: string | null;
+  admin_comment: string | null;
   created_at: string;
   updated_at: string;
 }

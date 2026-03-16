@@ -6,6 +6,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   finance: 'Finance',
   project_manager: 'Project Manager',
   viewer: 'Viewer',
+  worker: 'Worker',
 };
 
 export const canDeleteFinance = (role?: AppRole | null) =>
@@ -13,14 +14,19 @@ export const canDeleteFinance = (role?: AppRole | null) =>
 
 export const canAccessRoute = (role: AppRole | null | undefined, path: string) => {
   if (!role) return false;
-  if (role === 'super_admin' || role === 'admin') return true;
+  if (role === 'super_admin') return true;
+  if (role === 'admin') return path !== '/admin/leave-requests';
+
+  if (role === 'worker') {
+    return ['/admin/dashboard'].includes(path);
+  }
 
   if (role === 'finance') {
-    return !['/admin/workers', '/admin/content', '/admin/settings'].includes(path);
+    return !['/admin/workers', '/admin/content', '/admin/settings', '/admin/leave-requests'].includes(path);
   }
 
   if (role === 'project_manager') {
-    return !['/admin/finances', '/admin/profit-loss', '/admin/settings'].includes(path);
+    return !['/admin/finances', '/admin/profit-loss', '/admin/settings', '/admin/leave-requests'].includes(path);
   }
 
   if (role === 'viewer') {
