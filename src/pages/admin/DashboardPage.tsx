@@ -112,54 +112,6 @@ const DashboardPage = () => {
     return () => window.clearInterval(interval);
   }, [profile?.role]);
 
-  useEffect(() => {
-    if (profile?.role !== 'worker') return;
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
-
-    const showReminder = (title: string, body: string, key: string) => {
-      const today = new Date().toISOString().slice(0, 10);
-      const storageKey = `apex-worker-reminder-${key}-${today}`;
-      if (localStorage.getItem(storageKey) === '1') return;
-      localStorage.setItem(storageKey, '1');
-      try {
-        const registrationPromise = navigator.serviceWorker?.getRegistration();
-        void registrationPromise?.then((registration) => {
-          if (registration) {
-            void registration.showNotification(title, {
-              body,
-              icon: '/pwa-192-custom.png',
-              badge: '/pwa-192-custom.png',
-              requireInteraction: true,
-              tag: `worker-reminder-${key}-${today}`,
-            });
-          } else {
-            new Notification(title, { body, icon: '/pwa-192-custom.png' });
-          }
-        });
-      } catch {
-        // ignore notification errors
-      }
-    };
-
-    const schedule = (hour: number, minute: number, key: string, title: string, body: string) => {
-      const now = new Date();
-      const target = new Date();
-      target.setHours(hour, minute, 0, 0);
-      if (target.getTime() <= now.getTime()) return;
-      const delay = target.getTime() - now.getTime();
-      const timerId = window.setTimeout(() => showReminder(title, body, key), delay);
-      return timerId;
-    };
-
-    const timers: number[] = [];
-    const startTimer = schedule(6, 45, 'start', 'Kujtese Start', 'Ora 07:00 po afrohet. Kliko Start per regjistrim.');
-    const stopTimer = schedule(17, 15, 'stop', 'Kujtese Stop', 'Ora 17:15. Kliko Stop per dorezim te oreve ditore.');
-    if (startTimer) timers.push(startTimer);
-    if (stopTimer) timers.push(stopTimer);
-    return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [profile?.role]);
-
   const getLiveWorkedMinutes = () => {
     if (!todayTimeEntry) return 0;
     if (todayTimeEntry.status !== 'running' || !todayTimeEntry.start_at) {

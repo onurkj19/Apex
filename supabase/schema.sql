@@ -634,33 +634,6 @@ create policy admin_all_notifications on public.notifications for all to authent
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
-drop policy if exists worker_read_own_notifications on public.notifications;
-create policy worker_read_own_notifications on public.notifications for select to authenticated
-using (
-  (
-    (metadata ->> 'target_user_id') is not null
-    and (metadata ->> 'target_user_id') ~* '^[0-9a-f-]{36}$'
-    and (metadata ->> 'target_user_id')::uuid = auth.uid()
-  )
-);
-
-drop policy if exists worker_update_own_notifications on public.notifications;
-create policy worker_update_own_notifications on public.notifications for update to authenticated
-using (
-  (
-    (metadata ->> 'target_user_id') is not null
-    and (metadata ->> 'target_user_id') ~* '^[0-9a-f-]{36}$'
-    and (metadata ->> 'target_user_id')::uuid = auth.uid()
-  )
-)
-with check (
-  (
-    (metadata ->> 'target_user_id') is not null
-    and (metadata ->> 'target_user_id') ~* '^[0-9a-f-]{36}$'
-    and (metadata ->> 'target_user_id')::uuid = auth.uid()
-  )
-);
-
 drop policy if exists admin_all_app_settings on public.app_settings;
 create policy admin_all_app_settings on public.app_settings for all to authenticated
 using (public.is_admin(auth.uid()))

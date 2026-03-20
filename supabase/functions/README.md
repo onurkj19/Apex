@@ -1,6 +1,6 @@
 ## Monthly Report Automation
 
-Edge Functions: `monthly-report`, `daily-notifications`, `create-app-user`, `worker-time-reminders`
+Edge Functions: `monthly-report`, `daily-notifications`, `create-app-user`
 
 ### Required secrets
 
@@ -15,7 +15,6 @@ Edge Functions: `monthly-report`, `daily-notifications`, `create-app-user`, `wor
 supabase functions deploy monthly-report
 supabase functions deploy daily-notifications
 supabase functions deploy create-app-user
-supabase functions deploy worker-time-reminders
 ```
 
 ### Cron (every first day of month at 08:00)
