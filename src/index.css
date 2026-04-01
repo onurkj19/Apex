@@ -75,9 +75,13 @@
   }
   body {
     @apply bg-background text-foreground font-montserrat;
-    background-color: hsl(var(--background));
-    /* Subtle top glow — avoids checkerboard-style diagonal grid on long pages */
-    background-image: radial-gradient(ellipse 100% 60% at 50% -10%, hsl(var(--primary) / 0.06), transparent 55%);
+    background-image: 
+      linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
 
   /* -------- RESPONSIVE CONTAINER FOR #root -------- */
@@ -169,15 +173,15 @@
   }
   .header-glass.scrolled { @apply bg-background/95 shadow-card; }
 
-  /* Inner page heroes: gold gradient + dark veil for readable white text */
+  /* Yellow gradient hero: dark scrim so white headline stays readable */
   .page-hero {
-    @apply relative overflow-hidden pt-20 pb-16 text-white;
+    @apply relative overflow-hidden pt-28 md:pt-32 pb-20 md:pb-24;
   }
   .page-hero__bg {
-    @apply pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-dark via-primary to-primary-glow;
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-br from-primary via-primary-glow to-secondary;
   }
-  .page-hero__veil {
-    @apply pointer-events-none absolute inset-0 bg-neutral-950/35;
+  .page-hero__scrim {
+    @apply pointer-events-none absolute inset-0 bg-black/45;
   }
   .page-hero__inner {
     @apply relative z-10;

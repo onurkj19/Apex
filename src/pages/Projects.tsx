@@ -80,13 +80,13 @@ const Projects = () => {
         {/* Hero Section */}
         <section className="page-hero">
           <div className="page-hero__bg" aria-hidden />
-          <div className="page-hero__veil" aria-hidden />
+          <div className="page-hero__scrim" aria-hidden />
           <div className="page-hero__inner container mx-auto px-4">
-            <div className="text-center max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-md">
+            <div className="text-center text-white max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-md [text-shadow:0_2px_12px_rgba(0,0,0,0.45)]">
                 Unsere Projekte
               </h1>
-              <p className="text-xl md:text-2xl mb-8 text-white/95 drop-shadow-sm">
+              <p className="text-xl md:text-2xl mb-8 text-white/95 drop-shadow [text-shadow:0_1px_8px_rgba(0,0,0,0.4)]">
                 Über 750 erfolgreich abgeschlossene Projekte -
                 Referenzen, die für sich sprechen
               </p>
@@ -95,27 +95,29 @@ const Projects = () => {
         </section>
 
         {/* Project Categories */}
-        <section className="py-16 md:py-20 bg-background">
+        <section className="py-16 md:py-20 scroll-mt-24">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 md:mb-16 pt-2">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Unsere Projektbereiche
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-foreground/85 max-w-2xl mx-auto leading-relaxed">
                 Von Wohnbau bis Denkmalschutz - wir haben Erfahrung in allen Bereichen 
                 des Gerüstbaus und kennen die spezifischen Anforderungen.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 items-stretch">
               {projectCategories.map((category, index) => (
-                <Card key={index} className="card-elegant text-center">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Card key={index} className="card-elegant text-center h-full flex flex-col min-h-[152px]">
+                  <CardContent className="p-4 sm:p-6 flex flex-col flex-1 justify-between">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-3 shrink-0">
                       <category.icon className="w-6 h-6 text-primary" />
                     </div>
-                    <div className="text-2xl font-bold text-primary mb-1">{category.count}</div>
-                    <div className="text-sm text-muted-foreground">{category.label}</div>
+                    <div className="text-2xl font-bold text-primary mb-2 shrink-0">{category.count}</div>
+                    <p className="text-xs sm:text-sm font-medium text-foreground/90 leading-snug min-h-[2.75rem] flex items-center justify-center text-center px-0.5">
+                      {category.label}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
