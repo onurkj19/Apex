@@ -32,7 +32,7 @@ const Header = () => {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center h-16 md:h-20">
-          <Link to="/" className="flex items-center">
+          <Link to="/" className="flex shrink-0 items-center">
             <img
               src="/Transperent.png"
               alt="Apex Gerüstbau Logo"
@@ -42,12 +42,12 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center ml-4 sm:ml-6 md:ml-8 lg:ml-10 xl:ml-12 space-x-6 lg:space-x-8 xl:space-x-10">
+          <nav className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-x-3 lg:gap-x-5 xl:gap-x-7 mx-2 lg:mx-4">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className="text-foreground hover:text-primary transition-colors duration-300 font-medium"
+                className="shrink-0 whitespace-nowrap text-foreground hover:text-primary transition-colors duration-300 font-medium text-sm lg:text-[0.95rem] xl:text-base"
               >
                 {item.label}
               </Link>
@@ -55,7 +55,7 @@ const Header = () => {
           </nav>
 
           {/* Contact Button replaced with mailto */}
-          <div className="hidden md:block ml-auto md:pl-6 lg:pl-8 xl:pl-10">
+          <div className="hidden md:block ml-auto shrink-0 md:pl-4 lg:pl-8 xl:pl-10">
             <a
               href="mailto:info@apex-gerüste.ch"
               className="btn-hero inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"

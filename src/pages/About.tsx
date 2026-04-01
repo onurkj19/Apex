@@ -79,13 +79,15 @@ const team = [
       
       <main>
         {/* Hero Section */}
-        <section className="pt-20 pb-16 bg-gradient-to-br from-primary via-primary-glow to-secondary">
-          <div className="container mx-auto px-4">
-            <div className="text-center text-white max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
+        <section className="page-hero">
+          <div className="page-hero__bg" aria-hidden />
+          <div className="page-hero__veil" aria-hidden />
+          <div className="page-hero__inner container mx-auto px-4">
+            <div className="text-center max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-md">
                 Über Apex Gerüstbau
               </h1>
-              <p className="text-xl md:text-2xl mb-8 opacity-90">
+              <p className="text-xl md:text-2xl mb-8 text-white/95 drop-shadow-sm">
                 Seit über 8 Jahren Ihr zuverlässiger Partner für
                 professionelle Gerüstlösungen in der Region
               </p>
@@ -94,7 +96,7 @@ const team = [
         </section>
 
         {/* Stats Section */}
-        <section className="py-20">
+        <section className="py-16 md:py-20 bg-background">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((stat, index) => (

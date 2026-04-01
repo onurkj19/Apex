@@ -75,13 +75,15 @@ const Services = () => {
       
       <main>
         {/* Hero Section */}
-        <section className="pt-20 pb-16 bg-gradient-to-br from-primary via-primary-glow to-secondary">
-          <div className="container mx-auto px-4">
-            <div className="text-center text-white max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
+        <section className="page-hero">
+          <div className="page-hero__bg" aria-hidden />
+          <div className="page-hero__veil" aria-hidden />
+          <div className="page-hero__inner container mx-auto px-4">
+            <div className="text-center max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-md">
                 Unsere Leistungen
               </h1>
-              <p className="text-xl md:text-2xl mb-8 opacity-90">
+              <p className="text-xl md:text-2xl mb-8 text-white/95 drop-shadow-sm">
                 Professionelle Gerüstlösungen für jeden Bedarf - 
                 von der Planung bis zur Demontage
               </p>
