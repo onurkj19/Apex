@@ -1,5 +1,6 @@
 import { Phone, Mail, MapPin, Clock, Shield, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 
 const ContactSection = () => {
   const contacts = [
@@ -88,9 +89,10 @@ const ContactSection = () => {
                 Unternehmensinformationen
               </h4>
               <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <MapPin size={16} className="text-primary" />
-                  <span className="text-muted-foreground">Schweiz</span>
+                <p className="text-sm font-medium text-foreground">{COMPANY_LEGAL_NAME}</p>
+                <div className="flex items-start space-x-3">
+                  <MapPin size={16} className="text-primary shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground leading-snug">{COMPANY_ADDRESS_LINE}</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail size={16} className="text-primary" />

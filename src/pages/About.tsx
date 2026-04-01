@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
+import { COMPANY_ADDRESS_LINE } from '@/lib/company';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +9,10 @@ import { Award, Users, Calendar, MapPin, Phone, Mail, CheckCircle, Target, Eye, 
 
 const About = () => {
   const stats = [
-    { icon: Calendar, label: "Jahre Erfahrung", value: "25+" },
-    { icon: Users, label: "Abgeschlossene Projekte", value: "2.500+" },
-    { icon: Award, label: "Zertifizierungen", value: "12" },
-    { icon: MapPin, label: "Einsatzgebiete", value: "50km" }
+    { icon: Calendar, label: "Jahre Erfahrung", value: "8+" },
+    { icon: Users, label: "Abgeschlossene Projekte", value: "750+" },
+    { icon: Award, label: "Zertifizierungen", value: "4" },
+    { icon: MapPin, label: "Einsatzgebiete", value: "15km" }
   ];
 
   const values = [
@@ -66,12 +67,10 @@ const team = [
 
 
   const certifications = [
-    "TÜV-Zertifizierung",
-    "BGW-Sicherheitsstandards",
-    "DIN EN 12811 konform",
-    "ISO 9001:2015",
-    "Fachbetrieb nach WHG",
-    "SCC-Sicherheitszertifikat"
+    "EN 12811 – europäische Gerüstnorm (in der CH üblich)",
+    "Arbeitssicherheit nach SUVA-Leitfäden",
+    "Einhaltung einschlägiger Schweizer Vorschriften",
+    "ISO 9001:2015 – Qualitätsmanagement",
   ];
 
   return (
@@ -87,7 +86,7 @@ const team = [
                 Über Apex Gerüstbau
               </h1>
               <p className="text-xl md:text-2xl mb-8 opacity-90">
-                Seit über 25 Jahren Ihr zuverlässiger Partner für 
+                Seit über 8 Jahren Ihr zuverlässiger Partner für
                 professionelle Gerüstlösungen in der Region
               </p>
             </div>
@@ -120,16 +119,20 @@ const team = [
                   Unsere Geschichte
                 </h2>
                 <div className="space-y-6 text-muted-foreground">
-<p>
-  Die Apex Gerüste GmbH ist ein modernes Gerüstbauunternehmen mit Sitz in der Schweiz, das sich durch Qualität, Verlässlichkeit und Fachwissen auszeichnet.
-</p>
-<p>
-  Unser engagiertes Team besteht aus erfahrenen Fachleuten, die sich auf Fassadengerüste, Dachgerüste und Spezialkonstruktionen spezialisiert haben. Wir bieten maßgeschneiderte Lösungen für private, gewerbliche und industrielle Projekte.
-</p>
-<p>
-  Dank unserer hohen Standards, unserem modernen Equipment und einer transparenten Kommunikation konnten wir bereits zahlreiche Projekte erfolgreich realisieren und langfristige Partnerschaften mit unseren Kunden aufbauen.
-</p>
-
+                  <p>
+                    Die Apex Gerüste GmbH ist ein modernes Gerüstbauunternehmen mit Sitz in Spreitenbach (
+                    {COMPANY_ADDRESS_LINE}), das sich durch Qualität, Verlässlichkeit und Fachwissen auszeichnet.
+                  </p>
+                  <p>
+                    Unser engagiertes Team besteht aus erfahrenen Fachleuten, die sich auf Fassadengerüste,
+                    Dachgerüste und Spezialkonstruktionen spezialisiert haben. Wir bieten maßgeschneiderte
+                    Lösungen für private, gewerbliche und industrielle Projekte.
+                  </p>
+                  <p>
+                    Dank unserer hohen Standards, unserem modernen Equipment und einer transparenten
+                    Kommunikation konnten wir bereits zahlreiche Projekte erfolgreich realisieren und
+                    langfristige Partnerschaften mit unseren Kunden aufbauen.
+                  </p>
                 </div>
               </div>
               <div className="relative">
@@ -224,12 +227,12 @@ const team = [
                 Zertifizierungen & Standards
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Qualität und Sicherheit sind messbar - unsere Zertifizierungen 
-                belegen unsere hohen Standards.
+                Orientierung an europäischen Normen und schweizerischen Vorgaben zu Sicherheit und Qualität
+                – transparent dokumentiert.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
               {certifications.map((cert, index) => (
                 <div key={index} className="text-center">
                   <div className="w-full aspect-square bg-muted/50 rounded-lg flex items-center justify-center mb-2 hover:bg-primary/10 transition-colors">

@@ -12,7 +12,7 @@ const Services = () => {
       icon: Building2,
       title: "Fassadengerüste",
       description: "Sichere und stabile Gerüstsysteme für alle Arten von Fassadenarbeiten. Individuelle Preisgestaltung nach Absprache.",
-      features: ["Bis zu 50m Höhe", "Wetterfest", "Schneller Aufbau", "TÜV-geprüft"]
+      features: ["Bis zu 50m Höhe", "Wetterfest", "Schneller Aufbau", "Normgerecht (EN 12811)"]
     },
     {
       icon: Construction,
@@ -88,7 +88,7 @@ const Services = () => {
               <div className="flex flex-wrap justify-center gap-4">
                 <Badge variant="secondary" className="px-4 py-2 text-sm">
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  TÜV-zertifiziert
+                  SUVA & EN 12811
                 </Badge>
                 <Badge variant="secondary" className="px-4 py-2 text-sm">
                   <Clock className="w-4 h-4 mr-2" />

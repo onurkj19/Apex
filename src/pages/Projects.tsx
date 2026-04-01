@@ -64,33 +64,12 @@ const Projects = () => {
   };
 
   const projectCategories = [
-    { icon: Building2, label: "Wohnbau", count: "850+" },
-    { icon: Factory, label: "Gewerbebau", count: "420+" },
-    { icon: Church, label: "Denkmalschutz", count: "180+" },
-    { icon: School, label: "Öffentliche Gebäude", count: "290+" },
-    { icon: Hospital, label: "Gesundheitswesen", count: "160+" },
-    { icon: Home, label: "Privatkunden", count: "600+" }
-  ];
-
-  const testimonials = [
-    {
-      text: "Apex Gerüstbau hat unser Großprojekt termingerecht und in höchster Qualität abgewickelt. Die Kommunikation war hervorragend.",
-      author: "Thomas Bauer",
-      company: "Bauträger München GmbH",
-      project: "Wohnkomplex Musterstraße"
-    },
-    {
-      text: "Trotz schwieriger Gegebenheiten im Denkmalschutz wurde eine perfekte Lösung gefunden. Absolute Empfehlung!",
-      author: "Dr. Maria Schneider", 
-      company: "Stadt Regensburg",
-      project: "Rathaus Altstadt"
-    },
-    {
-      text: "Professionelle Abwicklung mit höchsten Sicherheitsstandards - genau das, was wir im Klinikbereich brauchen.",
-      author: "Prof. Dr. Klaus Weber",
-      company: "Klinikum Nürnberg", 
-      project: "Klinikum Neubau"
-    }
+    { icon: Building2, label: "Wohnbau", count: "255+" },
+    { icon: Factory, label: "Gewerbebau", count: "126+" },
+    { icon: Church, label: "Denkmalschutz", count: "54+" },
+    { icon: School, label: "Öffentliche Gebäude", count: "87+" },
+    { icon: Hospital, label: "Gesundheitswesen", count: "48+" },
+    { icon: Home, label: "Privatkunden", count: "180+" }
   ];
 
   return (
@@ -106,7 +85,7 @@ const Projects = () => {
                 Unsere Projekte
               </h1>
               <p className="text-xl md:text-2xl mb-8 opacity-90">
-                Über 2.500 erfolgreich abgeschlossene Projekte - 
+                Über 750 erfolgreich abgeschlossene Projekte -
                 Referenzen, die für sich sprechen
               </p>
             </div>
@@ -278,34 +257,18 @@ const Projects = () => {
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Referenzen (ohne Demo-Namen) */}
         <section className="py-20">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
+            <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Das sagen unsere Kunden
+                Vertrauen durch Qualität
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Authentische Bewertungen von Auftraggebern aus verschiedenen Projektbereichen - 
-                Ihre Zufriedenheit ist unser Erfolg.
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Ausführung nach Plan, klare Kommunikation und hohe Sicherheitsstandards stehen bei uns im
+                Mittelpunkt. Detaillierte Referenzen und Empfehlungen stellen wir auf Wunsch im persönlichen
+                Gespräch oder auf Anfrage zur Verfügung.
               </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <Card key={index} className="card-elegant">
-                  <CardContent className="p-6">
-                    <p className="text-muted-foreground mb-6 italic leading-relaxed">
-                      "{testimonial.text}"
-                    </p>
-                    <div>
-                      <div className="font-semibold">{testimonial.author}</div>
-                      <div className="text-sm text-muted-foreground">{testimonial.company}</div>
-                      <div className="text-xs text-primary mt-1">Projekt: {testimonial.project}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
             </div>
           </div>
         </section>

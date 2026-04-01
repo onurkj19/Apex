@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <pattern id="checker512v4" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="#1f1f1f" />
+      <rect width="32" height="32" fill="#2f2f2f" />
+      <rect x="32" y="32" width="32" height="32" fill="#2f2f2f" />
+    </pattern>
+    <clipPath id="scaffoldClip512">
+      <polygon points="148,392 232,88 266,88 182,392" />
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="104" fill="url(#checker512v4)" />
+
+  <path d="M256 88L410 392H340L304 322H208L172 392H102L256 88ZM228.5 276H283.5L256 220L228.5 276Z" fill="#ef2f2f" />
+
+  <polygon points="148,392 232,88 266,88 182,392" fill="#141414" />
+  <g clip-path="url(#scaffoldClip512)" stroke="#3d3d3d" stroke-width="8">
+    <line x1="160" y1="348" x2="252" y2="176" />
+    <line x1="154" y1="302" x2="258" y2="130" />
+    <line x1="166" y1="387" x2="246" y2="228" />
+    <line x1="146" y1="386" x2="274" y2="247" />
+    <line x1="146" y1="315" x2="273" y2="177" />
+    <line x1="146" y1="244" x2="271" y2="108" />
+  </g>
+</svg>

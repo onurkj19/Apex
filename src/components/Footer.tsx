@@ -1,4 +1,5 @@
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 
 const Footer = () => {
   return (
@@ -14,8 +15,12 @@ const Footer = () => {
                 className="h-10 w-auto object-contain"
               />
             </div>
+            <p className="text-white font-medium">{COMPANY_LEGAL_NAME}</p>
+            <p className="text-white text-sm leading-relaxed">
+              {COMPANY_ADDRESS_LINE}
+            </p>
             <p className="text-white">
-              Ihr zuverlässiger Partner für Gerüstverleih und professionelle 
+              Ihr zuverlässiger Partner für Gerüstverleih und professionelle
               Montage- und Demontagedienstleistungen in der Schweiz.
             </p>
             <div className="flex space-x-4">
@@ -55,9 +60,9 @@ const Footer = () => {
                 <Mail size={16} className="text-primary" />
                 <span className="text-white">info@apex-gerüste.ch</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <MapPin size={16} className="text-primary" />
-                <span className="text-white">Schweiz</span>
+              <div className="flex items-start space-x-3">
+                <MapPin size={16} className="text-primary shrink-0 mt-0.5" />
+                <span className="text-white leading-snug">{COMPANY_ADDRESS_LINE}</span>
               </div>
             </div>
           </div>
@@ -78,7 +83,7 @@ const Footer = () => {
         <div className="mt-8 pt-8 bg-background/80 backdrop-blur-lg border-t border-border/50">
           <div className="flex flex-col gap-4 md:flex-row md:gap-6 justify-between items-center">
             <p className="text-white text-sm">
-              © 2024 Apex Gerüstbau. Alle Rechte vorbehalten.
+              © {new Date().getFullYear()} {COMPANY_LEGAL_NAME}. Alle Rechte vorbehalten.
             </p>
             <div className="flex items-center gap-2 md:gap-3">
               <span className="text-white/80 text-xs md:text-sm">This website powered by</span>

@@ -1,4 +1,5 @@
 import supabase from '@/lib/supabase';
+import { fetchPublicProjectsWithImages, type PublicProjectWithImages } from '@/lib/public-site-api';
 
 export interface SupabaseProduct {
   id: string;
@@ -12,48 +13,19 @@ export interface SupabaseProduct {
   updated_at?: string | null;
 }
 
-export interface SupabaseProject {
-  id: string;
-  project_name: string;
-  description: string;
-  location: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  status?: string | null;
-  created_at: string;
-}
-
-export interface SupabaseProjectImage {
-  id: string;
-  project_id: string;
-  image_url: string;
-  image_path: string;
-  created_at: string;
-}
-
+/** @deprecated Tabela `products` mund të mos ekzistojë në Supabase; përdor vetëm nëse e keni krijuar. */
 export const supabaseAPI = {
   getPublicProducts: async (): Promise<SupabaseProduct[]> => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.warn('[supabaseAPI.getPublicProducts]', error.message);
+      return [];
+    }
     return data || [];
   },
 
-  getPublicProjects: async (): Promise<(SupabaseProject & { images: SupabaseProjectImage[] })[]> => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*, project_images(*)')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map((project: any) => ({
-      ...project,
-      images: project.project_images || [],
-    }));
-  },
+  getPublicProjects: (): Promise<PublicProjectWithImages[]> => fetchPublicProjectsWithImages(),
 };
 
 export default supabaseAPI;

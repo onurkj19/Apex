@@ -127,6 +127,16 @@ create table if not exists public.projects (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.project_images (
+  id uuid primary key default uuid_generate_v4(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  image_url text not null,
+  image_path text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_project_images_project_id on public.project_images(project_id);
+
 create table if not exists public.workers (
   id uuid primary key default uuid_generate_v4(),
   full_name text not null,
@@ -508,6 +518,7 @@ select
 alter table public.users enable row level security;
 alter table public.clients enable row level security;
 alter table public.projects enable row level security;
+alter table public.project_images enable row level security;
 alter table public.workers enable row level security;
 alter table public.worker_groups enable row level security;
 alter table public.project_workers enable row level security;
@@ -543,6 +554,31 @@ drop policy if exists admin_all_projects on public.projects;
 create policy admin_all_projects on public.projects for all to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
+
+-- Anonymous website visitors: only non-sensitive project rows (status filter).
+drop policy if exists anon_read_website_projects on public.projects;
+create policy anon_read_website_projects on public.projects for select to anon
+using (status in ('I pranuar', 'Ne pune', 'I perfunduar'));
+
+drop policy if exists admin_all_project_images on public.project_images;
+create policy admin_all_project_images on public.project_images for all to authenticated
+using (public.is_admin(auth.uid()))
+with check (public.is_admin(auth.uid()));
+
+drop policy if exists read_project_images_panel on public.project_images;
+create policy read_project_images_panel on public.project_images for select to authenticated
+using (public.can_read_panel(auth.uid()));
+
+drop policy if exists anon_read_website_project_images on public.project_images;
+create policy anon_read_website_project_images on public.project_images for select to anon
+using (
+  exists (
+    select 1
+    from public.projects pr
+    where pr.id = project_id
+      and pr.status in ('I pranuar', 'Ne pune', 'I perfunduar')
+  )
+);
 
 drop policy if exists admin_all_clients on public.clients;
 create policy admin_all_clients on public.clients for all to authenticated
@@ -857,6 +893,10 @@ drop trigger if exists trg_audit_projects on public.projects;
 create trigger trg_audit_projects after insert or update or delete on public.projects
 for each row execute procedure public.log_audit_event();
 
+drop trigger if exists trg_audit_project_images on public.project_images;
+create trigger trg_audit_project_images after insert or update or delete on public.project_images
+for each row execute procedure public.log_audit_event();
+
 drop trigger if exists trg_audit_workers on public.workers;
 create trigger trg_audit_workers after insert or update or delete on public.workers
 for each row execute procedure public.log_audit_event();
@@ -888,40 +928,96 @@ for each row execute procedure public.log_audit_event();
 create or replace function public.on_project_completed_generate_invoice()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
+declare
+  became_completed boolean;
+  inv_no text;
 begin
-  if new.status = 'I perfunduar' and coalesce(old.status, '') <> 'I perfunduar' then
-    insert into public.invoices (
-      project_id,
-      client_id,
-      invoice_number,
-      amount,
-      status
-    )
-    values (
-      new.id,
-      new.client_id,
-      'INV-' || to_char(now(), 'YYYY') || '-' || lpad((floor(random() * 100000))::text, 5, '0'),
-      coalesce(new.revenue, 0),
-      'pending'
-    )
-    on conflict (invoice_number) do nothing;
-
-    insert into public.notifications (type, title, message, metadata)
-    values (
-      'project_completed',
-      'Projekt i perfunduar',
-      'Projekti "' || new.project_name || '" u perfundua dhe fatura u gjenerua.',
-      jsonb_build_object('project_id', new.id)
-    );
+  became_completed := false;
+  if tg_op = 'INSERT' then
+    became_completed := (new.status = 'I perfunduar');
+  elsif tg_op = 'UPDATE' then
+    became_completed := (new.status = 'I perfunduar' and old.status is distinct from 'I perfunduar');
   end if;
+
+  if not became_completed then
+    return new;
+  end if;
+
+  inv_no := 'INV-' || to_char(now(), 'YYYY') || '-' || lpad((floor(random() * 100000))::text, 5, '0');
+
+  insert into public.invoices (
+    project_id,
+    client_id,
+    invoice_number,
+    amount,
+    status
+  )
+  values (
+    new.id,
+    new.client_id,
+    inv_no,
+    coalesce(new.revenue, 0),
+    'pending'
+  )
+  on conflict (invoice_number) do nothing;
+
+  if coalesce(new.revenue, 0) > 0 then
+    if not exists (
+      select 1
+      from public.finances f
+      where f.project_id = new.id
+        and f.finance_type = 'income'
+        and f.title = 'Hyrje automatike: projekt i perfunduar'
+    ) then
+      insert into public.finances (
+        project_id,
+        title,
+        amount,
+        finance_type,
+        category,
+        payment_method,
+        finance_date,
+        created_by
+      )
+      values (
+        new.id,
+        'Hyrje automatike: projekt i perfunduar',
+        new.revenue,
+        'income',
+        null,
+        'Bank',
+        coalesce(new.end_date, current_date),
+        null
+      );
+
+      insert into public.notifications (type, title, message, metadata)
+      values (
+        'finance_income_created',
+        'Hyrje automatike nga projekti',
+        'Projekti "' || new.project_name || '" u perfundua. U regjistrua hyrja ' || trim(to_char(new.revenue, '999999999999.99')) || ' CHF ne financat.',
+        jsonb_build_object('project_id', new.id, 'amount', new.revenue, 'auto_from_project', true)
+      );
+    end if;
+  end if;
+
+  insert into public.notifications (type, title, message, metadata)
+  values (
+    'project_completed',
+    'Projekt i perfunduar',
+    'Projekti "' || new.project_name || '" u perfundua dhe fatura u gjenerua.',
+    jsonb_build_object('project_id', new.id)
+  );
+
   return new;
 end;
 $$;
 
 drop trigger if exists trg_project_completed_invoice on public.projects;
 create trigger trg_project_completed_invoice
-after update on public.projects
+after insert or update on public.projects
 for each row
 execute procedure public.on_project_completed_generate_invoice();
 

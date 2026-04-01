@@ -9,9 +9,9 @@ const WebsiteContentPage = () => {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [stats, setStats] = useState({
-    projects: '2500+',
-    workers: '65+',
-    years: '12+',
+    projects: '750+',
+    workers: '20+',
+    years: '4+',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');

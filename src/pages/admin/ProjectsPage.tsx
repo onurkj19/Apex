@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -205,7 +205,13 @@ const ProjectsPage = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Lista e projekteve</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Lista e projekteve</CardTitle>
+          <CardDescription>
+            Kur nje projekt kalon ne statusin <strong>I perfunduar</strong>, shuma e kontrates (cmimi i projektit) shtohet
+            automatikisht si hyrje ne financat (Bank), nje here per projekt, per bilancin e pergjithshem.
+          </CardDescription>
+        </CardHeader>
         <CardContent className="space-y-2">
           {projects.map((p) => (
             <div key={p.id} className="border rounded-md p-3 flex items-center justify-between">

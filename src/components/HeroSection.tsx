@@ -2,6 +2,7 @@ import { ArrowRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import heroImage from '@/assets/hero-construction.jpg';
+import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ const HeroSection = () => {
               className="mx-auto max-h-16 sm:max-h-24 object-contain"
             />
           </h1>
+          <p className="text-sm sm:text-base text-white/75 mt-3 fade-in-up animate">
+            {COMPANY_LEGAL_NAME} · {COMPANY_ADDRESS_LINE}
+          </p>
 
           {/* Subtitle */}
           <p
@@ -76,11 +80,11 @@ const HeroSection = () => {
             style={{ animationDelay: '0.6s' }}
           >
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">500+</div>
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">150+</div>
               <div className="text-gray-300 text-sm sm:text-base">Abgeschlossene Projekte</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">15+</div>
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">5+</div>
               <div className="text-gray-300 text-sm sm:text-base">Jahre Erfahrung</div>
             </div>
             <div className="text-center">
