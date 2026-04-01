@@ -43,7 +43,8 @@ const App = () => (
       <Sonner />
       <PwaUpdatePrompt />
       <HashRouter>
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Duke ngarkuar...</div>}>
+        <Suspense fallback={<div className="min-h-screen min-w-0 w-full overflow-x-hidden flex items-center justify-center">Duke ngarkuar...</div>}>
+          <div className="min-h-screen min-w-0 w-full overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/services" element={<Services />} />
@@ -78,6 +79,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </div>
         </Suspense>
       </HashRouter>
     </TooltipProvider>

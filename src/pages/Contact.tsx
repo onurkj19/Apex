@@ -5,7 +5,7 @@ import ContactSection from '@/components/ContactSection';
 
 const Contact = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full min-w-0 bg-background">
       <Header />
       
       <main>

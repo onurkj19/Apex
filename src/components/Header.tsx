@@ -26,12 +26,12 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 w-full overflow-x-hidden transition-all duration-300 ${
         isScrolled ? 'header-glass scrolled' : 'header-glass'
       }`}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center h-16 md:h-20">
+      <div className="container mx-auto px-3 sm:px-4 min-w-0">
+        <div className="flex items-center h-16 md:h-20 min-w-0 gap-2">
           <Link to="/" className="flex items-center">
             <img
               src="/Transperent.png"
@@ -42,12 +42,12 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex flex-1 min-w-0 items-center justify-center ml-3 md:ml-4 lg:ml-6 gap-x-4 lg:gap-x-6 xl:gap-x-8">
+          <nav className="hidden md:flex flex-1 min-w-0 items-center justify-center md:ml-2 lg:ml-4 gap-x-3 lg:gap-x-5 xl:gap-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className="shrink-0 whitespace-nowrap text-sm lg:text-base text-foreground hover:text-primary transition-colors duration-300 font-medium"
+                className="shrink-0 whitespace-nowrap text-xs lg:text-sm xl:text-base text-foreground hover:text-primary transition-colors duration-300 font-medium"
               >
                 {item.label}
               </Link>

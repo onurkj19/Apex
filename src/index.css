@@ -73,8 +73,19 @@
   * {
     @apply border-border;
   }
+
+  html {
+    overflow-x: hidden;
+    max-width: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-montserrat;
+    overflow-x: hidden;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     background-image: 
       linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
       linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
@@ -84,10 +95,9 @@
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
 
-  /* -------- RESPONSIVE CONTAINER FOR #root -------- */
+  /* #root: no extra horizontal padding — sections use .container to avoid double inset + overflow */
   #root {
-    @apply w-full max-w-screen-xl mx-auto;
-    @apply px-4 sm:px-6 lg:px-8;
+    @apply w-full min-w-0 max-w-screen-xl mx-auto overflow-x-hidden;
     box-sizing: border-box;
   }
 }
@@ -110,7 +120,7 @@
   .btn-hero {
     @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
     @apply px-8 py-4 rounded-lg font-semibold;
-    @apply transition-all duration-300 hover:scale-105;
+    @apply transition-all duration-300 md:hover:scale-[1.02];
     box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.3);
   }
   
@@ -125,14 +135,10 @@
   }
 
   .card-elegant {
-    @apply bg-card rounded-xl border border-border/50;
-    @apply transition-all duration-300 hover:scale-105;
+    @apply bg-card rounded-xl border border-border/50 max-w-full;
+    @apply transition-all duration-300 md:hover:shadow-hover md:hover:-translate-y-0.5;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     background: linear-gradient(145deg, hsl(var(--card)), rgba(255, 255, 255, 0.1));
-  }
-  
-  .card-elegant:hover {
-    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
   }
 
   /* Construction Pattern Background */
@@ -175,7 +181,7 @@
 
   /* Yellow gradient hero: dark scrim so white headline stays readable */
   .page-hero {
-    @apply relative overflow-hidden pt-28 md:pt-32 pb-20 md:pb-24;
+    @apply relative w-full min-w-0 overflow-hidden pt-28 md:pt-32 pb-20 md:pb-24;
   }
   .page-hero__bg {
     @apply pointer-events-none absolute inset-0 bg-gradient-to-br from-primary via-primary-glow to-secondary;
@@ -191,10 +197,10 @@
     @apply bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent;
   }
 
-  /* Product Grid */
+  /* Product Grid — min() prevents columns wider than viewport on narrow phones */
   .product-grid {
     @apply grid gap-6;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   }
 
   /* Cart Styles */

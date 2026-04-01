@@ -244,9 +244,9 @@ const AdminLayout = () => {
   );
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <div className="flex min-h-screen">
-        <aside className="w-72 border-r bg-background p-4 hidden md:block">
+    <div className="min-h-screen bg-muted/20 overflow-x-hidden">
+      <div className="flex min-h-screen min-w-0">
+        <aside className="w-72 shrink-0 border-r bg-background p-4 hidden md:block">
           <Link to="/admin/dashboard" className="block mb-6">
             <h1 className="text-lg font-bold">APEX GERUSTE MANAGEMENT</h1>
             <p className="text-sm text-muted-foreground">Sistemi i brendshem ERP</p>
@@ -262,8 +262,8 @@ const AdminLayout = () => {
           {renderNav()}
         </aside>
 
-        <main className="flex-1">
-          <header className="h-16 border-b bg-background flex items-center justify-between px-4 md:px-6">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
+          <header className="h-16 border-b bg-background flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6 min-w-0">
             <div className="flex items-center gap-2">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
@@ -305,7 +305,7 @@ const AdminLayout = () => {
                   </div>
                 </SheetContent>
               </Sheet>
-              <p className="font-medium">Paneli administrativ</p>
+              <p className="font-medium truncate min-w-0 text-sm sm:text-base">Paneli administrativ</p>
             </div>
             <div className="flex items-center gap-2">
               {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
@@ -319,7 +319,7 @@ const AdminLayout = () => {
               </Button>
             </div>
           </header>
-          <section className="p-3 sm:p-4 md:p-6">
+          <section className="p-3 sm:p-4 md:p-6 min-w-0 max-w-full overflow-x-auto">
             <Outlet />
           </section>
         </main>
