@@ -35,7 +35,7 @@ const Header = () => {
           <Link to="/" className="flex items-center">
             <img
               src="/Transperent.png"
-              alt="Apex Gerüstbau Logo"
+              alt="Apex Gerüste Logo"
               className="h-12 md:h-16 w-auto object-contain"
               loading="lazy"
             />

@@ -2,9 +2,11 @@ import { DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { projectApi, teamPlanApi, workerApi } from '@/lib/erp-api';
-import type { TeamPlanItem, Worker } from '@/lib/erp-types';
+import type { TeamPlanAttachment, TeamPlanItem, Worker } from '@/lib/erp-types';
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
+import { Paperclip, Truck } from 'lucide-react';
 
 const getWeekDays = (date = new Date()) => {
   const monday = new Date(date);
@@ -17,6 +19,14 @@ const getWeekDays = (date = new Date()) => {
   });
 };
 
+type PendingFileRow = { localId: string; title: string; file: File | null };
+
+const newPendingRow = (): PendingFileRow => ({
+  localId: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Math.random()),
+  title: '',
+  file: null,
+});
+
 const TeamPlanningPage = () => {
   const [plans, setPlans] = useState<TeamPlanItem[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -28,11 +38,15 @@ const TeamPlanningPage = () => {
   const [planDate, setPlanDate] = useState(new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState('');
   const [taskDetails, setTaskDetails] = useState('');
+  const [notes, setNotes] = useState('');
   const [projectId, setProjectId] = useState('');
   const [vehicleLabel, setVehicleLabel] = useState('');
   const [trailerRequired, setTrailerRequired] = useState(false);
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | TeamPlanItem['status']>('all');
+  const [editingPlan, setEditingPlan] = useState<TeamPlanItem | null>(null);
+  const [keepAttachments, setKeepAttachments] = useState<TeamPlanAttachment[]>([]);
+  const [pendingRows, setPendingRows] = useState<PendingFileRow[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -41,7 +55,7 @@ const TeamPlanningPage = () => {
       setPlans(planRows);
       setWorkers(workerRows.filter((w) => w.is_active));
       setProjects(
-        (projectRows || []).map((p: any) => ({
+        (projectRows || []).map((p: { id: string; project_name: string; location: string }) => ({
           id: p.id,
           project_name: p.project_name,
           location: p.location,
@@ -56,36 +70,87 @@ const TeamPlanningPage = () => {
     void load();
   }, []);
 
-  const resetForm = () => {
+  const resetFormFields = () => {
     setTitle('');
     setPlanType('daily');
     setPlanDate(new Date().toISOString().slice(0, 10));
     setLocation('');
     setTaskDetails('');
+    setNotes('');
     setProjectId('');
     setVehicleLabel('');
     setTrailerRequired(false);
     setSelectedWorkers([]);
+    setEditingPlan(null);
+    setKeepAttachments([]);
+    setPendingRows([]);
+  };
+
+  const startEdit = (plan: TeamPlanItem) => {
+    setEditingPlan(plan);
+    setTitle(plan.title);
+    setPlanType(plan.plan_type);
+    setPlanDate(plan.plan_date);
+    setLocation(plan.location || '');
+    setTaskDetails(plan.task_details || '');
+    setNotes(plan.notes || '');
+    setProjectId(plan.project_id || '');
+    setVehicleLabel(plan.vehicle_label || '');
+    setTrailerRequired(Boolean(plan.trailer_required));
+    setSelectedWorkers([...(plan.worker_ids || [])]);
+    setKeepAttachments(plan.attachments ? [...plan.attachments] : []);
+    setPendingRows([]);
+    document.getElementById('team-plan-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const uploads = pendingRows.filter((r) => r.file && r.title.trim());
+    for (const r of pendingRows) {
+      if (r.file && !r.title.trim()) {
+        alert('Cakto titullin për çdo skedar të ri.');
+        return;
+      }
+    }
     setSubmitting(true);
     try {
-      await teamPlanApi.create({
+      const basePayload = {
         title,
         plan_type: planType,
         plan_date: planDate,
         location: location || null,
         task_details: taskDetails || null,
+        notes: notes || null,
         project_id: projectId || null,
         vehicle_label: vehicleLabel || null,
         trailer_required: trailerRequired,
         worker_ids: selectedWorkers,
-        status: 'planned',
-      });
+      };
+
+      if (editingPlan) {
+        let merged: TeamPlanAttachment[] = [...keepAttachments];
+        for (const u of uploads) {
+          merged.push(await teamPlanApi.uploadAttachment(editingPlan.id, u.file!, u.title.trim()));
+        }
+        await teamPlanApi.update(editingPlan.id, {
+          ...basePayload,
+          attachments: merged,
+        });
+      } else {
+        const plan = await teamPlanApi.create({
+          ...basePayload,
+          status: 'planned',
+        });
+        let atts: TeamPlanAttachment[] = [];
+        for (const u of uploads) {
+          atts.push(await teamPlanApi.uploadAttachment(plan.id, u.file!, u.title.trim()));
+        }
+        if (atts.length) {
+          await teamPlanApi.update(plan.id, { attachments: atts });
+        }
+      }
       await load();
-      resetForm();
+      resetFormFields();
     } finally {
       setSubmitting(false);
     }
@@ -123,6 +188,9 @@ const TeamPlanningPage = () => {
     setSelectedWorkers((prev) => prev.filter((id) => id !== workerId));
   };
 
+  const attachmentCount = (p: TeamPlanItem) =>
+    (p.attachments?.length || 0) + (p.attachment_path ? 1 : 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,9 +200,17 @@ const TeamPlanningPage = () => {
         </Button>
       </div>
 
-      <Card>
+      <Card id="team-plan-form">
         <CardHeader>
-          <CardTitle>Krijo plan ditor/javor</CardTitle>
+          <CardTitle>{editingPlan ? 'Ndrysho planin' : 'Krijo plan ditor/javor'}</CardTitle>
+          {editingPlan && (
+            <p className="text-sm text-muted-foreground">
+              Po editon: {editingPlan.title}{' '}
+              <Button type="button" variant="link" className="h-auto p-0" onClick={resetFormFields}>
+                Anulo editimin
+              </Button>
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -166,21 +242,39 @@ const TeamPlanningPage = () => {
               ))}
             </select>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Lokacioni" />
-            <Input value={vehicleLabel} onChange={(e) => setVehicleLabel(e.target.value)} placeholder="Furgoni / mjeti" />
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                value={vehicleLabel}
+                onChange={(e) => setVehicleLabel(e.target.value)}
+                placeholder="Furgoni / mjeti (p.sh. Mercedes 1)"
+                className="flex-1"
+              />
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm md:col-span-2">
+              <input type="checkbox" checked={trailerRequired} onChange={(e) => setTrailerRequired(e.target.checked)} />
+              Kërkohet rimorkio
+            </label>
             <Input
               className="md:col-span-2"
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
-              placeholder="Detyrat kryesore"
+              placeholder="Detyrat kryesore (për punëtorin)"
             />
+            <div className="md:col-span-2 space-y-1">
+              <Label className="text-xs text-muted-foreground">Shënime shtesë për ekipin (opsionale)</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Informacione të tjera nga admini" />
+            </div>
             <div
               className="md:col-span-2 border rounded-md p-3 bg-muted/20 min-h-24"
               onDragOver={(e) => e.preventDefault()}
               onDrop={onWorkerDrop}
             >
-              <p className="text-sm font-medium">Punetoret e zgjedhur (drag & drop)</p>
+              <p className="text-sm font-medium">Punëtorët e zgjedhur (drag & drop)</p>
               <div className="flex flex-wrap gap-2 mt-2">
-                {selectedWorkers.length === 0 && <p className="text-xs text-muted-foreground">Terhiq punetoret nga lista poshte.</p>}
+                {selectedWorkers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Tërhiq punëtorët nga lista poshtë.</p>
+                )}
                 {selectedWorkers.map((id) => {
                   const worker = workers.find((w) => w.id === id);
                   return (
@@ -189,21 +283,92 @@ const TeamPlanningPage = () => {
                       key={id}
                       onClick={() => removeWorker(id)}
                       className="rounded-full border px-2 py-1 text-xs hover:bg-muted"
-                      title="Hiq punetorin"
+                      title="Hiq punëtorin"
                     >
-                      {worker?.full_name || id} x
+                      {worker?.full_name || id} ×
                     </button>
                   );
                 })}
               </div>
             </div>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={trailerRequired} onChange={(e) => setTrailerRequired(e.target.checked)} />
-              Kerkohet rimorkio
-            </label>
-            <div className="md:col-span-2">
+
+            <div className="md:col-span-2 space-y-3 rounded-md border p-3 bg-muted/10">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                <Label className="font-medium">Foto & dokumente (PDF) me titull</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Shto titull për çdo skedar. Punëtorët i shohin në dashboard me titull.
+              </p>
+
+              {editingPlan && keepAttachments.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Skedarë ekzistues</p>
+                  <ul className="flex flex-wrap gap-2">
+                    {keepAttachments.map((a) => (
+                      <li
+                        key={a.path}
+                        className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-1 text-xs"
+                      >
+                        <span className="truncate max-w-[180px]">{a.title}</span>
+                        <button
+                          type="button"
+                          className="text-destructive hover:underline"
+                          onClick={() => setKeepAttachments((prev) => prev.filter((x) => x.path !== a.path))}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pendingRows.map((row) => (
+                <div key={row.localId} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                  <Input
+                    placeholder="Titulli (p.sh. Harta e kantierit)"
+                    value={row.title}
+                    onChange={(e) =>
+                      setPendingRows((prev) =>
+                        prev.map((r) => (r.localId === row.localId ? { ...r, title: e.target.value } : r)),
+                      )
+                    }
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf,application/pdf"
+                    className="cursor-pointer text-sm"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      setPendingRows((prev) =>
+                        prev.map((r) => (r.localId === row.localId ? { ...r, file: f } : r)),
+                      );
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPendingRows((prev) => prev.filter((r) => r.localId !== row.localId))}
+                  >
+                    Hiq
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPendingRows((prev) => [...prev, newPendingRow()])}
+              >
+                + Shto skedar
+              </Button>
+            </div>
+
+            <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Duke ruajtur...' : 'Ruaj planin'}
+                {submitting ? 'Duke ruajtur...' : editingPlan ? 'Përditëso planin' : 'Ruaj planin'}
               </Button>
             </div>
           </form>
@@ -212,7 +377,7 @@ const TeamPlanningPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista e punetoreve (drag)</CardTitle>
+          <CardTitle>Lista e punëtorëve (drag)</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {workers.map((worker) => (
@@ -230,7 +395,7 @@ const TeamPlanningPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Kalendari javor (drag planin ne dite tjeter)</CardTitle>
+          <CardTitle>Kalendari javor (drag planin në ditë tjetër)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
@@ -240,7 +405,7 @@ const TeamPlanningPage = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | TeamPlanItem['status'])}
             >
-              <option value="all">Te gjitha</option>
+              <option value="all">Të gjitha</option>
               <option value="planned">Planned</option>
               <option value="in_progress">In Progress</option>
               <option value="done">Done</option>
@@ -258,7 +423,9 @@ const TeamPlanningPage = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => void onPlanDropToDay(e, dayKey)}
                 >
-                  <p className="text-sm font-medium mb-2">{day.toLocaleDateString('sq-AL', { weekday: 'short', day: '2-digit', month: '2-digit' })}</p>
+                  <p className="text-sm font-medium mb-2">
+                    {day.toLocaleDateString('sq-AL', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                  </p>
                   <div className="space-y-2">
                     {dayPlans.map((plan) => (
                       <div
@@ -269,12 +436,27 @@ const TeamPlanningPage = () => {
                       >
                         <p className="font-medium">{plan.title}</p>
                         <p className="text-muted-foreground">{plan.location || 'Pa lokacion'}</p>
-                        <p className="text-muted-foreground">{(plan.worker_ids || []).length} punetor</p>
+                        {plan.vehicle_label && (
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Truck className="h-3 w-3 inline" /> {plan.vehicle_label}
+                          </p>
+                        )}
+                        {plan.trailer_required && <p className="text-amber-600">Rimorkio: po</p>}
+                        {attachmentCount(plan) > 0 && (
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" /> {attachmentCount(plan)} skedar(ë)
+                          </p>
+                        )}
+                        <p className="text-muted-foreground">{(plan.worker_ids || []).length} punëtor</p>
                         <div className="flex justify-end">
                           <RowActionsMenu
                             actions={[
                               {
-                                label: 'Ne progres',
+                                label: 'Ndrysho',
+                                onClick: () => startEdit(plan),
+                              },
+                              {
+                                label: 'Në progres',
                                 onClick: () => void teamPlanApi.update(plan.id, { status: 'in_progress' }).then(load),
                               },
                               {
@@ -285,7 +467,7 @@ const TeamPlanningPage = () => {
                                 label: 'Fshi',
                                 destructive: true,
                                 onClick: () => {
-                                  if (!window.confirm('A je i sigurt qe do ta fshish planin?')) return;
+                                  if (!window.confirm('A je i sigurt që do ta fshish planin?')) return;
                                   void teamPlanApi.remove(plan.id).then(load);
                                 },
                               },

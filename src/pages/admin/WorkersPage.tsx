@@ -11,18 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { workerApi, workerGroupApi } from '@/lib/erp-api';
 import type { Worker, WorkerGroup } from '@/lib/erp-types';
+import { WORKER_ROLE_OPTIONS } from '@/lib/worker-role-options';
 import { formatNumberWithDots } from '@/lib/utils';
-
-const WORKER_ROLE_OPTIONS = [
-  { value: 'Monter Skele', label: 'Monter Skele', keywords: 'Montim, Demontim, Siguri' },
-  { value: 'Punetor Ndihmes', label: 'Punetor Ndihmes', keywords: 'Ngarkim, Shkarkim, Asistence' },
-  { value: 'Teknik Sigure', label: 'Teknik Sigure', keywords: 'Inspektim, PPE, Standarde' },
-  { value: 'Shofer Transporti', label: 'Shofer Transporti', keywords: 'Logjistike, Dorzim, Mjete' },
-  { value: 'Pergjegjes Ekipi', label: 'Pergjegjes Ekipi', keywords: 'Koordinim, Planifikim, Raportim' },
-  { value: 'Supervisor Kantieri', label: 'Supervisor Kantieri', keywords: 'Mbikqyrje, Cilesi, Afate' },
-  { value: 'Operator Makinerie', label: 'Operator Makinerie', keywords: 'Forklift, Vinç, Pajisje' },
-  { value: 'Pergjegjes Magazina', label: 'Pergjegjes Magazina', keywords: 'Inventar, Evidenca, Furnizim' },
-];
 
 const SortableWorker = ({ worker }: { worker: Worker }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: worker.id });

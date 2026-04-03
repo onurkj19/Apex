@@ -81,6 +81,12 @@ export const authApi = {
     full_name: string;
     role: AppRole;
     worker_id?: string | null;
+    /** Kur role=`worker` dhe nuk zgjedh punëtor ekzistues: dërgohet te edge për rreshtin e ri në `workers`. */
+    worker_defaults?: {
+      hourly_rate?: number;
+      job_role?: string;
+      group_name?: string;
+    } | null;
   }) {
     const normalizedEmail = payload.email.trim().toLowerCase();
 
@@ -131,5 +137,25 @@ export const authApi = {
       }
       throw new Error(parsedMessage || err?.message || 'Nuk u arrit krijimi i user-it.');
     }
+  },
+
+  /** Fshin përdoruesin nga Auth (`public.users` CASCADE). Përdor RPC `delete_app_user` (SQL në Supabase). */
+  async deleteAppUser(userId: string) {
+    const { data, error } = await supabase.rpc('delete_app_user', { target_user_id: userId });
+    if (error) throw new Error(error.message || 'Nuk u arrit fshirja e perdoruesit.');
+    if (data && typeof data === 'object' && 'success' in (data as object) && (data as { success?: boolean }).success === false) {
+      throw new Error('Fshirja deshtoi.');
+    }
+  },
+
+  /** Lidh përdoruesit në Auth që mungojnë në `public.users` dhe krijon punëtorë për rolin worker (RPC në DB). */
+  async syncMissingProfiles(): Promise<{ users_created: number; workers_linked: number }> {
+    const { data, error } = await supabase.rpc('sync_missing_profiles');
+    if (error) throw error;
+    const row = data as { users_created?: number; workers_linked?: number } | null;
+    return {
+      users_created: Number(row?.users_created ?? 0),
+      workers_linked: Number(row?.workers_linked ?? 0),
+    };
   },
 };

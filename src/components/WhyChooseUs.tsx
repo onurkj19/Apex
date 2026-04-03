@@ -40,7 +40,7 @@ const WhyChooseUs = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Warum <span className="text-gradient">Apex Gerüstbau</span>?
+            Warum <span className="text-gradient">Apex Gerüste</span>?
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Mit jahrelanger Erfahrung und einem Fokus auf Qualität und Sicherheit sind wir 

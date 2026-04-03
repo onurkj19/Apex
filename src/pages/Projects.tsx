@@ -1,63 +1,14 @@
-import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, MapPin, Users, Clock, Building2, Home, Factory, Church, School, Hospital, Image as ImageIcon, Package } from 'lucide-react';
-import { supabaseAPI } from '@/services/supabase';
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  completedDate: string;
-  client?: string;
-  category?: string;
-  duration?: string;
-  status?: string;
-  images: string[];
-  createdAt: string;
-}
+import { MARKETING_PROJECTS, type MarketingProject } from '@/lib/marketing-projects';
 
 const Projects = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    try {
-      setIsLoading(true);
-      const data = await supabaseAPI.getPublicProjects();
-      const mapped = data.map((p) => ({
-        id: p.id,
-        title: p.project_name,
-        description: p.description,
-        location: p.location,
-        completedDate: p.end_date || p.start_date || p.created_at,
-        client: undefined,
-        category: p.status || undefined,
-        duration: undefined,
-        status: p.status || undefined,
-        images: (p.images || []).map((img) => img.image_url),
-        createdAt: p.created_at,
-      }));
-      setProjects(mapped);
-    } catch (error) {
-      console.error('Error loading projects:', error);
-      setError('Fehler beim Laden der Projekte');
-      setProjects([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const projects: MarketingProject[] = MARKETING_PROJECTS;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE');
@@ -102,8 +53,8 @@ const Projects = () => {
                 Unsere Projektbereiche
               </h2>
               <p className="text-lg text-foreground/85 max-w-2xl mx-auto leading-relaxed">
-                Von Wohnbau bis Denkmalschutz - wir haben Erfahrung in allen Bereichen 
-                des Gerüstbaus und kennen die spezifischen Anforderungen.
+                Von Wohnbau bis Denkmalschutz - wir haben Erfahrung in allen Bereichen
+                rund um Gerüste und kennen die spezifischen Anforderungen.
               </p>
             </div>
 
@@ -138,23 +89,8 @@ const Projects = () => {
               </p>
             </div>
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Projekte werden geladen...</p>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
             {/* Projects Grid */}
-            {!isLoading && !error && projects.length > 0 && (
+            {projects.length > 0 && (
               <div className="grid lg:grid-cols-2 gap-8">
                 {projects.map((project) => (
                   <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -182,7 +118,7 @@ const Projects = () => {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <Badge variant="secondary">
-                          {project.category || 'Gerüstbau'}
+                          {project.category || 'Gerüste'}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
                           {formatDate(project.completedDate)}
@@ -247,7 +183,7 @@ const Projects = () => {
             )}
 
             {/* Empty State */}
-            {!isLoading && !error && projects.length === 0 && (
+            {projects.length === 0 && (
               <div className="text-center py-12">
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -286,7 +222,7 @@ const Projects = () => {
               </h2>
               <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
                 Werden Sie Teil unserer Erfolgsgeschichte. Lassen Sie uns gemeinsam 
-                Ihr nächstes Gerüstbauprojekt realisieren.
+                Ihr nächstes Gerüsteprojekt realisieren.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" variant="secondary" className="btn-secondary">

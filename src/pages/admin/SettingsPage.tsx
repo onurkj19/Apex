@@ -4,11 +4,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { authApi, settingsApi, workerApi } from '@/lib/erp-api';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
+import { authApi, settingsApi, workerApi, workerGroupApi } from '@/lib/erp-api';
 import { ROLE_LABELS } from '@/lib/permissions';
-import type { AppRole } from '@/lib/erp-types';
+import type { AppRole, WorkerGroup } from '@/lib/erp-types';
+import { WORKER_ROLE_OPTIONS } from '@/lib/worker-role-options';
 
 const SettingsPage = () => {
+  const { profile: currentProfile } = useAdminAuth();
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [state, setState] = useState({
     darkMode: true,
     monthlyEmail: 'finance@apex-geruste.ch',
@@ -19,13 +23,18 @@ const SettingsPage = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [workers, setWorkers] = useState<any[]>([]);
+  const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [syncingProfiles, setSyncingProfiles] = useState(false);
   const [userForm, setUserForm] = useState({
     full_name: '',
     email: '',
     password: '',
     role: 'worker' as AppRole,
     worker_id: '',
+    worker_hourly_rate: '0',
+    worker_job_role: WORKER_ROLE_OPTIONS[0].value,
+    worker_group_name: '',
   });
 
   useEffect(() => {
@@ -61,9 +70,23 @@ const SettingsPage = () => {
       }
     };
 
+    const loadGroups = async () => {
+      try {
+        const rows = await workerGroupApi.list(true);
+        setWorkerGroups(rows);
+        setUserForm((prev) => ({
+          ...prev,
+          worker_group_name: prev.worker_group_name || rows.find((g) => g.is_active)?.name || 'Grupi A',
+        }));
+      } catch {
+        setUserForm((prev) => ({ ...prev, worker_group_name: prev.worker_group_name || 'Grupi A' }));
+      }
+    };
+
     loadSettings();
     loadAdmins();
     loadWorkers();
+    loadGroups();
     const interval = window.setInterval(loadAdmins, 60_000);
     return () => window.clearInterval(interval);
   }, []);
@@ -101,16 +124,38 @@ const SettingsPage = () => {
     }
     setCreatingUser(true);
     try {
+      const hourlyNum = Number(userForm.worker_hourly_rate);
+      const workerDefaults =
+        userForm.role === 'worker' && !userForm.worker_id
+          ? {
+              hourly_rate: Number.isFinite(hourlyNum) && hourlyNum >= 0 ? hourlyNum : 0,
+              job_role: userForm.worker_job_role || WORKER_ROLE_OPTIONS[0].value,
+              group_name: userForm.worker_group_name || 'Grupi A',
+            }
+          : null;
+
       await authApi.createAppUser({
         full_name: userForm.full_name,
         email: userForm.email,
         password: userForm.password,
         role: userForm.role,
-        worker_id: userForm.role === 'worker' ? userForm.worker_id : null,
+        worker_id: userForm.role === 'worker' ? userForm.worker_id || null : null,
+        worker_defaults: workerDefaults,
       });
-      alert('Perdoruesi i ri u krijua.');
-      setUserForm({ full_name: '', email: '', password: '', role: 'worker', worker_id: '' });
+      alert('Perdoruesi i ri u krijua.' + (userForm.role === 'worker' && !userForm.worker_id ? ' U krijua edhe regjistrimi te Punetoret.' : ''));
+      const firstGroup = workerGroups.find((g) => g.is_active)?.name || 'Grupi A';
+      setUserForm({
+        full_name: '',
+        email: '',
+        password: '',
+        role: 'worker',
+        worker_id: '',
+        worker_hourly_rate: '0',
+        worker_job_role: WORKER_ROLE_OPTIONS[0].value,
+        worker_group_name: firstGroup,
+      });
       setAdmins(await authApi.listAppUsers());
+      setWorkers(await workerApi.list());
     } catch (error: any) {
       alert(error?.message || 'Nuk u arrit krijimi i perdoruesit.');
     } finally {
@@ -192,21 +237,66 @@ const SettingsPage = () => {
                 ))}
               </select>
               {userForm.role === 'worker' && (
-                <div className="md:col-span-2 space-y-1">
-                  <select
-                    className="h-10 rounded-md border bg-background px-3 text-sm w-full"
-                    value={userForm.worker_id}
-                    onChange={(e) => setUserForm((s) => ({ ...s, worker_id: e.target.value }))}
-                  >
-                    <option value="">Pa lidhje me punetor (opsionale)</option>
-                    {workers.map((worker) => (
-                      <option key={worker.id} value={worker.id}>
-                        {worker.full_name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="md:col-span-2 space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Lidh me punëtor ekzistues (opsionale)</Label>
+                    <select
+                      className="h-10 rounded-md border bg-background px-3 text-sm w-full"
+                      value={userForm.worker_id}
+                      onChange={(e) => setUserForm((s) => ({ ...s, worker_id: e.target.value }))}
+                    >
+                      <option value="">— Krijo punëtor të ri automatikisht (i njëjti emër) —</option>
+                      {workers.map((worker) => (
+                        <option key={worker.id} value={worker.id}>
+                          {worker.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {!userForm.worker_id && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-md border bg-muted/30 p-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Grupi (plan / ekip)</Label>
+                        <select
+                          className="h-10 rounded-md border bg-background px-3 text-sm w-full"
+                          value={userForm.worker_group_name || workerGroups.find((g) => g.is_active)?.name || 'Grupi A'}
+                          onChange={(e) => setUserForm((s) => ({ ...s, worker_group_name: e.target.value }))}
+                        >
+                          {(workerGroups.length ? workerGroups.filter((g) => g.is_active) : [{ name: 'Grupi A', id: 'a', is_active: true }]).map((g) => (
+                            <option key={g.name} value={g.name}>
+                              {g.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Roli në punë</Label>
+                        <select
+                          className="h-10 rounded-md border bg-background px-3 text-sm w-full"
+                          value={userForm.worker_job_role}
+                          onChange={(e) => setUserForm((s) => ({ ...s, worker_job_role: e.target.value }))}
+                        >
+                          {WORKER_ROLE_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Orë / CHF (fillim)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={userForm.worker_hourly_rate}
+                          onChange={(e) => setUserForm((s) => ({ ...s, worker_hourly_rate: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Mund ta krijosh user-in edhe pa lidhje. Lidhjen me punetor mund ta vendosesh me vone.
+                    Nëse nuk zgjedh punëtor ekzistues, krijohet automatikisht një rresht te <strong>Punëtorët</strong> (planifikim, kërkesa pushimi, ora) i lidhur me këtë login.
                   </p>
                 </div>
               )}
@@ -217,7 +307,31 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                setSyncingProfiles(true);
+                try {
+                  const res = await authApi.syncMissingProfiles();
+                  alert(
+                    `Sinkronizimi u krye.\n` +
+                      `Profile të reja: ${res.users_created}\n` +
+                      `Punëtorë të lidhur: ${res.workers_linked}`,
+                  );
+                  setAdmins(await authApi.listAppUsers());
+                  setWorkers(await workerApi.list());
+                } catch (e: unknown) {
+                  alert(e instanceof Error ? e.message : 'Gabim gjatë sinkronizimit.');
+                } finally {
+                  setSyncingProfiles(false);
+                }
+              }}
+              disabled={syncingProfiles || loadingAdmins}
+            >
+              {syncingProfiles ? 'Duke sinkronizuar...' : 'Sinhronizo Auth → profile / punëtorë'}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -234,50 +348,87 @@ const SettingsPage = () => {
               {loadingAdmins ? 'Duke rifreskuar...' : 'Rifresko'}
             </Button>
           </div>
-          {admins.map((admin) => (
-            <div key={admin.id} className="border rounded p-3 flex items-center justify-between gap-2">
-              <div>
-                <p className="font-medium">{admin.full_name}</p>
-                <p className="text-sm text-muted-foreground">{admin.email}</p>
-                <div className="mt-2">
-                  <label className="text-xs text-muted-foreground mr-2">Roli:</label>
-                  <select
-                    className="h-8 rounded-md border bg-background px-2 text-xs"
-                    value={admin.role}
-                    disabled={admin.role === 'super_admin'}
-                    onChange={async (e) => {
-                      const nextRole = e.target.value as AppRole;
-                      try {
-                        await authApi.updateUserRole(admin.id, nextRole);
-                        setAdmins((prev) => prev.map((x) => (x.id === admin.id ? { ...x, role: nextRole } : x)));
-                      } catch (error: any) {
-                        alert(error?.message || 'Nuk u arrit ndryshimi i rolit.');
-                      }
-                    }}
-                  >
-                    {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  {admin.role === 'super_admin' && (
-                    <p className="text-[11px] text-red-500 mt-1">I mbrojtur (nuk preket)</p>
+          {admins.map((admin) => {
+            const isProtected = admin.role === 'super_admin';
+            const isSelf = currentProfile?.id === admin.id;
+            const canDelete = !isProtected && !isSelf;
+
+            return (
+              <div key={admin.id} className="border rounded p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{admin.full_name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{admin.email}</p>
+                  <div className="mt-2">
+                    <label className="text-xs text-muted-foreground mr-2">Roli:</label>
+                    <select
+                      className="h-8 rounded-md border bg-background px-2 text-xs"
+                      value={admin.role}
+                      disabled={isProtected}
+                      onChange={async (e) => {
+                        const nextRole = e.target.value as AppRole;
+                        try {
+                          await authApi.updateUserRole(admin.id, nextRole);
+                          setAdmins((prev) => prev.map((x) => (x.id === admin.id ? { ...x, role: nextRole } : x)));
+                        } catch (error: any) {
+                          alert(error?.message || 'Nuk u arrit ndryshimi i rolit.');
+                        }
+                      }}
+                    >
+                      {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    {isProtected && (
+                      <p className="text-[11px] text-red-500 mt-1">I mbrojtur (nuk preket)</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                  <div className="text-right">
+                    <p className={`text-sm font-medium ${admin.is_online ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {admin.is_online ? 'Online' : 'Offline'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {admin.last_seen_at
+                        ? `Aktiv per here te fundit: ${new Date(admin.last_seen_at).toLocaleString('sq-AL')}`
+                        : 'Pa aktivitet te regjistruar'}
+                    </p>
+                  </div>
+                  {canDelete && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      disabled={deletingUserId === admin.id}
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            `Fshi përdoruesin "${admin.full_name}" (${admin.email})?\n\nKjo heq edhe login-in nga Auth. Nëse ka punëtor të lidhur, provohet të fshihet edhe ai (mund të dështojë nëse ka orë/projekte).`,
+                          )
+                        ) {
+                          return;
+                        }
+                        setDeletingUserId(admin.id);
+                        try {
+                          await authApi.deleteAppUser(admin.id);
+                          setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
+                          setWorkers(await workerApi.list());
+                        } catch (error: unknown) {
+                          alert(error instanceof Error ? error.message : 'Fshirja deshtoi.');
+                        } finally {
+                          setDeletingUserId(null);
+                        }
+                      }}
+                    >
+                      {deletingUserId === admin.id ? 'Duke fshire...' : 'Fshi'}
+                    </Button>
                   )}
                 </div>
               </div>
-              <div className="text-right">
-                <p className={`text-sm font-medium ${admin.is_online ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {admin.is_online ? 'Online' : 'Offline'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {admin.last_seen_at
-                    ? `Aktiv per here te fundit: ${new Date(admin.last_seen_at).toLocaleString('sq-AL')}`
-                    : 'Pa aktivitet te regjistruar'}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {!loadingAdmins && admins.length === 0 && (
             <p className="text-sm text-muted-foreground">Nuk ka admina te regjistruar.</p>
           )}

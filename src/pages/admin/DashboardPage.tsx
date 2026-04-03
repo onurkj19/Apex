@@ -8,6 +8,8 @@ import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatChf } from '@/lib/utils';
+import { TeamPlanAttachmentsView } from '@/components/TeamPlanAttachmentsView';
+import { Truck } from 'lucide-react';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
@@ -203,13 +205,30 @@ const DashboardPage = () => {
           <CardContent className="space-y-2">
             {workerPlans.length === 0 && <p className="text-sm text-muted-foreground">Nuk ke plane aktive.</p>}
             {workerPlans.map((plan) => (
-              <div key={plan.id} className="border rounded-md p-3">
+              <div key={plan.id} className="border rounded-md p-3 space-y-2">
                 <p className="font-medium">{plan.title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(plan.plan_date).toLocaleDateString('sq-AL')} - {plan.location || 'Pa lokacion'}
+                  {new Date(plan.plan_date).toLocaleDateString('sq-AL')} — {plan.location || 'Pa lokacion'}
                 </p>
                 <p className="text-sm text-muted-foreground">Statusi: {plan.status}</p>
-                {plan.task_details && <p className="text-sm mt-1">{plan.task_details}</p>}
+                {plan.vehicle_label && (
+                  <p className="text-sm flex items-center gap-2">
+                    <Truck className="h-4 w-4 shrink-0 text-primary" />
+                    <span>
+                      Furgoni / mjeti: <span className="text-foreground font-medium">{plan.vehicle_label}</span>
+                    </span>
+                  </p>
+                )}
+                {plan.trailer_required && (
+                  <p className="text-sm text-amber-600 font-medium">Rimorkio: kërkohet po</p>
+                )}
+                {plan.task_details && <p className="text-sm mt-1 whitespace-pre-wrap">{plan.task_details}</p>}
+                {plan.notes && (
+                  <p className="text-sm text-muted-foreground border-l-2 pl-2 italic">Shënim: {plan.notes}</p>
+                )}
+                {plan.attachments && plan.attachments.length > 0 && (
+                  <TeamPlanAttachmentsView items={plan.attachments} />
+                )}
               </div>
             ))}
           </CardContent>

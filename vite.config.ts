@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
       },
       manifest: {
-        name: "Apex Gerustbau Admin",
+        name: "Apex Gerüste Admin",
         short_name: "Apex Admin",
         description: "Admin panel per menaxhimin e projekteve, financave dhe ekipeve.",
         theme_color: "#0f172a",

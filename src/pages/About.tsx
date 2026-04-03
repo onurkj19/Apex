@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
 import { COMPANY_ADDRESS_LINE } from '@/lib/company';
+import { APEX1_MEDIA } from '@/lib/apex1-media';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,7 +86,7 @@ const team = [
           <div className="page-hero__inner container mx-auto px-4">
             <div className="text-center text-white max-w-4xl mx-auto">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-md [text-shadow:0_2px_12px_rgba(0,0,0,0.45)]">
-                Über Apex Gerüstbau
+                Über Apex Gerüste
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-white/95 drop-shadow [text-shadow:0_1px_8px_rgba(0,0,0,0.4)]">
                 Seit über 8 Jahren Ihr zuverlässiger Partner für
@@ -122,7 +123,7 @@ const team = [
                 </h2>
                 <div className="space-y-6 text-muted-foreground">
                   <p>
-                    Die Apex Gerüste GmbH ist ein modernes Gerüstbauunternehmen mit Sitz in Spreitenbach (
+                    Die Apex Gerüste GmbH ist ein modernes Gerüsteunternehmen mit Sitz in Spreitenbach (
                     {COMPANY_ADDRESS_LINE}), das sich durch Qualität, Verlässlichkeit und Fachwissen auszeichnet.
                   </p>
                   <p>
@@ -139,9 +140,9 @@ const team = [
               </div>
               <div className="relative">
                 <img 
-                  src="/src/assets/team-construction.jpg" 
-                  alt="Apex Gerüstbau Team" 
-                  className="rounded-xl shadow-elegant w-full"
+                  src={APEX1_MEDIA.about} 
+                  alt="Apex Gerüste – Team und Baustelle" 
+                  className="rounded-xl shadow-elegant w-full object-cover aspect-[4/3]"
                 />
               </div>
             </div>
@@ -187,7 +188,7 @@ const team = [
                 Unser Führungsteam
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Erfahrene Profis mit jahrzehntelanger Expertise im Gerüstbau - 
+                Erfahrene Profis mit jahrzehntelanger Expertise bei Gerüsten - 
                 Ihre Ansprechpartner für alle Fragen rund um Ihr Projekt.
               </p>
             </div>

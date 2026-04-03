@@ -82,7 +82,7 @@ const AdminLayout = () => {
         if (!mounted) return;
         setUnreadCount(count);
         await updateAppBadge(count);
-        document.title = count > 0 ? `(${count}) Apex Admin` : 'Apex Gerüstbau - Professionelle Gerüstlösungen in der Schweiz';
+        document.title = count > 0 ? `(${count}) Apex Admin` : 'Apex Gerüste GmbH - Professionelle Gerüstlösungen in der Schweiz';
       } catch {
         // Keep UI functional if unread counter fails.
       }

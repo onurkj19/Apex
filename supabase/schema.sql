@@ -339,6 +339,9 @@ create table if not exists public.team_plans (
   updated_at timestamptz not null default now()
 );
 
+alter table if exists public.team_plans
+  add column if not exists attachments jsonb not null default '[]'::jsonb;
+
 create table if not exists public.leave_requests (
   id uuid primary key default uuid_generate_v4(),
   worker_user_id uuid not null references public.users(id) on delete cascade,
@@ -840,6 +843,11 @@ drop policy if exists "Admins can delete storage objects" on storage.objects;
 create policy "Admins can delete storage objects"
 on storage.objects for delete to authenticated
 using (bucket_id in ('erp-images', 'erp-documents') and public.is_admin(auth.uid()));
+
+drop policy if exists "Authenticated read team plan documents" on storage.objects;
+create policy "Authenticated read team plan documents"
+on storage.objects for select to authenticated
+using (bucket_id = 'erp-documents' and name like 'team-plans/%');
 
 create table if not exists public.audit_logs (
   id uuid primary key default uuid_generate_v4(),

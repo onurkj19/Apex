@@ -1,7 +1,7 @@
 {
   "name": "apex-geruestbau-backend",
   "version": "1.0.0",
-  "description": "Backend API for Apex Gerüstbau website",
+  "description": "Backend API for Apex Gerüste website",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,7 @@
     "api",
     "express"
   ],
-  "author": "Apex Gerüstbau",
+  "author": "Apex Gerüste",
   "license": "MIT",
   "dependencies": {
     "compression": "^1.7.4",

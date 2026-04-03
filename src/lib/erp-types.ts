@@ -163,6 +163,14 @@ export interface AuditLogItem {
   created_at: string;
 }
 
+/** Skedar i ngarkuar nga admini për një plan (foto / PDF) me titull. */
+export interface TeamPlanAttachment {
+  title: string;
+  url: string;
+  path: string;
+  mime?: string;
+}
+
 export interface TeamPlanItem {
   id: string;
   title: string;
@@ -175,8 +183,11 @@ export interface TeamPlanItem {
   worker_ids: string[];
   vehicle_label: string | null;
   trailer_required: boolean;
+  /** Legacy një skedar; prefero `attachments`. */
   attachment_url: string | null;
   attachment_path: string | null;
+  /** Lista e dokumenteve/fotove me tituj (JSON në DB). */
+  attachments?: TeamPlanAttachment[] | null;
   notes: string | null;
   status: 'planned' | 'in_progress' | 'done' | 'cancelled';
   created_at: string;

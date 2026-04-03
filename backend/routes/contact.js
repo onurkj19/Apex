@@ -61,7 +61,7 @@ router.post('/', validateContactForm, async (req, res) => {
       <p><strong>Nachricht:</strong></p>
       <p>${message.replace(/\n/g, '<br>')}</p>
       <hr>
-      <p><em>Diese Nachricht wurde automatisch von der Apex Gerüstbau Website gesendet.</em></p>
+      <p><em>Diese Nachricht wurde automatisch von der Apex Gerüste Website gesendet.</em></p>
     `;
 
     // Send email to company
@@ -85,13 +85,13 @@ router.post('/', validateContactForm, async (req, res) => {
       <p><strong>Ihre Nachricht:</strong></p>
       <p>${message.replace(/\n/g, '<br>')}</p>
       <hr>
-      <p>Mit freundlichen Grüßen,<br>Das Team von Apex Gerüstbau</p>
+      <p>Mit freundlichen Grüßen,<br>Das Team von Apex Gerüste</p>
     `;
 
     const confirmationMail = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Bestätigung Ihrer Anfrage - Apex Gerüstbau',
+      subject: 'Bestätigung Ihrer Anfrage - Apex Gerüste',
       html: confirmationContent,
     };
 
@@ -115,7 +115,7 @@ router.post('/', validateContactForm, async (req, res) => {
 router.get('/', (req, res) => {
   res.json({
     company: {
-      name: 'Apex Gerüstbau',
+      name: 'Apex Gerüste',
       email: 'info@apex-gerüste.ch',
       phone: '+41 76 123 45 67',
       address: {
