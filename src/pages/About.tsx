@@ -2,7 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
 import { COMPANY_ADDRESS_LINE } from '@/lib/company';
-import { APEX1_MEDIA } from '@/lib/apex1-media';
+import { APEX1_ABOUT_SLIDES } from '@/lib/apex1-media';
+import { AutoSlideImages } from '@/components/AutoSlideImages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,12 +139,8 @@ const team = [
                   </p>
                 </div>
               </div>
-              <div className="relative">
-                <img 
-                  src={APEX1_MEDIA.about} 
-                  alt="Apex Gerüste – Team und Baustelle" 
-                  className="rounded-xl shadow-elegant w-full object-cover aspect-[4/3]"
-                />
+              <div className="relative min-w-0">
+                <AutoSlideImages slides={APEX1_ABOUT_SLIDES} />
               </div>
             </div>
           </div>

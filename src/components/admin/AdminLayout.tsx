@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { canAccessRoute } from '@/lib/permissions';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import type { AppRole } from '@/lib/erp-types';
+import { SensitiveScreenOverlay } from '@/components/admin/SensitiveScreenOverlay';
 
 const items = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -320,7 +321,9 @@ const AdminLayout = () => {
             </div>
           </header>
           <section className="p-3 sm:p-4 md:p-6 min-w-0 max-w-full overflow-x-auto">
-            <Outlet />
+            <SensitiveScreenOverlay>
+              <Outlet />
+            </SensitiveScreenOverlay>
           </section>
         </main>
       </div>

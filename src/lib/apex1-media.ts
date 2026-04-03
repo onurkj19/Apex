@@ -10,3 +10,10 @@ export const APEX1_HERO_SLIDES = [
   { src: APEX1_MEDIA.about, alt: 'Apex Gerüste – Baustelle' },
   { src: APEX1_MEDIA.extra, alt: 'Apex Gerüste – Einsatz' },
 ] as const;
+
+/** Slideshow «Unsere Geschichte» (Über uns) — i njëjti set fotosh si hero, renditje nga historia → projekt. */
+export const APEX1_ABOUT_SLIDES = [
+  { src: APEX1_MEDIA.about, alt: 'Apex Gerüste – Baustelle' },
+  { src: APEX1_MEDIA.extra, alt: 'Apex Gerüste – Einsatz' },
+  { src: APEX1_MEDIA.heroPoster, alt: 'Apex Gerüste – Gerüstlösungen' },
+] as const;

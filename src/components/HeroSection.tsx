@@ -1,22 +1,64 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { APEX1_HERO_SLIDES } from '@/lib/apex1-media';
 import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
+import type { WebsiteHomeHeroRow } from '@/lib/erp/website-content';
 
 const SLIDE_MS = 5000;
 
-const HeroSection = () => {
+const DEFAULT_BODY_DE =
+  'Apex Gerüste ist Ihr zuverlässiger Partner für Gerüstverleih und professionelle Montage- und Demontagedienstleistungen. Mit einem engagierten Team und hochwertigen Materialien stellen wir sicher, dass Ihre Bauprojekte effizient und sicher durchgeführt werden.';
+
+type HeroSectionProps = {
+  hero: WebsiteHomeHeroRow | null;
+};
+
+const HeroSection = ({ hero }: HeroSectionProps) => {
   const navigate = useNavigate();
   const [slide, setSlide] = useState(0);
+  const [cmsImageFailed, setCmsImageFailed] = useState(false);
+
+  const slides = useMemo(() => {
+    const staticSlides = APEX1_HERO_SLIDES.map((s) => ({ src: s.src, alt: s.alt }));
+    const cmsUrl = hero?.image_url?.trim();
+    if (cmsUrl && !cmsImageFailed) {
+      return [{ src: cmsUrl, alt: hero?.title?.trim() || 'Apex Gerüste – Hero' }, ...staticSlides];
+    }
+    return staticSlides;
+  }, [hero?.image_url, hero?.title, cmsImageFailed]);
+
+  useEffect(() => {
+    setCmsImageFailed(false);
+  }, [hero?.image_url]);
+
+  useEffect(() => {
+    setSlide(0);
+  }, [slides.length]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setSlide((s) => (s + 1) % APEX1_HERO_SLIDES.length);
+      setSlide((s) => (s + 1) % Math.max(slides.length, 1));
     }, SLIDE_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [slides.length]);
+
+  const statsTriple = useMemo(() => {
+    const s = hero?.stats;
+    if (s && typeof s === 'object') {
+      return [
+        { value: String(s.projects ?? '150+'), label: 'Abgeschlossene Projekte' },
+        { value: String(s.workers ?? '5+'), label: 'Team' },
+        { value: String(s.years ?? '100%'), label: 'Jahre Erfahrung' },
+      ];
+    }
+    return [
+      { value: '150+', label: 'Abgeschlossene Projekte' },
+      { value: '5+', label: 'Jahre Erfahrung' },
+      { value: '100%', label: 'Kundenzufriedenheit' },
+    ];
+  }, [hero?.stats]);
 
   return (
     <section
@@ -24,9 +66,9 @@ const HeroSection = () => {
       className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 min-w-0 overflow-x-clip overflow-hidden pt-20"
     >
       <div className="relative w-full bg-zinc-950">
-        {APEX1_HERO_SLIDES.map((item, i) => (
+        {slides.map((item, i) => (
           <img
-            key={item.src}
+            key={`${item.src}-${i}`}
             src={item.src}
             alt={item.alt}
             sizes="100vw"
@@ -36,6 +78,9 @@ const HeroSection = () => {
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={i === 0 ? 'high' : 'auto'}
+            onError={() => {
+              if (i === 0 && hero?.image_url?.trim()) setCmsImageFailed(true);
+            }}
           />
         ))}
 
@@ -48,12 +93,25 @@ const HeroSection = () => {
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-start px-3 pt-3 pb-10 sm:px-5 sm:pt-5 sm:pb-14 md:px-8 md:pt-6 md:pb-16">
           <div className="w-full max-w-4xl mx-auto text-center">
             <h1 className="text-3xl min-[400px]:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-3 sm:mb-5 fade-in-up animate drop-shadow-md">
-              Willkommen bei <br />
-              <img
-                src="/Transperent.png"
-                alt="Apex Gerüste Logo"
-                className="mx-auto max-h-12 sm:max-h-20 md:max-h-24 object-contain mt-1"
-              />
+              {hero?.title?.trim() ? (
+                <>
+                  <span className="block whitespace-pre-line">{hero.title.trim()}</span>
+                  <img
+                    src="/Transperent.png"
+                    alt="Apex Gerüste Logo"
+                    className="mx-auto max-h-12 sm:max-h-20 md:max-h-24 object-contain mt-1"
+                  />
+                </>
+              ) : (
+                <>
+                  Willkommen bei <br />
+                  <img
+                    src="/Transperent.png"
+                    alt="Apex Gerüste Logo"
+                    className="mx-auto max-h-12 sm:max-h-20 md:max-h-24 object-contain mt-1"
+                  />
+                </>
+              )}
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-white/90 mt-2 fade-in-up animate drop-shadow max-w-2xl mx-auto leading-snug">
               {COMPANY_LEGAL_NAME} · {COMPANY_ADDRESS_LINE}
@@ -63,10 +121,7 @@ const HeroSection = () => {
               className="text-sm sm:text-base md:text-lg text-gray-100 mb-5 sm:mb-6 max-w-2xl md:max-w-3xl mx-auto fade-in-up animate drop-shadow leading-relaxed mt-3 sm:mt-4"
               style={{ animationDelay: '0.2s' }}
             >
-              Apex Gerüste ist Ihr zuverlässiger Partner für Gerüstverleih und professionelle
-              Montage- und Demontagedienstleistungen. Mit einem engagierten Team und hochwertigen
-              Materialien stellen wir sicher, dass Ihre Bauprojekte effizient und sicher
-              durchgeführt werden.
+              {hero?.subtitle?.trim() ? hero.subtitle.trim() : DEFAULT_BODY_DE}
             </p>
 
             <div
@@ -97,24 +152,14 @@ const HeroSection = () => {
               className="grid grid-cols-3 gap-2 sm:gap-6 mt-6 sm:mt-8 fade-in-up animate"
               style={{ animationDelay: '0.6s' }}
             >
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-0.5 sm:mb-1 drop-shadow">
-                  150+
+              {statsTriple.map((row) => (
+                <div key={row.label} className="text-center">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-0.5 sm:mb-1 drop-shadow">
+                    {row.value}
+                  </div>
+                  <div className="text-gray-200 text-xs sm:text-sm">{row.label}</div>
                 </div>
-                <div className="text-gray-200 text-xs sm:text-sm">Abgeschlossene Projekte</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-0.5 sm:mb-1 drop-shadow">
-                  5+
-                </div>
-                <div className="text-gray-200 text-xs sm:text-sm">Jahre Erfahrung</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-0.5 sm:mb-1 drop-shadow">
-                  100%
-                </div>
-                <div className="text-gray-200 text-xs sm:text-sm">Kundenzufriedenheit</div>
-              </div>
+              ))}
             </div>
 
             <div
@@ -122,7 +167,7 @@ const HeroSection = () => {
               role="tablist"
               aria-label="Hero slides"
             >
-              {APEX1_HERO_SLIDES.map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"

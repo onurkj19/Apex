@@ -1,15 +1,26 @@
 import supabase from '@/lib/supabase';
 import { createAdminChangeNotification } from '@/lib/erp/notifications';
 
+export type WebsiteHomeHeroRow = {
+  id: string;
+  section_key: string;
+  title: string | null;
+  subtitle: string | null;
+  stats: Record<string, string> | null;
+  image_url: string | null;
+  image_path: string | null;
+  updated_at?: string;
+};
+
 export const websiteContentApi = {
-  async getHomeHero() {
+  async getHomeHero(): Promise<WebsiteHomeHeroRow | null> {
     const { data, error } = await supabase
       .from('website_content')
       .select('*')
       .eq('section_key', 'home_hero')
       .maybeSingle();
     if (error) throw error;
-    return data;
+    return data as WebsiteHomeHeroRow | null;
   },
   async uploadImage(file: File) {
     const path = `hero/${Date.now()}-${file.name}`;

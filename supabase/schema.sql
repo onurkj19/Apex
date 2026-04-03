@@ -653,6 +653,12 @@ drop policy if exists read_website_content_panel on public.website_content;
 create policy read_website_content_panel on public.website_content for select to authenticated
 using (public.can_read_panel(auth.uid()));
 
+-- Faqja publike (anon): vetëm seksioni hero për marketing.
+drop policy if exists anon_read_website_home_hero on public.website_content;
+create policy anon_read_website_home_hero on public.website_content
+  for select to anon
+  using (section_key = 'home_hero');
+
 drop policy if exists admin_all_quotes on public.quotes;
 create policy admin_all_quotes on public.quotes for all to authenticated
 using (public.is_admin(auth.uid()))
@@ -848,6 +854,12 @@ drop policy if exists "Authenticated read team plan documents" on storage.object
 create policy "Authenticated read team plan documents"
 on storage.objects for select to authenticated
 using (bucket_id = 'erp-documents' and name like 'team-plans/%');
+
+-- Imazhet e hero të ngarkuara nga admin (rruga `hero/...`) duhet të lexohen pa login.
+drop policy if exists "Public read hero folder in erp-images" on storage.objects;
+create policy "Public read hero folder in erp-images"
+  on storage.objects for select to anon
+  using (bucket_id = 'erp-images' and name like 'hero/%');
 
 create table if not exists public.audit_logs (
   id uuid primary key default uuid_generate_v4(),
