@@ -65,15 +65,15 @@ const HeroSection = ({ hero }: HeroSectionProps) => {
       id="home"
       className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 min-w-0 overflow-x-clip overflow-hidden pt-20"
     >
-      <div className="relative w-full bg-zinc-950">
+      <div className="relative w-full bg-zinc-950 aspect-[16/9] min-h-[460px] sm:min-h-[560px] md:min-h-[640px] max-h-[88vh]">
         {slides.map((item, i) => (
           <img
             key={`${item.src}-${i}`}
             src={item.src}
             alt={item.alt}
             sizes="100vw"
-            className={`w-full max-w-full h-auto align-middle transition-opacity duration-700 ease-in-out ${
-              i === slide ? 'relative z-0 block opacity-100' : 'hidden'
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out will-change-opacity ${
+              i === slide ? 'z-0 opacity-100' : 'z-0 opacity-0'
             }`}
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"
