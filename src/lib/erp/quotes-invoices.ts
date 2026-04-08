@@ -67,6 +67,7 @@ export const invoiceApi = {
       .from('projects')
       .select('id, project_name, revenue, client_id, status')
       .eq('id', projectId)
+      .is('deleted_at', null)
       .single();
     if (projectError) throw projectError;
     if (project.status !== 'I perfunduar') return null;

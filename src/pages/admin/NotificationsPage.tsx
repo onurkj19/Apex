@@ -8,6 +8,7 @@ import type { NotificationItem } from '@/lib/erp-types';
 import { getNotificationActivityDate, toLocalDateKey } from '@/lib/notification-dates';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
 
 const NotificationsPage = () => {
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -21,6 +22,9 @@ const NotificationsPage = () => {
     return new Date(n.getFullYear(), n.getMonth(), 1);
   });
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
+  const [singleDeleteOpen, setSingleDeleteOpen] = useState(false);
+  const [pendingSingleDeleteId, setPendingSingleDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -75,14 +79,21 @@ const NotificationsPage = () => {
     }
   };
 
-  const removeItem = async (id: string) => {
-    if (!window.confirm('A je i sigurt qe do ta fshish kete njoftim?')) return;
+  const askRemoveItem = (id: string) => {
+    setPendingSingleDeleteId(id);
+    setSingleDeleteOpen(true);
+  };
+
+  const performRemoveItem = async () => {
+    if (!pendingSingleDeleteId) return;
+    const id = pendingSingleDeleteId;
     setActionId(id);
     try {
       await notificationApi.remove(id);
       await load();
     } finally {
       setActionId(null);
+      setPendingSingleDeleteId(null);
     }
   };
 
@@ -141,9 +152,13 @@ const NotificationsPage = () => {
     }
   };
 
-  const removeSelected = async () => {
+  const askRemoveSelected = () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`A je i sigurt qe do t'i fshish ${selectedIds.length} njoftime?`)) return;
+    setBulkDeleteOpen(true);
+  };
+
+  const performRemoveSelected = async () => {
+    if (selectedIds.length === 0) return;
     setActionId('bulk-remove');
     try {
       await Promise.all(selectedIds.map((id) => notificationApi.remove(id)));
@@ -174,7 +189,7 @@ const NotificationsPage = () => {
               },
               { label: 'Select all', onClick: selectAllVisible, disabled: listForDay.length === 0 },
               { label: 'Mark selected as read', onClick: markSelectedRead, disabled: selectedIds.length === 0 },
-              { label: 'Delete selected', onClick: removeSelected, disabled: selectedIds.length === 0, destructive: true },
+              { label: 'Delete selected', onClick: askRemoveSelected, disabled: selectedIds.length === 0, destructive: true },
             ]}
           />
         </div>
@@ -304,7 +319,7 @@ const NotificationsPage = () => {
                     !item.is_archived
                       ? { label: 'Arkivo', onClick: () => archive(item.id), disabled: actionId === item.id }
                       : { label: 'Rikthe', onClick: () => unarchive(item.id), disabled: actionId === item.id },
-                    { label: 'Fshi', onClick: () => removeItem(item.id), disabled: actionId === item.id, destructive: true },
+                    { label: 'Fshi', onClick: () => askRemoveItem(item.id), disabled: actionId === item.id, destructive: true },
                   ]}
                 />
               </div>
@@ -317,6 +332,28 @@ const NotificationsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <DestructiveConfirmDialog
+        open={singleDeleteOpen}
+        onOpenChange={(o) => {
+          setSingleDeleteOpen(o);
+          if (!o) setPendingSingleDeleteId(null);
+        }}
+        title="Fshi njoftimin?"
+        description="A dëshiron ta fshish këtë njoftim? Ky veprim nuk kthehet lehtë."
+        confirmLabel="Po, fshi"
+        loading={Boolean(pendingSingleDeleteId && actionId === pendingSingleDeleteId)}
+        onConfirm={performRemoveItem}
+      />
+      <DestructiveConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Fshi njoftimet e zgjedhura?"
+        description={`A dëshiron t'i fshish ${selectedIds.length} njoftime? Ky veprim nuk kthehet lehtë.`}
+        confirmLabel="Po, fshi të gjitha"
+        loading={actionId === 'bulk-remove'}
+        onConfirm={performRemoveSelected}
+      />
       </div>
     </div>
   );

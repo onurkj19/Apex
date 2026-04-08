@@ -26,6 +26,7 @@ const ClientsEquipmentPage = lazy(() => import("./pages/admin/ClientsEquipmentPa
 const WebsiteContentPage = lazy(() => import("./pages/admin/WebsiteContentPage"));
 const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const NotificationsPage = lazy(() => import("./pages/admin/NotificationsPage"));
+const RecycleBinPage = lazy(() => import("./pages/admin/RecycleBinPage"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
 const AuditLogsPage = lazy(() => import("./pages/admin/AuditLogsPage"));
 const TeamPlanningPage = lazy(() => import("./pages/admin/TeamPlanningPage"));
@@ -58,6 +59,7 @@ const App = () => (
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="recycle-bin" element={<RecycleBinPage />} />
                 <Route path="workers" element={<WorkersPage />} />
                 <Route path="work-logs" element={<WorkLogsPage />} />
                 <Route path="finances" element={<FinancesPage />} />

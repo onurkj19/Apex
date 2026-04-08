@@ -1,4 +1,4 @@
-export type ProjectStatus =
+﻿export type ProjectStatus =
   | 'Ne pritje'
   | 'I pranuar'
   | 'I refuzuar'
@@ -35,6 +35,9 @@ export interface Project {
   revenue: number;
   worker_cost: number;
   extra_expense: number;
+  /** Soft-delete: Recycle Bin; null = aktiv */
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface Worker {
@@ -163,7 +166,7 @@ export interface AuditLogItem {
   created_at: string;
 }
 
-/** Skedar i ngarkuar nga admini për një plan (foto / PDF) me titull. */
+/** Skedar i ngarkuar nga admini pÃ«r njÃ« plan (foto / PDF) me titull. */
 export interface TeamPlanAttachment {
   title: string;
   url: string;
@@ -183,10 +186,10 @@ export interface TeamPlanItem {
   worker_ids: string[];
   vehicle_label: string | null;
   trailer_required: boolean;
-  /** Legacy një skedar; prefero `attachments`. */
+  /** Legacy njÃ« skedar; prefero `attachments`. */
   attachment_url: string | null;
   attachment_path: string | null;
-  /** Lista e dokumenteve/fotove me tituj (JSON në DB). */
+  /** Lista e dokumenteve/fotove me tituj (JSON nÃ« DB). */
   attachments?: TeamPlanAttachment[] | null;
   notes: string | null;
   status: 'planned' | 'in_progress' | 'done' | 'cancelled';

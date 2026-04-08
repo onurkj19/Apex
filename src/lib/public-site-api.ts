@@ -32,6 +32,7 @@ export type PublicProjectWithImages = PublicProjectRow & { images: PublicProject
 export async function fetchPublicProjectsWithImages(): Promise<PublicProjectWithImages[]> {
   const { data, error } = await supabase
     .from('projects')
+    .is('deleted_at', null)
     .select(
       `
       id,

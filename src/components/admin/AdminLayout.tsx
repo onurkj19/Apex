@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Truck, Users, Wallet } from 'lucide-react';
+import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Trash2, Truck, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { authApi, notificationApi } from '@/lib/erp-api';
@@ -14,6 +14,7 @@ import { SensitiveScreenOverlay } from '@/components/admin/SensitiveScreenOverla
 const items = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/projects', label: 'Projektet', icon: FolderKanban },
+  { to: '/admin/recycle-bin', label: 'Koshi', icon: Trash2 },
   { to: '/admin/workers', label: 'Punetoret', icon: Users },
   { to: '/admin/work-logs', label: 'Oret e Punes', icon: Clock3 },
   { to: '/admin/finances', label: 'Financat', icon: Wallet },

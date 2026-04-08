@@ -9,7 +9,7 @@ export const dashboardApi = {
   },
 
   async getProjectStatusDistribution() {
-    const { data, error } = await supabase.from('projects').select('status');
+    const { data, error } = await supabase.from('projects').select('status').is('deleted_at', null);
     if (error) throw error;
     const counts = (data || []).reduce<Record<string, number>>((acc, item: any) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -45,7 +45,7 @@ export const dashboardApi = {
         .from('finances')
         .select('amount, finance_type, finance_date')
         .gte('finance_date', previousStart.toISOString().slice(0, 10)),
-      supabase.from('projects').select('status, progress'),
+      supabase.from('projects').select('status, progress').is('deleted_at', null),
     ]);
 
     if (financeError) throw financeError;

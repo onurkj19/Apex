@@ -5,10 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
-import { clientApi, projectApi } from '@/lib/erp-api';
+import { clientApi, projectApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
+import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
 import { z } from 'zod';
 import { formatChf } from '@/lib/utils';
+import { progressForProjectStatus } from '@/lib/project-progress';
+import { Progress } from '@/components/ui/progress';
 
 const statuses: ProjectStatus[] = ['Ne pritje', 'I pranuar', 'I refuzuar', 'Ne pune', 'I perfunduar', 'I deshtuar'];
 const projectSchema = z.object({
@@ -30,6 +33,11 @@ const ProjectsPage = () => {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editConfirmProject, setEditConfirmProject] = useState<Project | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({
     client_id: '',
     location: '',
@@ -63,13 +71,26 @@ const ProjectsPage = () => {
       setError('Klienti i zgjedhur nuk u gjet.');
       return;
     }
+    setCreateDialogOpen(true);
+  };
+
+  const performCreate = async () => {
+    const parsed = projectSchema.safeParse({ client_id: form.client_id, location: form.location });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || 'Te dhena te pavlefshme');
+      return;
+    }
+    const selectedClient = clients.find((c) => c.id === form.client_id);
+    if (!selectedClient) {
+      setError('Klienti i zgjedhur nuk u gjet.');
+      return;
+    }
     const normalizedLocation = form.location.trim();
     const generatedProjectTitle = buildProjectTitle(
       selectedClient.company_name,
       normalizedLocation,
       form.start_date || null,
     );
-    if (!confirm('A je i sigurt qe do ta ruash projektin?')) return;
     setLoading(true);
     try {
       await projectApi.create({
@@ -92,8 +113,14 @@ const ProjectsPage = () => {
     }
   };
 
-  const saveEdit = async (project: Project) => {
-    if (!confirm('A je i sigurt qe do ta ruash editimin e projektit?')) return;
+  const requestSaveEdit = (project: Project) => {
+    setEditConfirmProject(project);
+    setEditDialogOpen(true);
+  };
+
+  const performSaveEdit = async () => {
+    const project = editConfirmProject;
+    if (!project) return;
     setActionLoadingId(`edit-${project.id}`);
     try {
       const selectedClient = clients.find((c) => c.id === project.client_id);
@@ -113,17 +140,24 @@ const ProjectsPage = () => {
         status: project.status,
       });
       setEditingId(null);
+      setEditConfirmProject(null);
       await load();
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  const removeProject = async (id: string) => {
-    if (!confirm('A je i sigurt qe do ta fshish kete projekt?')) return;
-    setActionLoadingId(`delete-${id}`);
+  const askRemoveProject = (id: string) => {
+    setPendingDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const performRemoveProject = async () => {
+    if (!pendingDeleteId) return;
+    setActionLoadingId(`delete-${pendingDeleteId}`);
     try {
-      await projectApi.remove(id);
+      await projectApi.remove(pendingDeleteId);
+      setPendingDeleteId(null);
       await load();
     } finally {
       setActionLoadingId(null);
@@ -209,7 +243,12 @@ const ProjectsPage = () => {
           <CardTitle>Lista e projekteve</CardTitle>
           <CardDescription>
             Kur nje projekt kalon ne statusin <strong>I perfunduar</strong>, shuma e kontrates (cmimi i projektit) shtohet
-            automatikisht si hyrje ne financat (Bank), nje here per projekt, per bilancin e pergjithshem.
+            automatikisht si hyrje ne financat (Bank), nje here per projekt, per bilancin e pergjithshem.{' '}
+            <span className="block mt-2">
+              <strong>Progress %</strong> pÃ«rditÃ«sohet automatikisht nga statusi (p.sh. &quot;I perfunduar&quot; = 100%). Ruaj
+              pas ndryshimit tÃ« statusit. PÃ«r projektet e vjetra tÃ« pÃ«rfunduara me 0%, ekzekuto migrimin SQL nÃ« Supabase ose
+              ri-ruaj njÃ« herÃ« statusin.
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -242,14 +281,22 @@ const ProjectsPage = () => {
                     value={p.revenue}
                     onChange={(e) => setProjects((prev) => prev.map((x) => x.id === p.id ? { ...x, revenue: Number(e.target.value) } : x))}
                   />
-                  <Select value={p.status} onValueChange={(v) => setProjects((prev) => prev.map((x) => x.id === p.id ? { ...x, status: v as ProjectStatus } : x))}>
+                  <Select
+                    value={p.status}
+                    onValueChange={(v) => {
+                      const st = v as ProjectStatus;
+                      setProjects((prev) =>
+                        prev.map((x) => (x.id === p.id ? { ...x, status: st, progress: progressForProjectStatus(st) } : x)),
+                      );
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {statuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <div className="flex gap-2">
-                    <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => saveEdit(p)}>
+                    <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => requestSaveEdit(p)}>
                       {actionLoadingId === `edit-${p.id}` ? 'Duke ruajtur...' : 'Ruaj'}
                     </Button>
                     <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => setEditingId(null)}>Anulo</Button>
@@ -262,15 +309,18 @@ const ProjectsPage = () => {
                     <p className="text-sm text-muted-foreground">{p.location} - {p.status}</p>
                     <p className="text-xs text-muted-foreground">Cmimi kontrates: {formatChf(Number(p.revenue || 0))}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm">Progress: {p.progress}%</p>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex flex-col items-end gap-1 w-[140px]">
+                      <p className="text-sm tabular-nums">{p.progress}%</p>
+                      <Progress value={p.progress} className="h-2 w-full" />
+                    </div>
                     <RowActionsMenu
                       disabled={actionLoadingId === `delete-${p.id}`}
                       actions={[
                         { label: 'Edito', onClick: () => setEditingId(p.id) },
                         {
                           label: actionLoadingId === `delete-${p.id}` ? 'Duke fshire...' : 'Fshi',
-                          onClick: () => removeProject(p.id),
+                          onClick: () => askRemoveProject(p.id),
                           disabled: actionLoadingId === `delete-${p.id}`,
                           destructive: true,
                         },
@@ -284,6 +334,42 @@ const ProjectsPage = () => {
           {projects.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka projekte ende.</p>}
         </CardContent>
       </Card>
+
+      <DestructiveConfirmDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        title="Krijo projektin?"
+        description="A dëshiron të krijosh këtë projekt me të dhënat e dhëna?"
+        confirmLabel="Po, krijo"
+        confirmVariant="default"
+        loading={loading}
+        onConfirm={performCreate}
+      />
+      <DestructiveConfirmDialog
+        open={editDialogOpen}
+        onOpenChange={(o) => {
+          setEditDialogOpen(o);
+          if (!o) setEditConfirmProject(null);
+        }}
+        title="Ruaj ndryshimet?"
+        description="A dëshiron të ruash ndryshimet për këtë projekt?"
+        confirmLabel="Po, ruaj"
+        confirmVariant="default"
+        loading={Boolean(editConfirmProject && actionLoadingId === `edit-${editConfirmProject.id}`)}
+        onConfirm={performSaveEdit}
+      />
+      <DestructiveConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(o) => {
+          setDeleteDialogOpen(o);
+          if (!o) setPendingDeleteId(null);
+        }}
+        title="Fshi projektin?"
+        description={`Projekti kalon në Koshi (Recycle Bin). Mund ta rikthesh brenda ${PROJECT_RECYCLE_RETENTION_DAYS} ditëve nga faqja Koshi. Pas ${PROJECT_RECYCLE_RETENTION_DAYS} ditëve fshihet përfundimisht.`}
+        confirmLabel="Po, fshi"
+        loading={Boolean(pendingDeleteId && actionLoadingId === `delete-${pendingDeleteId}`)}
+        onConfirm={performRemoveProject}
+      />
     </div>
   );
 };
