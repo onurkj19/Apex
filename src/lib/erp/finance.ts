@@ -5,6 +5,9 @@ import { createAdminChangeNotification, tryCreateNotification } from '@/lib/erp/
 import { getCurrentRole } from '@/lib/erp/session';
 import { settingsApi } from '@/lib/erp/settings';
 
+/** Hyrje e vetme për projekt nga faqja Projektet (përditësohet kur rishkruhet shuma). */
+export const PROJECT_PANEL_INCOME_TITLE = 'Pagesë nga paneli Projektet';
+
 export const financeApi = {
   async list(): Promise<FinanceEntry[]> {
     const { data, error } = await supabase.from('finances').select('*').order('finance_date', { ascending: false });
@@ -71,5 +74,51 @@ export const financeApi = {
       `Transaksioni me ID ${id} u fshi`,
       { finance_id: id }
     );
+  },
+
+  /**
+   * Ruan ose përditëson shumën e pagesës së raportuar për projektin (një rresht në `finances`).
+   * Shuma totale e marrë mbetet shuma e të gjitha hyrjeve për këtë projekt (p.sh. hyrje të tjera nga Financat).
+   */
+  async upsertProjectPanelIncome(projectId: string, amount: number): Promise<void> {
+    const rounded = Math.round(Math.max(0, amount) * 100) / 100;
+    const { data: rows, error: selErr } = await supabase
+      .from('finances')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('finance_type', 'income')
+      .eq('title', PROJECT_PANEL_INCOME_TITLE)
+      .limit(1);
+    if (selErr) throw selErr;
+    const existingId = (rows?.[0] as { id?: string } | undefined)?.id;
+
+    if (rounded === 0) {
+      if (existingId) {
+        const { error } = await supabase.from('finances').delete().eq('id', existingId);
+        if (error) throw error;
+        await createAdminChangeNotification(
+          'Pagesa nga projekti u hoq',
+          'Hyrja e panelit të projektit u fshi (shuma 0).',
+          { project_id: projectId, finance_id: existingId }
+        );
+      }
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (existingId) {
+      await financeApi.update(existingId, { amount: rounded });
+      return;
+    }
+
+    await financeApi.create({
+      project_id: projectId,
+      title: PROJECT_PANEL_INCOME_TITLE,
+      amount: rounded,
+      finance_type: 'income',
+      category: null,
+      payment_method: 'Bank',
+      finance_date: today,
+    });
   },
 };

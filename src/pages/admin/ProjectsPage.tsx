@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
-import { clientApi, projectApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
+import { clientApi, projectApi, financeApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
 import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
 import { z } from 'zod';
@@ -57,6 +57,8 @@ const ProjectsPage = () => {
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
   /** Shuma e hyrjeve nga financat për çdo project_id (pagesa të regjistruara). */
   const [receivedByProject, setReceivedByProject] = useState<Record<string, number>>({});
+  const [paymentDraft, setPaymentDraft] = useState<Record<string, string>>({});
+  const [savingPaymentId, setSavingPaymentId] = useState<string | null>(null);
   const [form, setForm] = useState({
     client_id: '',
     location: '',
@@ -80,6 +82,34 @@ const ProjectsPage = () => {
   useEffect(() => {
     load();
   }, []);
+
+  const savePanelPayment = async (projectId: string) => {
+    const raw = (paymentDraft[projectId] ?? "").trim().replace(",", ".");
+    if (raw === "") {
+      setError("Shkruaj shumën (p.sh. 1500) ose 0 për të hequr pagesën e regjistruar nga paneli.");
+      return;
+    }
+    const n = Number(raw);
+    if (Number.isNaN(n) || n < 0) {
+      setError("Shuma duhet të jetë një numër ≥ 0.");
+      return;
+    }
+    setSavingPaymentId(projectId);
+    setError("");
+    try {
+      await financeApi.upsertProjectPanelIncome(projectId, n);
+      setPaymentDraft((d) => {
+        const next = { ...d };
+        delete next[projectId];
+        return next;
+      });
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Ruajtja e pagesës dështoi.");
+    } finally {
+      setSavingPaymentId(null);
+    }
+  };
 
   const projectsFiltered = useMemo(() => {
     if (!selectedDay) return projects;
@@ -567,6 +597,35 @@ const ProjectsPage = () => {
                                         <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-emerald-700 dark:text-emerald-400">
                                           <span>Pagesë e marrë</span>
                                           <span className="tabular-nums font-semibold">{formatChf(received)}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 pt-1 border-t border-dashed border-border/50">
+                                          <span className="text-[11px] text-muted-foreground leading-tight">
+                                            Shkruaj shumën e marrë dhe ruaj — krijohet ose përditësohet një hyrje në Financat për këtë projekt. Nëse ke edhe hyrje të tjera, shuma sipër është totali.
+                                          </span>
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              step="0.01"
+                                              className="h-8 w-[120px] sm:w-[140px] tabular-nums"
+                                              placeholder="p.sh. 1500"
+                                              value={paymentDraft[p.id] ?? ""}
+                                              onChange={(e) =>
+                                                setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))
+                                              }
+                                              disabled={savingPaymentId === p.id}
+                                            />
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="secondary"
+                                              className="h-8 shrink-0"
+                                              disabled={savingPaymentId === p.id}
+                                              onClick={() => void savePanelPayment(p.id)}
+                                            >
+                                              {savingPaymentId === p.id ? "Duke ruajtur..." : "Ruaj pagesën"}
+                                            </Button>
+                                          </div>
                                         </div>
                                         <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-amber-800 dark:text-amber-200">
                                           <span>Mbetur</span>
