@@ -50,12 +50,12 @@ const HeroSection = ({ hero }: HeroSectionProps) => {
       return [
         { value: String(s.projects ?? '150+'), label: 'Abgeschlossene Projekte' },
         { value: String(s.workers ?? '5+'), label: 'Team' },
-        { value: String(s.years ?? '100%'), label: 'Jahre Erfahrung' },
+        { value: String(s.years ?? '15+'), label: 'Jahre Erfahrung' },
       ];
     }
     return [
       { value: '150+', label: 'Abgeschlossene Projekte' },
-      { value: '5+', label: 'Jahre Erfahrung' },
+      { value: '15+', label: 'Jahre Erfahrung' },
       { value: '100%', label: 'Kundenzufriedenheit' },
     ];
   }, [hero?.stats]);

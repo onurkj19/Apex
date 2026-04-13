@@ -11,7 +11,7 @@ const WebsiteContentPage = () => {
   const [stats, setStats] = useState({
     projects: '750+',
     workers: '20+',
-    years: '4+',
+    years: '15+',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');
