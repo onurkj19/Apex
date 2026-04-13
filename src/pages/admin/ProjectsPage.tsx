@@ -20,7 +20,7 @@ import { projectStatusBadgeClass } from '@/lib/project-status-styles';
 import { netRevenueFromGrossInclMwst } from '@/lib/vat-ch';
 import { toLocalDateKey } from '@/lib/notification-dates';
 import { de } from 'date-fns/locale';
-import { Plus } from 'lucide-react';
+import { Plus, Wallet } from 'lucide-react';
 
 const statuses: ProjectStatus[] = ['Ne pritje', 'I pranuar', 'I refuzuar', 'Ne pune', 'I perfunduar', 'I deshtuar'];
 const projectSchema = z.object({
@@ -379,7 +379,7 @@ const ProjectsPage = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,300px)_1fr] lg:items-start">
+      <div className="grid gap-6 md:gap-8 xl:grid-cols-[minmax(0,min(100%,320px))_1fr] xl:items-start">
         <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Kalendari</CardTitle>
@@ -401,7 +401,7 @@ const ProjectsPage = () => {
                 has_project:
                   'relative font-medium text-foreground after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-[""]',
               }}
-              className="rounded-md border bg-muted/20 p-2 w-full max-w-[300px]"
+              className="w-full max-w-[min(100%,320px)] rounded-md border bg-muted/20 p-2 sm:p-3"
               classNames={{
                 day: cn(
                   buttonVariants({ variant: 'ghost' }),
@@ -444,7 +444,7 @@ const ProjectsPage = () => {
               <Accordion key={accordionKey} type="multiple" defaultValue={clientGroups.map((g) => g.key)} className="w-full">
                 {clientGroups.map((group) => (
                   <AccordionItem key={group.key} value={group.key}>
-                    <AccordionTrigger className="text-left hover:no-underline">
+                    <AccordionTrigger className="text-left hover:no-underline break-words py-3 sm:py-2 [&>svg]:shrink-0">
                       <span className="font-semibold">{group.label}</span>
                       <span className="ml-2 text-sm font-normal text-muted-foreground">({group.items.length})</span>
                     </AccordionTrigger>
@@ -452,7 +452,7 @@ const ProjectsPage = () => {
                       {group.items.map((p) => (
                         <div
                           key={p.id}
-                          className="rounded-lg border border-border/80 bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+                          className="rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4"
                         >
                           {editingId === p.id ? (
                             <div className="space-y-3">
@@ -562,17 +562,19 @@ const ProjectsPage = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0 flex-1 space-y-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="font-medium leading-snug">{p.project_name}</p>
-                                  <Badge variant="outline" className={cn('shrink-0 border', projectStatusBadgeClass(p.status))}>
-                                    {p.status}
-                                  </Badge>
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+                              <div className="min-w-0 flex-1 space-y-3">
+                                <div className="space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="min-w-0 break-words font-medium leading-snug">{p.project_name}</p>
+                                    <Badge variant="outline" className={cn('shrink-0 border', projectStatusBadgeClass(p.status))}>
+                                      {p.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="break-words text-sm text-muted-foreground">{p.location}</p>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{p.location}</p>
                                 <div className="flex flex-col gap-0.5">
-                                  <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                                  <p className="text-xl font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">
                                     {formatChf(Number(p.revenue || 0))}
                                   </p>
                                   {p.revenue_includes_vat_8_1 ? (
@@ -589,37 +591,57 @@ const ProjectsPage = () => {
                                     const remaining = Math.max(0, contract - received);
                                     const pct = contract > 0 ? Math.min(100, Math.round((received / contract) * 100)) : 0;
                                     return (
-                                      <div className="mt-2 space-y-1 rounded-md border border-dashed border-border/80 bg-muted/20 px-2 py-1.5 text-sm">
-                                        <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-                                          <span className="text-muted-foreground">Faturë (kontratë)</span>
-                                          <span className="tabular-nums font-medium">{formatChf(contract)}</span>
+                                      <div className="mt-2 space-y-3 rounded-xl border border-border/60 bg-gradient-to-br from-muted/50 via-muted/20 to-transparent p-3 text-sm shadow-sm sm:p-4">
+                                        <div className="space-y-2 border-b border-border/40 pb-3">
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="text-muted-foreground">Faturë (kontratë)</span>
+                                            <span className="shrink-0 tabular-nums font-medium">{formatChf(contract)}</span>
+                                          </div>
+                                          <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
+                                            <span>Pagesë e marrë (total)</span>
+                                            <span className="shrink-0 tabular-nums font-semibold">{formatChf(received)}</span>
+                                          </div>
                                         </div>
-                                        <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-emerald-700 dark:text-emerald-400">
-                                          <span>Pagesë e marrë</span>
-                                          <span className="tabular-nums font-semibold">{formatChf(received)}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-1.5 pt-1 border-t border-dashed border-border/50">
-                                          <span className="text-[11px] text-muted-foreground leading-tight">
-                                            Shkruaj shumën e marrë dhe ruaj — krijohet ose përditësohet një hyrje në Financat për këtë projekt. Nëse ke edhe hyrje të tjera, shuma sipër është totali.
-                                          </span>
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <Input
-                                              type="number"
-                                              min={0}
-                                              step="0.01"
-                                              className="h-8 w-[120px] sm:w-[140px] tabular-nums"
-                                              placeholder="p.sh. 1500"
-                                              value={paymentDraft[p.id] ?? ""}
-                                              onChange={(e) =>
-                                                setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))
-                                              }
-                                              disabled={savingPaymentId === p.id}
-                                            />
+
+                                        <div className="rounded-lg border border-primary/20 bg-background/95 p-3 ring-1 ring-inset ring-border/35 sm:p-4">
+                                          <div className="mb-3 flex gap-2.5">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                              <Wallet className="h-4 w-4" aria-hidden />
+                                            </div>
+                                            <div className="min-w-0 flex-1 space-y-1">
+                                              <p className="text-sm font-medium leading-tight">Përditëso pagesën</p>
+                                              <p className="hidden text-[11px] leading-relaxed text-muted-foreground sm:block">
+                                                Shkruaj shumën dhe ruaj — një hyrje në Financat. Me hyrje të tjera, totali përfshin të gjitha.
+                                              </p>
+                                              <p className="text-[11px] leading-relaxed text-muted-foreground sm:hidden">
+                                                Ruhet në Financat si hyrje për këtë projekt.
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+                                            <div className="min-w-0 flex-1 space-y-1.5">
+                                              <Label htmlFor={`pay-in-${p.id}`} className="text-xs text-muted-foreground">
+                                                Shuma (CHF)
+                                              </Label>
+                                              <Input
+                                                id={`pay-in-${p.id}`}
+                                                type="number"
+                                                min={0}
+                                                step="0.01"
+                                                inputMode="decimal"
+                                                className="h-10 w-full min-w-0 tabular-nums"
+                                                placeholder="p.sh. 1500"
+                                                value={paymentDraft[p.id] ?? ""}
+                                                onChange={(e) =>
+                                                  setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))
+                                                }
+                                                disabled={savingPaymentId === p.id}
+                                              />
+                                            </div>
                                             <Button
                                               type="button"
-                                              size="sm"
                                               variant="secondary"
-                                              className="h-8 shrink-0"
+                                              className="h-10 w-full shrink-0 px-4 sm:w-auto sm:min-w-[10rem]"
                                               disabled={savingPaymentId === p.id}
                                               onClick={() => void savePanelPayment(p.id)}
                                             >
@@ -627,35 +649,47 @@ const ProjectsPage = () => {
                                             </Button>
                                           </div>
                                         </div>
-                                        <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-amber-800 dark:text-amber-200">
-                                          <span>Mbetur</span>
-                                          <span className="tabular-nums font-medium">{formatChf(remaining)}</span>
+
+                                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-2 text-amber-800 dark:text-amber-200">
+                                          <span className="font-medium">Mbetur</span>
+                                          <span className="shrink-0 tabular-nums text-base font-semibold sm:text-lg">{formatChf(remaining)}</span>
                                         </div>
                                         {contract > 0 && (
-                                          <Progress value={pct} className="h-1.5 mt-1" />
+                                          <div className="space-y-1.5">
+                                            <div className="flex justify-between text-[11px] text-muted-foreground">
+                                              <span>Pagesa ndaj kontratës</span>
+                                              <span className="tabular-nums">{pct}%</span>
+                                            </div>
+                                            <Progress value={pct} className="h-2" />
+                                          </div>
                                         )}
                                       </div>
                                     );
                                   })()}
                                 </div>
                               </div>
-                              <div className="flex shrink-0 items-start gap-3">
-                                <div className="flex w-[120px] flex-col items-end gap-1 sm:w-[140px]">
-                                  <p className="text-sm tabular-nums text-muted-foreground">{p.progress}%</p>
-                                  <Progress value={p.progress} className="h-2 w-full" />
+                              <div className="flex w-full shrink-0 flex-col gap-3 border-t border-border/50 pt-3 sm:flex-row sm:items-center sm:justify-between lg:w-auto lg:min-w-[148px] lg:flex-col lg:items-end lg:justify-start lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                                <div className="w-full min-w-0 sm:max-w-xs lg:max-w-none lg:w-40">
+                                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:text-right">
+                                    Progres
+                                  </p>
+                                  <p className="mb-1.5 text-right text-sm tabular-nums text-foreground">{p.progress}%</p>
+                                  <Progress value={p.progress} className="h-2.5 w-full" />
                                 </div>
-                                <RowActionsMenu
-                                  disabled={actionLoadingId === `delete-${p.id}`}
-                                  actions={[
-                                    { label: 'Edito', onClick: () => setEditingId(p.id) },
-                                    {
-                                      label: actionLoadingId === `delete-${p.id}` ? 'Duke fshirë...' : 'Fshi',
-                                      onClick: () => askRemoveProject(p.id),
-                                      disabled: actionLoadingId === `delete-${p.id}`,
-                                      destructive: true,
-                                    },
-                                  ]}
-                                />
+                                <div className="flex justify-end sm:shrink-0">
+                                  <RowActionsMenu
+                                    disabled={actionLoadingId === `delete-${p.id}`}
+                                    actions={[
+                                      { label: 'Edito', onClick: () => setEditingId(p.id) },
+                                      {
+                                        label: actionLoadingId === `delete-${p.id}` ? 'Duke fshirë...' : 'Fshi',
+                                        onClick: () => askRemoveProject(p.id),
+                                        disabled: actionLoadingId === `delete-${p.id}`,
+                                        destructive: true,
+                                      },
+                                    ]}
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
