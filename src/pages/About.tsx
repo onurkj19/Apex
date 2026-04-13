@@ -47,7 +47,8 @@ const team = [
     experience: "5 Jahre Erfahrung",
     phone: "+41 76 368 10 11",
     email: "info@apex-gerüste.ch",
-    specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"]
+    specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"],
+    photo: `${import.meta.env.BASE_URL}OnurFoto.jpeg`,
   },
   {
     name: "Arlind Morina",
@@ -194,8 +195,20 @@ const team = [
               {team.map((member, index) => (
                 <Card key={index} className="card-elegant">
                   <CardContent className="p-6 text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary-glow rounded-full mx-auto mb-4 flex items-center justify-center text-white font-bold text-xl">
-                      {member.name.split(' ').map(n => n[0]).join('')}
+                    <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden ring-2 ring-primary/30 shrink-0">
+                      {'photo' in member && member.photo ? (
+                        <img
+                          src={member.photo}
+                          alt={member.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white font-bold text-xl">
+                          {member.name.split(' ').map((n) => n[0]).join('')}
+                        </div>
+                      )}
                     </div>
                     <h3 className="text-xl font-semibold mb-2">{member.name}</h3>
                     <Badge variant="secondary" className="mb-4">{member.experience}</Badge>
