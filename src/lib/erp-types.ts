@@ -1,4 +1,4 @@
-﻿export type ProjectStatus =
+export type ProjectStatus =
   | 'Ne pritje'
   | 'I pranuar'
   | 'I refuzuar'
@@ -33,6 +33,8 @@ export interface Project {
   status: ProjectStatus;
   progress: number;
   revenue: number;
+  /** Nëse true, `revenue` është brutto (inkl. MwSt 8.1%); për P/L përdoret neto. */
+  revenue_includes_vat_8_1?: boolean;
   worker_cost: number;
   extra_expense: number;
   /** Soft-delete: Recycle Bin; null = aktiv */

@@ -18,6 +18,7 @@ const DashboardPage = () => {
   const [statusChart, setStatusChart] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [trend, setTrend] = useState<any | null>(null);
+  const [outstandingReceivables, setOutstandingReceivables] = useState(0);
   const [workerPlans, setWorkerPlans] = useState<any[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [todayTimeEntry, setTodayTimeEntry] = useState<WorkerTimeEntry | null>(null);
@@ -49,18 +50,20 @@ const DashboardPage = () => {
         return;
       }
 
-      const [statsRes, financeRes, statusRes, notificationsRes, trendRes] = await Promise.all([
+      const [statsRes, financeRes, statusRes, notificationsRes, trendRes, outstandingRes] = await Promise.all([
         dashboardApi.getStats(),
         dashboardApi.getMonthlyFinance(),
         dashboardApi.getProjectStatusDistribution(),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(5),
         dashboardApi.getTrendAlarms(),
+        dashboardApi.getOutstandingReceivablesChf(),
       ]);
       setStats(statsRes);
       setFinanceChart(financeRes);
       setStatusChart(statusRes);
       setNotifications(notificationsRes.data || []);
       setTrend(trendRes);
+      setOutstandingReceivables(outstandingRes);
     };
     void load();
   }, [profile?.role]);
@@ -72,6 +75,7 @@ const DashboardPage = () => {
     { label: 'Te ardhura mujore', value: formatChf(stats?.monthly_revenue ?? 0) },
     { label: 'Shpenzime mujore', value: formatChf(stats?.monthly_expenses ?? 0) },
     { label: 'Bilanci i kompanise', value: formatChf(stats?.company_balance ?? 0) },
+    { label: 'Faturë e hapur (jo të përfunduara)', value: formatChf(outstandingReceivables) },
   ];
 
   const roleWidgets = [

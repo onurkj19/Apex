@@ -120,6 +120,7 @@ create table if not exists public.projects (
   status public.project_status not null default 'Ne pritje',
   progress integer not null default 0 check (progress >= 0 and progress <= 100),
   revenue numeric(12,2) not null default 0,
+  revenue_includes_vat_8_1 boolean not null default false,
   worker_cost numeric(12,2) not null default 0,
   extra_expense numeric(12,2) not null default 0,
   created_by uuid references public.users(id),
@@ -945,6 +946,8 @@ drop trigger if exists trg_audit_worker_time_entries on public.worker_time_entri
 create trigger trg_audit_worker_time_entries after insert or update or delete on public.worker_time_entries
 for each row execute procedure public.log_audit_event();
 
+-- Pagesa të pjesshme: hyrjet me project_id para përfundimit zbatohen nga fatura.
+-- Në përfundim, hyrja automatike = max(0, revenue - shuma e hyrjeve ekzistuese për atë projekt).
 create or replace function public.on_project_completed_generate_invoice()
 returns trigger
 language plpgsql
@@ -954,6 +957,8 @@ as $$
 declare
   became_completed boolean;
   inv_no text;
+  paid_prior numeric;
+  remainder numeric;
 begin
   became_completed := false;
   if tg_op = 'INSERT' then
@@ -992,42 +997,51 @@ begin
         and f.finance_type = 'income'
         and f.title = 'Hyrje automatike: projekt i perfunduar'
     ) then
-      insert into public.finances (
-        project_id,
-        title,
-        amount,
-        finance_type,
-        category,
-        payment_method,
-        finance_date,
-        created_by
-      )
-      values (
-        new.id,
-        'Hyrje automatike: projekt i perfunduar',
-        new.revenue,
-        'income',
-        null,
-        'Bank',
-        coalesce(new.end_date, current_date),
-        null
-      );
+      select coalesce(sum(f.amount), 0) into paid_prior
+      from public.finances f
+      where f.project_id = new.id
+        and f.finance_type = 'income';
 
-      insert into public.notifications (type, title, message, metadata)
-      values (
-        'finance_income_created',
-        'Hyrje automatike nga projekti',
-        'Projekti "' || new.project_name || '" u perfundua. U regjistrua hyrja ' || trim(to_char(new.revenue, '999999999999.99')) || ' CHF ne financat.',
-        jsonb_build_object('project_id', new.id, 'amount', new.revenue, 'auto_from_project', true)
-      );
+      remainder := greatest(0::numeric, coalesce(new.revenue, 0) - paid_prior);
+
+      if remainder > 0 then
+        insert into public.finances (
+          project_id,
+          title,
+          amount,
+          finance_type,
+          category,
+          payment_method,
+          finance_date,
+          created_by
+        )
+        values (
+          new.id,
+          'Hyrje automatike: projekt i perfunduar',
+          remainder,
+          'income',
+          null,
+          'Bank',
+          coalesce(new.end_date, current_date),
+          null
+        );
+
+        insert into public.notifications (type, title, message, metadata)
+        values (
+          'finance_income_created',
+          'Hyrje automatike nga projekti',
+          'Projekti "' || new.project_name || '" u përfundua. U regjistrua hyrja ' || trim(to_char(remainder, '999999999999.99')) || ' CHF (mbetja pas pagesave të mëparshme).',
+          jsonb_build_object('project_id', new.id, 'amount', remainder, 'auto_from_project', true, 'paid_prior', paid_prior)
+        );
+      end if;
     end if;
   end if;
 
   insert into public.notifications (type, title, message, metadata)
   values (
     'project_completed',
-    'Projekt i perfunduar',
-    'Projekti "' || new.project_name || '" u perfundua dhe fatura u gjenerua.',
+    'Projekt i përfunduar',
+    'Projekti "' || new.project_name || '" u përfundua dhe fatura u gjenerua.',
     jsonb_build_object('project_id', new.id)
   );
 

@@ -1,7 +1,40 @@
 import supabase from '@/lib/supabase';
 import type { DashboardStats } from '@/lib/erp-types';
 
+/** Shuma e faturave të hapura (kontratë − pagesa të regjistruara) për projektet jo të përfunduara. */
 export const dashboardApi = {
+  async getOutstandingReceivablesChf(): Promise<number> {
+    const { data: projects, error: pErr } = await supabase
+      .from('projects')
+      .select('id, revenue')
+      .is('deleted_at', null)
+      .neq('status', 'I perfunduar');
+    if (pErr) throw pErr;
+    const ids = (projects || []).map((x: { id: string }) => x.id);
+    if (ids.length === 0) return 0;
+
+    const { data: incomes, error: iErr } = await supabase
+      .from('finances')
+      .select('project_id, amount')
+      .eq('finance_type', 'income')
+      .in('project_id', ids);
+    if (iErr) throw iErr;
+
+    const received: Record<string, number> = {};
+    for (const row of incomes || []) {
+      const pid = row.project_id as string;
+      if (!pid) continue;
+      received[pid] = (received[pid] || 0) + Number((row as { amount?: number }).amount || 0);
+    }
+
+    let total = 0;
+    for (const p of projects || []) {
+      const rev = Number((p as { revenue?: number }).revenue || 0);
+      const rec = received[(p as { id: string }).id] || 0;
+      total += Math.max(0, rev - rec);
+    }
+    return total;
+  },
   async getStats(): Promise<DashboardStats> {
     const { data, error } = await supabase.from('v_dashboard_stats').select('*').single();
     if (error) throw error;

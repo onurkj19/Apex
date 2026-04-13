@@ -1,6 +1,7 @@
-﻿import supabase from '@/lib/supabase';
+import supabase from '@/lib/supabase';
 import type { Project } from '@/lib/erp-types';
 import { progressForProjectStatus } from '@/lib/project-progress';
+import { netRevenueFromGrossInclMwst } from '@/lib/vat-ch';
 import { createAdminChangeNotification, tryCreateNotification } from '@/lib/erp/notifications';
 
 const RECYCLE_RETENTION_DAYS = 10;
@@ -32,6 +33,7 @@ export const projectApi = {
     const row = {
       ...projectPayload,
       progress: progressForProjectStatus(status),
+      revenue_includes_vat_8_1: Boolean(projectPayload.revenue_includes_vat_8_1),
     };
     const { data: created, error } = await supabase
       .from('projects')
@@ -95,6 +97,9 @@ export const projectApi = {
     }
     delete (merged as { deleted_at?: unknown }).deleted_at;
     delete (merged as { deleted_by?: unknown }).deleted_by;
+    if (payload.revenue_includes_vat_8_1 !== undefined) {
+      merged.revenue_includes_vat_8_1 = Boolean(payload.revenue_includes_vat_8_1);
+    }
 
     const { error } = await supabase.from('projects').update(merged).eq('id', projectId).is('deleted_at', null);
     if (error) throw error;
@@ -164,7 +169,10 @@ export const projectApi = {
       { data: finances, error: financeError },
       { data: workLogs, error: workLogsError },
     ] = await Promise.all([
-      supabase.from('projects').select('id, project_name, revenue, worker_cost').is('deleted_at', null),
+      supabase
+        .from('projects')
+        .select('id, project_name, revenue, revenue_includes_vat_8_1, worker_cost')
+        .is('deleted_at', null),
       supabase.from('finances').select('project_id, amount, finance_type').eq('finance_type', 'expense'),
       supabase.from('work_logs').select('project_id, hours_worked, total_amount'),
     ]);
@@ -188,15 +196,23 @@ export const projectApi = {
         .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0);
 
       const workTotals = workByProject[project.id] || { hours: 0, amount: 0 };
-      const revenue = Number(project.revenue || 0);
+      const revenueGross = Number(project.revenue || 0);
+      const includesVat = Boolean(project.revenue_includes_vat_8_1);
+      const revenueNet = includesVat ? netRevenueFromGrossInclMwst(revenueGross) : revenueGross;
       const workerCostFromLogs = Number(workTotals.amount || 0);
       const manualWorkerCost = Number(project.worker_cost || 0);
       const workerCost = workerCostFromLogs > 0 ? workerCostFromLogs : manualWorkerCost;
-      const profitLoss = revenue - workerCost - expense;
+      const profitLoss = revenueNet - workerCost - expense;
       return {
         id: project.id,
         project_name: project.project_name,
-        revenue,
+        /** Të ardhura të futura në DB (brutto nëse MwSt). */
+        revenue_gross: revenueGross,
+        /** Për P/L dhe krahasim me kosto. */
+        revenue_net: revenueNet,
+        revenue_includes_vat_8_1: includesVat,
+        /** Alias: neto (për përputhje me kod të vjetër). */
+        revenue: revenueNet,
         worker_cost: workerCost,
         worker_hours: Number(workTotals.hours || 0),
         worker_cost_logs: workerCostFromLogs,
@@ -205,6 +221,24 @@ export const projectApi = {
         profit_loss: profitLoss,
       };
     });
+  },
+
+  /** Shuma e hyrjeve në financat për këtë projekt (pagesat me project_id). */
+  async sumIncomeReceivedByProjectIds(projectIds: string[]): Promise<Record<string, number>> {
+    if (projectIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('finances')
+      .select('project_id, amount')
+      .eq('finance_type', 'income')
+      .in('project_id', projectIds);
+    if (error) throw error;
+    const map: Record<string, number> = {};
+    for (const row of data || []) {
+      const pid = row.project_id as string | null;
+      if (!pid) continue;
+      map[pid] = (map[pid] || 0) + Number((row as { amount?: number }).amount || 0);
+    }
+    return map;
   },
 };
 

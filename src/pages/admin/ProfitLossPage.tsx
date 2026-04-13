@@ -51,9 +51,17 @@ const ProfitLossPage = () => {
           {rows.map((row) => (
             <div key={row.id} className="border rounded p-3">
               <p className="font-medium">{row.project_name}</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm mt-2">
-                <span>Te ardhura: {formatChf(row.revenue)}</span>
-                <span>Kosto punetoresh: {formatChf(row.worker_cost)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-sm mt-2">
+                <div className="space-y-0.5">
+                  <span className="block text-muted-foreground text-xs">Të ardhura për P/L (neto)</span>
+                  <span className="font-medium tabular-nums">{formatChf(row.revenue_net ?? row.revenue)}</span>
+                  {row.revenue_includes_vat_8_1 && row.revenue_gross != null && (
+                    <span className="block text-xs text-muted-foreground">
+                      Brutto (inkl. MwSt 8.1%): {formatChf(row.revenue_gross)}
+                    </span>
+                  )}
+                </div>
+                <span>Kosto punëtorësh: {formatChf(row.worker_cost)}</span>
                 <span>Ore pune: {Number(row.worker_hours || 0).toFixed(2)} h</span>
                 <span>Shpenzime: {formatChf(row.expenses)}</span>
                 <span className={row.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}>

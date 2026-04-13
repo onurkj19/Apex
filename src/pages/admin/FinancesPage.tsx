@@ -1,11 +1,11 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RowActionsMenu from '@/components/admin/RowActionsMenu';
-import { financeApi } from '@/lib/erp-api';
+import { financeApi, projectApi } from '@/lib/erp-api';
 import type { ExpenseCategory, FinanceEntry, PaymentMethod } from '@/lib/erp-types';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { z } from 'zod';
@@ -20,6 +20,7 @@ const financeSchema = z.object({
 
 const FinancesPage = () => {
   const [rows, setRows] = useState<FinanceEntry[]>([]);
+  const [projectOptions, setProjectOptions] = useState<Array<{ id: string; project_name: string }>>([]);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmittingIncome, setIsSubmittingIncome] = useState(false);
@@ -29,6 +30,7 @@ const FinancesPage = () => {
     title: '',
     amount: '',
     payment_method: 'Bank' as PaymentMethod,
+    project_id: '' as string,
   });
   const [expenseForm, setExpenseForm] = useState({
     title: '',
@@ -37,8 +39,20 @@ const FinancesPage = () => {
     payment_method: 'Bank' as PaymentMethod,
   });
 
-  const load = async () => setRows(await financeApi.list());
-  useEffect(() => { load(); }, []);
+  const projectNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of projectOptions) m[p.id] = p.project_name;
+    return m;
+  }, [projectOptions]);
+
+  const load = async () => {
+    const [financeRows, projectRows] = await Promise.all([financeApi.list(), projectApi.list()]);
+    setRows(financeRows);
+    setProjectOptions(projectRows.map((p) => ({ id: p.id, project_name: p.project_name })));
+  };
+  useEffect(() => {
+    load();
+  }, []);
 
   const onIncomeSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,8 +71,9 @@ const FinancesPage = () => {
         finance_type: 'income',
         category: null,
         payment_method: incomeForm.payment_method,
+        project_id: incomeForm.project_id || null,
       });
-      setIncomeForm({ title: '', amount: '', payment_method: 'Bank' });
+      setIncomeForm({ title: '', amount: '', payment_method: 'Bank', project_id: '' });
       await load();
     } finally {
       setIsSubmittingIncome(false);
@@ -105,6 +120,7 @@ const FinancesPage = () => {
         finance_type: row.finance_type,
         category: row.finance_type === 'expense' ? row.category : null,
         payment_method: row.payment_method,
+        project_id: row.finance_type === 'income' ? row.project_id ?? null : null,
       });
       setEditingId(null);
       await load();
@@ -119,8 +135,8 @@ const FinancesPage = () => {
     try {
       await financeApi.remove(id);
       await load();
-    } catch (error: any) {
-      alert(error?.message || 'Nuk u arrit fshirja e transaksionit.');
+    } catch (err: any) {
+      alert(err?.message || 'Nuk u arrit fshirja e transaksionit.');
     } finally {
       setActionLoadingId(null);
     }
@@ -148,6 +164,18 @@ const FinancesPage = () => {
             <form className="grid grid-cols-1 gap-3" onSubmit={onIncomeSubmit}>
               <div><Label>Titulli</Label><Input value={incomeForm.title} onChange={(e) => setIncomeForm((s) => ({ ...s, title: e.target.value }))} required /></div>
               <div><Label>Shuma</Label><Input type="number" value={incomeForm.amount} onChange={(e) => setIncomeForm((s) => ({ ...s, amount: e.target.value }))} required /></div>
+              <div>
+                <Label>Projekt (opsional — për pagesa të pjesshme)</Label>
+                <Select value={incomeForm.project_id || '__none__'} onValueChange={(v) => setIncomeForm((s) => ({ ...s, project_id: v === '__none__' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Pa projekt" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Pa lidhje projekti</SelectItem>
+                    {projectOptions.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Metoda</Label>
                 <Select value={incomeForm.payment_method} onValueChange={(v) => setIncomeForm((s) => ({ ...s, payment_method: v as PaymentMethod }))}>
@@ -213,9 +241,18 @@ const FinancesPage = () => {
             {incomeRows.map((row) => (
               <div key={row.id} className="border rounded p-3 flex items-center justify-between">
                 {editingId === row.id ? (
-                  <div className="w-full grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
                     <Input value={row.title} onChange={(e) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, title: e.target.value } : r))} />
                     <Input type="number" value={row.amount} onChange={(e) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, amount: Number(e.target.value) } : r))} />
+                    <Select value={row.project_id || '__none__'} onValueChange={(v) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, project_id: v === '__none__' ? null : v } : r))}>
+                      <SelectTrigger><SelectValue placeholder="Projekt" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Pa projekt</SelectItem>
+                        {projectOptions.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Select value={row.finance_type} onValueChange={(v) => setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, finance_type: v as 'income' | 'expense' } : r))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -227,7 +264,7 @@ const FinancesPage = () => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{methods.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                     </Select>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 md:col-span-2">
                       <Button size="sm" disabled={actionLoadingId === `edit-${row.id}`} onClick={() => saveEdit(row)}>
                         {actionLoadingId === `edit-${row.id}` ? 'Duke ruajtur...' : 'Ruaj'}
                       </Button>
@@ -238,7 +275,14 @@ const FinancesPage = () => {
                   <>
                     <div>
                       <p className="font-medium">{row.title}</p>
-                      <p className="text-xs text-muted-foreground">Te ardhura | {row.payment_method}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Te ardhura | {row.payment_method}
+                        {row.project_id && (
+                          <span className="block mt-0.5 text-emerald-700 dark:text-emerald-400">
+                            Projekt: {projectNameById[row.project_id] || row.project_id}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-green-600 font-semibold">+ {formatChf(Number(row.amount))}</p>
