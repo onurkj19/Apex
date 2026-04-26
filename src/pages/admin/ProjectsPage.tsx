@@ -8,7 +8,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { clientApi, projectApi, financeApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
 import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
@@ -37,6 +36,29 @@ const buildProjectTitle = (clientName: string, location: string, startDate?: str
 
 type ClientGroup = { key: string; label: string; items: Project[] };
 
+const DescriptionWithToggle = () => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <CardDescription>
+      Të grupuara sipas klientit; renditje sipas datës së krijimit.{' '}
+      {expanded && (
+        <>
+          Kur një projekt kalon në <strong>I përfunduar</strong>, shuma e kontratës shtohet në financat sipas rregullave të sistemit.{' '}
+          <strong>Pagesat</strong> regjistrohen në Financat si hyrje me projekt të lidhur; këtu shfaqen marrë / mbetur vs. çmimi i kontratës.{' '}
+          <strong>Progress %</strong> përditësohet nga statusi. MwSt 8.1%: fitimi në P/L me neto.{' '}
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="text-primary underline-offset-2 hover:underline text-xs font-medium"
+      >
+        {expanded ? 'Shfaq më pak' : 'Shfaq më shumë'}
+      </button>
+    </CardDescription>
+  );
+};
+
 const ProjectsPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -50,6 +72,7 @@ const ProjectsPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const [monthView, setMonthView] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -379,7 +402,254 @@ const ProjectsPage = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 md:gap-8 xl:grid-cols-[minmax(0,min(100%,320px))_1fr] xl:items-start">
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista e projekteve</CardTitle>
+            <DescriptionWithToggle />
+          </CardHeader>
+          <CardContent>
+            {clientGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {selectedDay ? 'Nuk ka projekte për këtë datë.' : 'Nuk ka projekte ende.'}
+              </p>
+            ) : (
+              <Accordion key={accordionKey} type="multiple" defaultValue={[]} className="w-full">
+                {clientGroups.map((group) => (
+                  <AccordionItem key={group.key} value={group.key}>
+                    <AccordionTrigger className="text-left hover:no-underline break-words py-3 sm:py-2 [&>svg]:shrink-0">
+                      <span className="font-semibold">{group.label}</span>
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">({group.items.length})</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-2 pt-1 pb-4">
+                      {group.items.map((p) => {
+                        const contract = Number(p.revenue || 0);
+                        const received = receivedByProject[p.id] ?? 0;
+                        const remaining = Math.max(0, contract - received);
+                        const pct = contract > 0 ? Math.min(100, Math.round((received / contract) * 100)) : 0;
+                        const isExpanded = expandedProjectId === p.id;
+                        const isEditing = editingId === p.id;
+                        return (
+                          <div
+                            key={p.id}
+                            className="rounded-xl border border-border/80 bg-card shadow-sm transition-shadow hover:shadow-md"
+                          >
+                            {/* --- Rreshti i kokës (gjithmonë i dukshëm) --- */}
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-3 flex flex-wrap items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+                              onClick={() => {
+                                if (isEditing) return;
+                                setExpandedProjectId((prev) => (prev === p.id ? null : p.id));
+                              }}
+                            >
+                              <span className="min-w-0 flex-1 break-words font-medium leading-snug">{p.project_name}</span>
+                              <Badge variant="outline" className={cn('shrink-0 border', projectStatusBadgeClass(p.status))}>
+                                {p.status}
+                              </Badge>
+                              <span className="shrink-0 tabular-nums font-bold text-foreground">
+                                {formatChf(contract)}
+                              </span>
+                              <span className={cn('shrink-0 text-muted-foreground transition-transform duration-200', isExpanded || isEditing ? 'rotate-180' : '')}>
+                                ▾
+                              </span>
+                            </button>
+
+                            {/* --- Detajet dhe edit-i (shfaqen kur është hapur) --- */}
+                            {(isExpanded || isEditing) && (
+                              <div className="border-t border-border/50 px-4 pb-4 pt-3 space-y-4">
+                                {isEditing ? (
+                                  /* ── Formulari i editimit ── */
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                                      <Select
+                                        value={p.client_id || '__none__'}
+                                        onValueChange={(v) => {
+                                          const client = clients.find((c) => c.id === v);
+                                          setProjects((prev) =>
+                                            prev.map((x) =>
+                                              x.id === p.id
+                                                ? { ...x, client_id: v === '__none__' ? null : v, project_name: client?.company_name || x.project_name }
+                                                : x,
+                                            ),
+                                          );
+                                        }}
+                                      >
+                                        <SelectTrigger><SelectValue placeholder="Klienti" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__none__">Pa klient</SelectItem>
+                                          {clients.map((c) => (
+                                            <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Input
+                                        placeholder="Lokacioni"
+                                        value={p.location}
+                                        onChange={(e) => setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, location: e.target.value } : x)))}
+                                      />
+                                      <Input
+                                        placeholder="Përshkrimi"
+                                        value={p.description || ''}
+                                        onChange={(e) => setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, description: e.target.value } : x)))}
+                                      />
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="Çmimi (CHF)"
+                                        className="font-semibold tabular-nums"
+                                        value={p.revenue}
+                                        onChange={(e) => setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, revenue: Number(e.target.value) } : x)))}
+                                      />
+                                      <Select
+                                        value={p.status}
+                                        onValueChange={(v) => {
+                                          const st = v as ProjectStatus;
+                                          setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: st, progress: progressForProjectStatus(st) } : x)));
+                                        }}
+                                      >
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          {statuses.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+                                      <Switch
+                                        id={`vat-${p.id}`}
+                                        checked={Boolean(p.revenue_includes_vat_8_1)}
+                                        onCheckedChange={(c) => setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, revenue_includes_vat_8_1: c } : x)))}
+                                      />
+                                      <Label htmlFor={`vat-${p.id}`} className="cursor-pointer text-sm font-normal">
+                                        Çmimi përfshin MwSt 8.1%
+                                      </Label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => requestSaveEdit(p)}>
+                                        {actionLoadingId === `edit-${p.id}` ? 'Duke ruajtur...' : 'Ruaj'}
+                                      </Button>
+                                      <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => { setEditingId(null); setExpandedProjectId(p.id); }}>
+                                        Anulo
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* ── Pamja e detajeve ── */
+                                  <div className="space-y-4">
+                                    <p className="text-sm text-muted-foreground">{p.location}</p>
+                                    {p.revenue_includes_vat_8_1 ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        Brutto (inkl. MwSt) · Neto për P/L: {formatChf(netRevenueFromGrossInclMwst(contract))}
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">Çmim pa ndarje MwSt (neto për P/L)</p>
+                                    )}
+
+                                    {/* Pagesa */}
+                                    <div className="space-y-3 rounded-xl border border-border/60 bg-gradient-to-br from-muted/50 via-muted/20 to-transparent p-3 text-sm shadow-sm sm:p-4">
+                                      <div className="space-y-2 border-b border-border/40 pb-3">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <span className="text-muted-foreground">Faturë (kontratë)</span>
+                                          <span className="shrink-0 tabular-nums font-medium">{formatChf(contract)}</span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
+                                          <span>Pagesë e marrë (total)</span>
+                                          <span className="shrink-0 tabular-nums font-semibold">{formatChf(received)}</span>
+                                        </div>
+                                      </div>
+                                      <div className="rounded-lg border border-primary/20 bg-background/95 p-3 ring-1 ring-inset ring-border/35 sm:p-4">
+                                        <div className="mb-3 flex gap-2.5">
+                                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                            <Wallet className="h-4 w-4" aria-hidden />
+                                          </div>
+                                          <div className="min-w-0 flex-1 space-y-1">
+                                            <p className="text-sm font-medium leading-tight">Përditëso pagesën</p>
+                                            <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                              Shkruaj shumën dhe ruaj — një hyrje në Financat.
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+                                          <div className="min-w-0 flex-1 space-y-1.5">
+                                            <Label htmlFor={`pay-in-${p.id}`} className="text-xs text-muted-foreground">Shuma (CHF)</Label>
+                                            <Input
+                                              id={`pay-in-${p.id}`}
+                                              type="number"
+                                              min={0}
+                                              step="0.01"
+                                              inputMode="decimal"
+                                              className="h-10 w-full min-w-0 tabular-nums"
+                                              placeholder="p.sh. 1500"
+                                              value={paymentDraft[p.id] ?? ""}
+                                              onChange={(e) => setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))}
+                                              disabled={savingPaymentId === p.id}
+                                            />
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="secondary"
+                                            className="h-10 w-full shrink-0 px-4 sm:w-auto sm:min-w-[10rem]"
+                                            disabled={savingPaymentId === p.id}
+                                            onClick={() => void savePanelPayment(p.id)}
+                                          >
+                                            {savingPaymentId === p.id ? "Duke ruajtur..." : "Ruaj pagesën"}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-2 text-amber-800 dark:text-amber-200">
+                                        <span className="font-medium">Mbetur</span>
+                                        <span className="shrink-0 tabular-nums text-base font-semibold sm:text-lg">{formatChf(remaining)}</span>
+                                      </div>
+                                      {contract > 0 && (
+                                        <div className="space-y-1.5">
+                                          <div className="flex justify-between text-[11px] text-muted-foreground">
+                                            <span>Pagesa ndaj kontratës</span>
+                                            <span className="tabular-nums">{pct}%</span>
+                                          </div>
+                                          <Progress value={pct} className="h-2" />
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Progresi */}
+                                    <div className="space-y-1.5">
+                                      <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span className="font-medium uppercase tracking-wide">Progres</span>
+                                        <span className="tabular-nums">{p.progress}%</span>
+                                      </div>
+                                      <Progress value={p.progress} className="h-2.5 w-full" />
+                                    </div>
+
+                                    {/* Butonat */}
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                      <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
+                                        Modifiko
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        disabled={actionLoadingId === `delete-${p.id}`}
+                                        onClick={() => askRemoveProject(p.id)}
+                                      >
+                                        {actionLoadingId === `delete-${p.id}` ? 'Duke fshirë...' : 'Fshi'}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Kalendari</CardTitle>
@@ -419,286 +689,6 @@ const ProjectsPage = () => {
               >
                 Hiq filtrin e datës
               </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista e projekteve</CardTitle>
-            <CardDescription>
-              Të grupuara sipas klientit; renditje sipas datës së krijimit (më të rejat së pari). Kur një projekt kalon në{' '}
-              <strong>I përfunduar</strong>, shuma e kontratës shtohet në financat sipas rregullave të sistemit.{' '}
-              <span className="block mt-2">
-                <strong>Pagesat</strong> regjistrohen në Financat si hyrje me projekt të lidhur; këtu shfaqen marrë / mbetur vs. çmimi i kontratës.
-                <strong> Progress %</strong> përditësohet nga statusi. MwSt 8.1%: fitimi në P/L me neto.
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {clientGroups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {selectedDay ? 'Nuk ka projekte për këtë datë.' : 'Nuk ka projekte ende.'}
-              </p>
-            ) : (
-              <Accordion key={accordionKey} type="multiple" defaultValue={clientGroups.map((g) => g.key)} className="w-full">
-                {clientGroups.map((group) => (
-                  <AccordionItem key={group.key} value={group.key}>
-                    <AccordionTrigger className="text-left hover:no-underline break-words py-3 sm:py-2 [&>svg]:shrink-0">
-                      <span className="font-semibold">{group.label}</span>
-                      <span className="ml-2 text-sm font-normal text-muted-foreground">({group.items.length})</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3 pt-1 pb-4">
-                      {group.items.map((p) => (
-                        <div
-                          key={p.id}
-                          className="rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4"
-                        >
-                          {editingId === p.id ? (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-                                <Select
-                                  value={p.client_id || '__none__'}
-                                  onValueChange={(v) => {
-                                    const client = clients.find((c) => c.id === v);
-                                    setProjects((prev) =>
-                                      prev.map((x) =>
-                                        x.id === p.id
-                                          ? {
-                                              ...x,
-                                              client_id: v === '__none__' ? null : v,
-                                              project_name: client?.company_name || x.project_name,
-                                            }
-                                          : x,
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Klienti" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">Pa klient</SelectItem>
-                                    {clients.map((c) => (
-                                      <SelectItem key={c.id} value={c.id}>
-                                        {c.company_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Input
-                                  value={p.location}
-                                  onChange={(e) =>
-                                    setProjects((prev) =>
-                                      prev.map((x) => (x.id === p.id ? { ...x, location: e.target.value } : x)),
-                                    )
-                                  }
-                                />
-                                <Input
-                                  value={p.description || ''}
-                                  onChange={(e) =>
-                                    setProjects((prev) =>
-                                      prev.map((x) => (x.id === p.id ? { ...x, description: e.target.value } : x)),
-                                    )
-                                  }
-                                />
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="font-semibold tabular-nums"
-                                  value={p.revenue}
-                                  onChange={(e) =>
-                                    setProjects((prev) =>
-                                      prev.map((x) =>
-                                        x.id === p.id ? { ...x, revenue: Number(e.target.value) } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                                <Select
-                                  value={p.status}
-                                  onValueChange={(v) => {
-                                    const st = v as ProjectStatus;
-                                    setProjects((prev) =>
-                                      prev.map((x) =>
-                                        x.id === p.id ? { ...x, status: st, progress: progressForProjectStatus(st) } : x,
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {statuses.map((s) => (
-                                      <SelectItem key={s} value={s}>
-                                        {s}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
-                                <Switch
-                                  id={`vat-${p.id}`}
-                                  checked={Boolean(p.revenue_includes_vat_8_1)}
-                                  onCheckedChange={(c) =>
-                                    setProjects((prev) =>
-                                      prev.map((x) => (x.id === p.id ? { ...x, revenue_includes_vat_8_1: c } : x)),
-                                    )
-                                  }
-                                />
-                                <Label htmlFor={`vat-${p.id}`} className="cursor-pointer text-sm font-normal">
-                                  Çmimi përfshin MwSt 8.1%
-                                </Label>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => requestSaveEdit(p)}>
-                                  {actionLoadingId === `edit-${p.id}` ? 'Duke ruajtur...' : 'Ruaj'}
-                                </Button>
-                                <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => setEditingId(null)}>
-                                  Anulo
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-                              <div className="min-w-0 flex-1 space-y-3">
-                                <div className="space-y-1">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <p className="min-w-0 break-words font-medium leading-snug">{p.project_name}</p>
-                                    <Badge variant="outline" className={cn('shrink-0 border', projectStatusBadgeClass(p.status))}>
-                                      {p.status}
-                                    </Badge>
-                                  </div>
-                                  <p className="break-words text-sm text-muted-foreground">{p.location}</p>
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <p className="text-xl font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">
-                                    {formatChf(Number(p.revenue || 0))}
-                                  </p>
-                                  {p.revenue_includes_vat_8_1 ? (
-                                    <p className="text-xs text-muted-foreground">
-                                      Brutto (inkl. MwSt) · Neto për P/L:{' '}
-                                      {formatChf(netRevenueFromGrossInclMwst(Number(p.revenue || 0)))}
-                                    </p>
-                                  ) : (
-                                    <p className="text-xs text-muted-foreground">Çmim pa ndarje MwSt (neto për P/L)</p>
-                                  )}
-                                  {(() => {
-                                    const contract = Number(p.revenue || 0);
-                                    const received = receivedByProject[p.id] ?? 0;
-                                    const remaining = Math.max(0, contract - received);
-                                    const pct = contract > 0 ? Math.min(100, Math.round((received / contract) * 100)) : 0;
-                                    return (
-                                      <div className="mt-2 space-y-3 rounded-xl border border-border/60 bg-gradient-to-br from-muted/50 via-muted/20 to-transparent p-3 text-sm shadow-sm sm:p-4">
-                                        <div className="space-y-2 border-b border-border/40 pb-3">
-                                          <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <span className="text-muted-foreground">Faturë (kontratë)</span>
-                                            <span className="shrink-0 tabular-nums font-medium">{formatChf(contract)}</span>
-                                          </div>
-                                          <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
-                                            <span>Pagesë e marrë (total)</span>
-                                            <span className="shrink-0 tabular-nums font-semibold">{formatChf(received)}</span>
-                                          </div>
-                                        </div>
-
-                                        <div className="rounded-lg border border-primary/20 bg-background/95 p-3 ring-1 ring-inset ring-border/35 sm:p-4">
-                                          <div className="mb-3 flex gap-2.5">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                              <Wallet className="h-4 w-4" aria-hidden />
-                                            </div>
-                                            <div className="min-w-0 flex-1 space-y-1">
-                                              <p className="text-sm font-medium leading-tight">Përditëso pagesën</p>
-                                              <p className="hidden text-[11px] leading-relaxed text-muted-foreground sm:block">
-                                                Shkruaj shumën dhe ruaj — një hyrje në Financat. Me hyrje të tjera, totali përfshin të gjitha.
-                                              </p>
-                                              <p className="text-[11px] leading-relaxed text-muted-foreground sm:hidden">
-                                                Ruhet në Financat si hyrje për këtë projekt.
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                                            <div className="min-w-0 flex-1 space-y-1.5">
-                                              <Label htmlFor={`pay-in-${p.id}`} className="text-xs text-muted-foreground">
-                                                Shuma (CHF)
-                                              </Label>
-                                              <Input
-                                                id={`pay-in-${p.id}`}
-                                                type="number"
-                                                min={0}
-                                                step="0.01"
-                                                inputMode="decimal"
-                                                className="h-10 w-full min-w-0 tabular-nums"
-                                                placeholder="p.sh. 1500"
-                                                value={paymentDraft[p.id] ?? ""}
-                                                onChange={(e) =>
-                                                  setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))
-                                                }
-                                                disabled={savingPaymentId === p.id}
-                                              />
-                                            </div>
-                                            <Button
-                                              type="button"
-                                              variant="secondary"
-                                              className="h-10 w-full shrink-0 px-4 sm:w-auto sm:min-w-[10rem]"
-                                              disabled={savingPaymentId === p.id}
-                                              onClick={() => void savePanelPayment(p.id)}
-                                            >
-                                              {savingPaymentId === p.id ? "Duke ruajtur..." : "Ruaj pagesën"}
-                                            </Button>
-                                          </div>
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-2 text-amber-800 dark:text-amber-200">
-                                          <span className="font-medium">Mbetur</span>
-                                          <span className="shrink-0 tabular-nums text-base font-semibold sm:text-lg">{formatChf(remaining)}</span>
-                                        </div>
-                                        {contract > 0 && (
-                                          <div className="space-y-1.5">
-                                            <div className="flex justify-between text-[11px] text-muted-foreground">
-                                              <span>Pagesa ndaj kontratës</span>
-                                              <span className="tabular-nums">{pct}%</span>
-                                            </div>
-                                            <Progress value={pct} className="h-2" />
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                              <div className="flex w-full shrink-0 flex-col gap-3 border-t border-border/50 pt-3 sm:flex-row sm:items-center sm:justify-between lg:w-auto lg:min-w-[148px] lg:flex-col lg:items-end lg:justify-start lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                                <div className="w-full min-w-0 sm:max-w-xs lg:max-w-none lg:w-40">
-                                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:text-right">
-                                    Progres
-                                  </p>
-                                  <p className="mb-1.5 text-right text-sm tabular-nums text-foreground">{p.progress}%</p>
-                                  <Progress value={p.progress} className="h-2.5 w-full" />
-                                </div>
-                                <div className="flex justify-end sm:shrink-0">
-                                  <RowActionsMenu
-                                    disabled={actionLoadingId === `delete-${p.id}`}
-                                    actions={[
-                                      { label: 'Edito', onClick: () => setEditingId(p.id) },
-                                      {
-                                        label: actionLoadingId === `delete-${p.id}` ? 'Duke fshirë...' : 'Fshi',
-                                        onClick: () => askRemoveProject(p.id),
-                                        disabled: actionLoadingId === `delete-${p.id}`,
-                                        destructive: true,
-                                      },
-                                    ]}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
             )}
           </CardContent>
         </Card>
