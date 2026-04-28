@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { financeApi, projectApi } from '@/lib/erp-api';
 import type { ExpenseCategory, FinanceEntry, PaymentMethod } from '@/lib/erp-types';
-import { ArrowDownCircle, ArrowUpCircle, Plus, TrendingUp, TrendingDown, Landmark, Banknote, ChevronDown } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Plus, TrendingUp, TrendingDown, Landmark, ChevronDown } from 'lucide-react';
 import { z } from 'zod';
 import { cn, formatChf } from '@/lib/utils';
 
@@ -197,7 +197,7 @@ const FinancesPage = () => {
       </div>
 
       {/* Bilanci - 4 karta */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border-emerald-200 dark:border-emerald-800">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
@@ -216,25 +216,14 @@ const FinancesPage = () => {
             <p className="text-xl font-bold tabular-nums text-red-500">- {formatChf(totalExpense)}</p>
           </CardContent>
         </Card>
-        <Card className="border-blue-200 dark:border-blue-800">
+        <Card className={cn('border-2', (totalIncome - totalExpense) >= 0 ? 'border-emerald-400 dark:border-emerald-600' : 'border-red-400 dark:border-red-600')}>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
-              <Landmark className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Bilanci Bank</span>
+              <Landmark className={cn('h-4 w-4', (totalIncome - totalExpense) >= 0 ? 'text-emerald-600' : 'text-red-500')} />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Bilanci Total</span>
             </div>
-            <p className={cn('text-xl font-bold tabular-nums', bankBalance >= 0 ? 'text-blue-600' : 'text-red-500')}>
-              {formatChf(bankBalance)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Banknote className="h-4 w-4 text-amber-500" />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Bilanci Cash</span>
-            </div>
-            <p className={cn('text-xl font-bold tabular-nums', cashBalance >= 0 ? 'text-amber-600' : 'text-red-500')}>
-              {formatChf(cashBalance)}
+            <p className={cn('text-xl font-bold tabular-nums', (totalIncome - totalExpense) >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+              {formatChf(totalIncome - totalExpense)}
             </p>
           </CardContent>
         </Card>
