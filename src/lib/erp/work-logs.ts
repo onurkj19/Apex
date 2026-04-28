@@ -2,6 +2,45 @@ import supabase from '@/lib/supabase';
 import type { WorkLog } from '@/lib/erp-types';
 import { createAdminChangeNotification } from '@/lib/erp/notifications';
 
+/** Krijon automatikisht shpenzime në Financat për çdo rresht ore pune të shtuar. */
+async function createExpensesForWorkLogs(payloads: Partial<WorkLog>[]): Promise<void> {
+  if (payloads.length === 0) return;
+
+  // Merr emrat e punëtorëve për tituj më të qartë
+  const workerIds = [...new Set(payloads.map((p) => p.worker_id).filter(Boolean))] as string[];
+  const { data: workers } = await supabase
+    .from('workers')
+    .select('id, full_name')
+    .in('id', workerIds);
+  const workerNameMap = new Map<string, string>(
+    (workers || []).map((w: { id: string; full_name: string }) => [w.id, w.full_name]),
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  const expenses = payloads.map((row) => {
+    const hours = Number(row.hours_worked || 0);
+    const rate = Number(row.hourly_rate || 0);
+    const amount = Math.round(hours * rate * 100) / 100;
+    const workerName = row.worker_id ? (workerNameMap.get(row.worker_id) || 'Punëtor') : 'Punëtor';
+    return {
+      title: `Pagë pune — ${workerName} (${hours}h × ${rate} CHF/h)`,
+      amount,
+      finance_type: 'expense' as const,
+      category: 'Mjete Pune' as const,
+      payment_method: 'Cash' as const,
+      finance_date: row.work_date || today,
+      project_id: row.project_id || null,
+    };
+  });
+
+  // Filtro rreshtat me shumë 0 (nëse tarifat nuk janë caktuar)
+  const validExpenses = expenses.filter((e) => e.amount > 0);
+  if (validExpenses.length === 0) return;
+
+  const { error } = await supabase.from('finances').insert(validExpenses);
+  if (error) throw error;
+}
+
 export const workLogApi = {
   async list(): Promise<WorkLog[]> {
     const { data, error } = await supabase.from('work_logs').select('*').order('work_date', { ascending: false });
@@ -11,6 +50,7 @@ export const workLogApi = {
   async create(payload: Partial<WorkLog>) {
     const { error } = await supabase.from('work_logs').insert(payload);
     if (error) throw error;
+    await createExpensesForWorkLogs([payload]);
     await createAdminChangeNotification(
       'Ore pune u regjistruan',
       `U regjistrua evidence pune per projektin ${payload.project_id || '-'}`,
@@ -21,6 +61,7 @@ export const workLogApi = {
     if (payloads.length === 0) return;
     const { error } = await supabase.from('work_logs').insert(payloads);
     if (error) throw error;
+    await createExpensesForWorkLogs(payloads);
     const totalHours = payloads.reduce((sum, row) => sum + Number(row.hours_worked || 0), 0);
     await createAdminChangeNotification(
       'Ore pune u regjistruan',
