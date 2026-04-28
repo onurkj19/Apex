@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
-import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { Calendar } from '@/components/ui/calendar';
 import { notificationApi } from '@/lib/erp-api';
 import type { NotificationItem } from '@/lib/erp-types';
@@ -9,6 +8,7 @@ import { getNotificationActivityDate, toLocalDateKey } from '@/lib/notification-
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
+import { Bell, Archive, Trash2, CheckCheck, RefreshCw } from 'lucide-react';
 
 const NotificationsPage = () => {
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -171,27 +171,27 @@ const NotificationsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold">Njoftime</h2>
-        <div className="flex items-center gap-2">
-          <Button onClick={runChecks} disabled={actionId === 'run-checks'}>
-            {actionId === 'run-checks' ? 'Duke kontrolluar...' : 'Kontrollo afatet tani'}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={runChecks} disabled={actionId === 'run-checks'} className="gap-2">
+            <RefreshCw className={cn('h-4 w-4', actionId === 'run-checks' && 'animate-spin')} />
+            {actionId === 'run-checks' ? 'Duke kontrolluar...' : 'Kontrollo afatet'}
           </Button>
-          <RowActionsMenu
-            disabled={loading || actionId === 'run-checks' || actionId === 'bulk-mark-read' || actionId === 'bulk-remove'}
-            actions={[
-              {
-                label: selectionMode ? 'Hiq Select' : 'Select',
-                onClick: () => {
-                  if (selectionMode) clearSelection();
-                  else setSelectionMode(true);
-                },
-              },
-              { label: 'Select all', onClick: selectAllVisible, disabled: listForDay.length === 0 },
-              { label: 'Mark selected as read', onClick: markSelectedRead, disabled: selectedIds.length === 0 },
-              { label: 'Delete selected', onClick: askRemoveSelected, disabled: selectedIds.length === 0, destructive: true },
-            ]}
-          />
+          {!selectionMode ? (
+            <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>Selekto</Button>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={selectAllVisible} disabled={listForDay.length === 0}>Selekto të gjitha</Button>
+              <Button variant="outline" size="sm" onClick={markSelectedRead} disabled={selectedIds.length === 0} className="gap-1.5">
+                <CheckCheck className="h-4 w-4" /> Lexuar ({selectedIds.length})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={askRemoveSelected} disabled={selectedIds.length === 0} className="gap-1.5 text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" /> Fshi ({selectedIds.length})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={clearSelection}>Anulo</Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -276,9 +276,13 @@ const NotificationsPage = () => {
           )}
 
           {!loading && listForDay.map((item) => (
-            <div key={item.id} className={`border rounded p-3 ${item.is_read ? 'opacity-70' : ''}`}>
+            <div key={item.id} className={cn('rounded-xl border border-border/70 p-3', item.is_read && 'opacity-60')}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1 flex-1">
+                <div className="flex gap-3 flex-1 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
+                    <Bell className="h-4 w-4" />
+                  </div>
+              <div className="space-y-1 flex-1 min-w-0">
                   {selectionMode && (
                     <label className="inline-flex items-center gap-2 text-xs text-muted-foreground mb-1">
                       <input
@@ -310,18 +314,26 @@ const NotificationsPage = () => {
                     );
                   })()}
                 </div>
-                <RowActionsMenu
-                  disabled={actionId === item.id}
-                  actions={[
-                    ...(!item.is_read
-                      ? [{ label: 'Lexuar', onClick: () => markRead(item.id), disabled: actionId === item.id }]
-                      : []),
-                    !item.is_archived
-                      ? { label: 'Arkivo', onClick: () => archive(item.id), disabled: actionId === item.id }
-                      : { label: 'Rikthe', onClick: () => unarchive(item.id), disabled: actionId === item.id },
-                    { label: 'Fshi', onClick: () => askRemoveItem(item.id), disabled: actionId === item.id, destructive: true },
-                  ]}
-                />
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-1.5 sm:flex-col sm:items-end">
+                  {!item.is_read && (
+                    <Button size="sm" variant="outline" disabled={actionId === item.id} onClick={() => markRead(item.id)} className="gap-1 text-xs h-7 px-2">
+                      <CheckCheck className="h-3 w-3" /> Lexuar
+                    </Button>
+                  )}
+                  {!item.is_archived ? (
+                    <Button size="sm" variant="outline" disabled={actionId === item.id} onClick={() => archive(item.id)} className="gap-1 text-xs h-7 px-2">
+                      <Archive className="h-3 w-3" /> Arkivo
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={actionId === item.id} onClick={() => unarchive(item.id)} className="text-xs h-7 px-2">
+                      Rikthe
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" disabled={actionId === item.id} onClick={() => askRemoveItem(item.id)} className="gap-1 text-xs h-7 px-2 text-destructive hover:bg-destructive/10">
+                    <Trash2 className="h-3 w-3" /> Fshi
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import RowActionsMenu from '@/components/admin/RowActionsMenu';
 import { workerApi, workerGroupApi } from '@/lib/erp-api';
 import type { Worker, WorkerGroup } from '@/lib/erp-types';
 import { WORKER_ROLE_OPTIONS } from '@/lib/worker-role-options';
@@ -190,150 +189,180 @@ const WorkersPage = () => {
     ];
   };
 
+  const [showAddWorker, setShowAddWorker] = useState(false);
+  const [showAddGroup, setShowAddGroup] = useState(false);
+  const [expandedWorkerId, setExpandedWorkerId] = useState<string | null>(null);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Menaxhimi i punetoreve</h2>
-
-      <Card>
-        <CardHeader><CardTitle>Menaxhimi i grupeve</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <form className="flex gap-2" onSubmit={addGroup}>
-            <Input placeholder="Emri i grupit te ri" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
-            <Button type="submit" disabled={actionLoadingId === 'add-group'}>
-              {actionLoadingId === 'add-group' ? 'Duke shtuar...' : 'Shto grup'}
-            </Button>
-          </form>
-          <div className="space-y-2">
-            {groups.map((group) => (
-              <div key={group.id} className="border rounded p-2 flex items-center justify-between">
-                <span>{group.name} {group.is_active ? '(Aktiv)' : '(Jo aktiv)'}</span>
-                <div className="flex gap-2">
-                  <RowActionsMenu
-                    disabled={actionLoadingId === `toggle-group-${group.id}` || actionLoadingId === `delete-group-${group.id}`}
-                    actions={[
-                      {
-                        label: actionLoadingId === `toggle-group-${group.id}`
-                          ? 'Duke ruajtur...'
-                          : (group.is_active ? 'Caktivizo' : 'Aktivizo'),
-                        onClick: () => toggleGroup(group),
-                        disabled: actionLoadingId === `toggle-group-${group.id}`,
-                      },
-                      {
-                        label: actionLoadingId === `delete-group-${group.id}` ? 'Duke fshire...' : 'Fshi',
-                        onClick: () => deleteGroup(group),
-                        disabled: actionLoadingId === `delete-group-${group.id}`,
-                        destructive: true,
-                      },
-                    ]}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Shto punetor</CardTitle></CardHeader>
-        <CardContent>
-          <form className="grid grid-cols-1 md:grid-cols-4 gap-3" onSubmit={onSubmit}>
-            <div><Label>Emri</Label><Input value={form.full_name} onChange={(e) => setForm((s) => ({ ...s, full_name: e.target.value }))} required /></div>
-            <div>
-              <Label>Roli profesional</Label>
-              <Select value={form.role} onValueChange={(v) => setForm((s) => ({ ...s, role: v }))}>
-                <SelectTrigger><SelectValue placeholder="Zgjidh rolin" /></SelectTrigger>
-                <SelectContent>
-                  {WORKER_ROLE_OPTIONS.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label} - {role.keywords}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Paga/Ore</Label><Input type="number" value={form.hourly_rate} onChange={(e) => setForm((s) => ({ ...s, hourly_rate: e.target.value }))} required /></div>
-            <div>
-              <Label>Grupi</Label>
-              <Select value={form.group_name} onValueChange={(v) => setForm((s) => ({ ...s, group_name: v }))}>
-                <SelectTrigger><SelectValue placeholder="Zgjidh grupin" /></SelectTrigger>
-                <SelectContent>
-                  {groups.filter((g) => g.is_active).map((g) => (
-                    <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-4">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Duke ruajtur...' : 'Ruaj'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <DndContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {groups.filter((g) => g.is_active).map((g) => <GroupColumn key={g.id} name={g.name} workers={byGroup[g.name] || []} />)}
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold">Menaxhimi i punetoreve</h2>
+        <div className="flex gap-2">
+          <Button variant={showAddWorker ? 'default' : 'outline'} onClick={() => { setShowAddWorker(v => !v); setShowAddGroup(false); }} className="gap-2">
+            + Shto Punetor
+          </Button>
+          <Button variant={showAddGroup ? 'default' : 'outline'} onClick={() => { setShowAddGroup(v => !v); setShowAddWorker(false); }} className="gap-2">
+            + Shto Grup
+          </Button>
         </div>
-      </DndContext>
+      </div>
 
+      {/* Forma Shto Punetor */}
+      {showAddWorker && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-2"><CardTitle>Shto punetor të ri</CardTitle></CardHeader>
+          <CardContent>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
+              <div className="space-y-1.5"><Label>Emri i plotë</Label><Input value={form.full_name} onChange={(e) => setForm((s) => ({ ...s, full_name: e.target.value }))} placeholder="p.sh. Arben Krasniqi" required /></div>
+              <div className="space-y-1.5">
+                <Label>Roli profesional</Label>
+                <Select value={form.role} onValueChange={(v) => setForm((s) => ({ ...s, role: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Zgjidh rolin" /></SelectTrigger>
+                  <SelectContent>{WORKER_ROLE_OPTIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>Paga / Orë (CHF)</Label><Input type="number" step="0.01" value={form.hourly_rate} onChange={(e) => setForm((s) => ({ ...s, hourly_rate: e.target.value }))} placeholder="p.sh. 25" required /></div>
+              <div className="space-y-1.5">
+                <Label>Grupi</Label>
+                <Select value={form.group_name} onValueChange={(v) => setForm((s) => ({ ...s, group_name: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Zgjidh grupin" /></SelectTrigger>
+                  <SelectContent>{groups.filter((g) => g.is_active).map((g) => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2 flex gap-2">
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Duke ruajtur...' : 'Ruaj punetorin'}</Button>
+                <Button type="button" variant="outline" onClick={() => setShowAddWorker(false)}>Anulo</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Forma Shto Grup */}
+      {showAddGroup && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-2"><CardTitle>Shto grup të ri</CardTitle></CardHeader>
+          <CardContent>
+            <form className="flex gap-2" onSubmit={addGroup}>
+              <Input placeholder="Emri i grupit" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="max-w-xs" />
+              <Button type="submit" disabled={actionLoadingId === 'add-group'}>{actionLoadingId === 'add-group' ? 'Duke shtuar...' : 'Shto'}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowAddGroup(false)}>Anulo</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Grupet aktive */}
       <Card>
-        <CardHeader><CardTitle>Edito / Fshi punetore</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle>Grupet</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {workers.map((worker) => (
-            <div key={worker.id} className="border rounded p-3">
-              {editingId === worker.id ? (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                  <Input value={worker.full_name} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, full_name: e.target.value } : w))} />
-                  <Select value={worker.role} onValueChange={(v) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, role: v } : w))}>
-                    <SelectTrigger><SelectValue placeholder="Zgjidh rolin" /></SelectTrigger>
-                    <SelectContent>
-                      {getRoleOptionsWithCurrent(worker.role).map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label} - {role.keywords}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input type="number" value={worker.hourly_rate} onChange={(e) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, hourly_rate: Number(e.target.value) } : w))} />
-                  <Select value={worker.group_name} onValueChange={(v) => setWorkers((prev) => prev.map((w) => w.id === worker.id ? { ...w, group_name: v } : w))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {groups.filter((g) => g.is_active).map((g) => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex gap-2">
-                    <Button size="sm" disabled={actionLoadingId === `edit-worker-${worker.id}`} onClick={() => saveWorkerEdit(worker)}>
-                      {actionLoadingId === `edit-worker-${worker.id}` ? 'Duke ruajtur...' : 'Ruaj'}
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-worker-${worker.id}`} onClick={() => setEditingId(null)}>Anulo</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{worker.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{worker.role} | {formatNumberWithDots(worker.hourly_rate)} CHF/h | {worker.group_name}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <RowActionsMenu
-                      disabled={actionLoadingId === `delete-worker-${worker.id}`}
-                      actions={[
-                        { label: 'Edito', onClick: () => setEditingId(worker.id) },
-                        {
-                          label: actionLoadingId === `delete-worker-${worker.id}` ? 'Duke fshire...' : 'Fshi',
-                          onClick: () => deleteWorker(worker.id),
-                          disabled: actionLoadingId === `delete-worker-${worker.id}`,
-                          destructive: true,
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
+          {groups.map((group) => (
+            <div key={group.id} className="rounded-xl border border-border/70 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{group.name}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${group.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
+                  {group.is_active ? 'Aktiv' : 'Jo aktiv'}
+                </span>
+                <span className="text-xs text-muted-foreground">({(byGroup[group.name] || []).length} punëtorë)</span>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={!!actionLoadingId} onClick={() => toggleGroup(group)}>
+                  {group.is_active ? 'Çaktivizo' : 'Aktivizo'}
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" disabled={!!actionLoadingId} onClick={() => deleteGroup(group)}>
+                  Fshi
+                </Button>
+              </div>
             </div>
           ))}
+          {groups.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka grupe.</p>}
+        </CardContent>
+      </Card>
+
+      {/* Lista e punëtorëve */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Punëtorët ({workers.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {workers.map((worker) => {
+            const isExpanded = expandedWorkerId === worker.id;
+            const isEditing = editingId === worker.id;
+            return (
+              <div key={worker.id} className="rounded-xl border border-border/70 overflow-hidden">
+                <button
+                  type="button"
+                  className="w-full flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                  onClick={() => { if (isEditing) return; setExpandedWorkerId(prev => prev === worker.id ? null : worker.id); }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                      {worker.full_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium leading-snug">{worker.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{worker.role} · {worker.group_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="tabular-nums font-semibold text-sm">{formatNumberWithDots(worker.hourly_rate)} CHF/h</span>
+                    <span className={`text-muted-foreground transition-transform duration-200 ${(isExpanded || isEditing) ? 'rotate-180' : ''}`}>▾</span>
+                  </div>
+                </button>
+                {(isExpanded || isEditing) && (
+                  <div className="border-t border-border/40 px-4 py-3 bg-muted/20 space-y-3">
+                    {isEditing ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1"><Label className="text-xs">Emri</Label><Input value={worker.full_name} onChange={(e) => setWorkers(prev => prev.map(w => w.id === worker.id ? { ...w, full_name: e.target.value } : w))} /></div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Roli</Label>
+                          <Select value={worker.role} onValueChange={(v) => setWorkers(prev => prev.map(w => w.id === worker.id ? { ...w, role: v } : w))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{getRoleOptionsWithCurrent(worker.role).map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1"><Label className="text-xs">Paga/Orë (CHF)</Label><Input type="number" step="0.01" value={worker.hourly_rate} onChange={(e) => setWorkers(prev => prev.map(w => w.id === worker.id ? { ...w, hourly_rate: Number(e.target.value) } : w))} /></div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Grupi</Label>
+                          <Select value={worker.group_name} onValueChange={(v) => setWorkers(prev => prev.map(w => w.id === worker.id ? { ...w, group_name: v } : w))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{groups.filter(g => g.is_active).map(g => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="md:col-span-2 flex gap-2">
+                          <Button size="sm" disabled={actionLoadingId === `edit-worker-${worker.id}`} onClick={() => saveWorkerEdit(worker)}>
+                            {actionLoadingId === `edit-worker-${worker.id}` ? 'Duke ruajtur...' : 'Ruaj'}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setExpandedWorkerId(worker.id); }}>Anulo</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setEditingId(worker.id)}>Modifiko</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" disabled={actionLoadingId === `delete-worker-${worker.id}`} onClick={() => deleteWorker(worker.id)}>
+                          {actionLoadingId === `delete-worker-${worker.id}` ? 'Duke fshirë...' : 'Fshi'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {workers.length === 0 && <p className="text-sm text-muted-foreground">Nuk ka punëtorë.</p>}
+        </CardContent>
+      </Card>
+
+      {/* Drag & Drop grupet */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle>Vendos punëtorët nëpër grupe (drag & drop)</CardTitle></CardHeader>
+        <CardContent>
+          <DndContext onDragEnd={onDragEnd}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {groups.filter((g) => g.is_active).map((g) => <GroupColumn key={g.id} name={g.name} workers={byGroup[g.name] || []} />)}
+            </div>
+          </DndContext>
         </CardContent>
       </Card>
     </div>
