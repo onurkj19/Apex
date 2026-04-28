@@ -91,18 +91,31 @@ export const projectApi = {
   },
 
   async update(projectId: string, payload: Partial<Project>) {
-    const merged: Partial<Project> = { ...payload };
+    const merged: Record<string, unknown> = { ...payload };
     if (payload.status !== undefined) {
       merged.progress = progressForProjectStatus(payload.status);
     }
-    delete (merged as { deleted_at?: unknown }).deleted_at;
-    delete (merged as { deleted_by?: unknown }).deleted_by;
+    delete merged.deleted_at;
+    delete merged.deleted_by;
     if (payload.revenue_includes_vat_8_1 !== undefined) {
       merged.revenue_includes_vat_8_1 = Boolean(payload.revenue_includes_vat_8_1);
     }
 
-    const { error } = await supabase.from('projects').update(merged).eq('id', projectId).is('deleted_at', null);
+    const { data: updatedRows, error } = await supabase
+      .from('projects')
+      .update(merged)
+      .eq('id', projectId)
+      .is('deleted_at', null)
+      .select('id, client_id, project_name');
     if (error) throw error;
+    // Nëse nuk u përditësua asnjë rresht, provo pa filtrin deleted_at
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: error2 } = await supabase
+        .from('projects')
+        .update(merged)
+        .eq('id', projectId);
+      if (error2) throw error2;
+    }
     await createAdminChangeNotification(
       'Projekti u editua',
       `${payload.project_name || `Projekti ${projectId}`} u perditesua`,
