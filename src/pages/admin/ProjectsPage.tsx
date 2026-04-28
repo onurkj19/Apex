@@ -244,15 +244,20 @@ const ProjectsPage = () => {
     if (!project) return;
     setActionLoadingId(`edit-${project.id}`);
     try {
-      const selectedClient = clients.find((c) => c.id === project.client_id);
+      // '__none__' është vlera e UI për "Pa klient" — konvertoje në null për DB
+      const resolvedClientId =
+        !project.client_id || project.client_id === '__none__' ? null : project.client_id;
+      const selectedClient = resolvedClientId
+        ? clients.find((c) => c.id === resolvedClientId)
+        : null;
       const generatedProjectTitle = buildProjectTitle(
-        selectedClient?.company_name || project.project_name,
+        selectedClient?.company_name || project.location,
         project.location,
         (project as any).start_date || null,
       );
       await projectApi.update(project.id, {
         project_name: generatedProjectTitle,
-        client_id: project.client_id,
+        client_id: resolvedClientId,
         location: project.location,
         description: project.description,
         start_date: (project as any).start_date || null,
@@ -465,11 +470,12 @@ const ProjectsPage = () => {
                                       <Select
                                         value={p.client_id || '__none__'}
                                         onValueChange={(v) => {
-                                          const client = clients.find((c) => c.id === v);
+                                          const newClientId = v === '__none__' ? null : v;
+                                          const client = newClientId ? clients.find((c) => c.id === newClientId) : null;
                                           setProjects((prev) =>
                                             prev.map((x) =>
                                               x.id === p.id
-                                                ? { ...x, client_id: v === '__none__' ? null : v, project_name: client?.company_name || x.project_name }
+                                                ? { ...x, client_id: newClientId, project_name: client?.company_name || x.project_name }
                                                 : x,
                                             ),
                                           );
