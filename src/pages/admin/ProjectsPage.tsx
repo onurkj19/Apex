@@ -234,15 +234,18 @@ const ProjectsPage = () => {
     }
   };
 
-  const requestSaveEdit = (project: Project) => {
-    setEditConfirmProject(project);
+  const requestSaveEdit = (projectId: string) => {
+    setEditConfirmProject(projects.find((x) => x.id === projectId) ?? null);
     setEditDialogOpen(true);
   };
 
   const performSaveEdit = async () => {
-    const project = editConfirmProject;
+    // Lexo projektin e fundit direkt nga state (jo nga cache-i i vjetër)
+    const projectId = editConfirmProject?.id;
+    if (!projectId) return;
+    const project = projects.find((x) => x.id === projectId);
     if (!project) return;
-    setActionLoadingId(`edit-${project.id}`);
+    setActionLoadingId(`edit-${projectId}`);
     try {
       // '__none__' është vlera e UI për "Pa klient" — konvertoje në null për DB
       const resolvedClientId =
@@ -255,7 +258,7 @@ const ProjectsPage = () => {
         project.location,
         (project as any).start_date || null,
       );
-      await projectApi.update(project.id, {
+      await projectApi.update(projectId, {
         project_name: generatedProjectTitle,
         client_id: resolvedClientId,
         location: project.location,
@@ -267,6 +270,7 @@ const ProjectsPage = () => {
         status: project.status,
       });
       setEditingId(null);
+      setExpandedProjectId(null);
       setEditConfirmProject(null);
       await load();
     } finally {
@@ -531,7 +535,7 @@ const ProjectsPage = () => {
                                       </Label>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => requestSaveEdit(p)}>
+                                      <Button size="sm" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => requestSaveEdit(p.id)}>
                                         {actionLoadingId === `edit-${p.id}` ? 'Duke ruajtur...' : 'Ruaj'}
                                       </Button>
                                       <Button size="sm" variant="outline" disabled={actionLoadingId === `edit-${p.id}`} onClick={() => { setEditingId(null); setExpandedProjectId(p.id); }}>
