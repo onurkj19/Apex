@@ -41,6 +41,68 @@ async function createExpensesForWorkLogs(payloads: Partial<WorkLog>[]): Promise<
   if (error) throw error;
 }
 
+/**
+ * Gjen të gjitha work_logs që nuk kanë ende shpenzim të lidhur
+ * (bazuar në titullin e shpenzimit) dhe krijon shpenzime për to.
+ * Kthehet numri i shpenzimeve të reja të krijuara.
+ */
+export async function syncWorkLogExpenses(): Promise<number> {
+  // Merr të gjitha work_logs
+  const { data: allLogs, error: logsErr } = await supabase
+    .from('work_logs')
+    .select('*')
+    .order('work_date', { ascending: false });
+  if (logsErr) throw logsErr;
+  const logs = (allLogs || []) as WorkLog[];
+  if (logs.length === 0) return 0;
+
+  // Merr të gjitha shpenzimet ekzistuese me titull "Pagë pune"
+  const { data: existingExpenses, error: finErr } = await supabase
+    .from('finances')
+    .select('title, finance_date, project_id, amount')
+    .eq('finance_type', 'expense')
+    .like('title', 'Pagë pune —%');
+  if (finErr) throw finErr;
+
+  // Nderto një Set me çelësa unikë të shpenzimeve ekzistuese
+  const existingKeys = new Set(
+    (existingExpenses || []).map((e: any) =>
+      `${e.title}|${e.finance_date}|${e.project_id ?? ''}|${e.amount}`
+    )
+  );
+
+  // Merr emrat e punëtorëve
+  const workerIds = [...new Set(logs.map((l) => l.worker_id).filter(Boolean))];
+  const { data: workers } = await supabase.from('workers').select('id, full_name').in('id', workerIds);
+  const workerNameMap = new Map<string, string>(
+    (workers || []).map((w: { id: string; full_name: string }) => [w.id, w.full_name])
+  );
+
+  // Filtro vetëm ato log që nuk kanë shpenzim
+  const today = new Date().toISOString().slice(0, 10);
+  const newExpenses: object[] = [];
+  for (const row of logs) {
+    const hours = Number(row.hours_worked || 0);
+    const rate = Number(row.hourly_rate || 0);
+    const amount = Math.round(hours * rate * 100) / 100;
+    if (amount <= 0) continue;
+    const workerName = row.worker_id ? (workerNameMap.get(row.worker_id) || 'Punëtor') : 'Punëtor';
+    const title = `Pagë pune — ${workerName} (${hours}h × ${rate} CHF/h)`;
+    const finance_date = row.work_date || today;
+    const project_id = row.project_id || null;
+    const key = `${title}|${finance_date}|${project_id ?? ''}|${amount}`;
+    if (!existingKeys.has(key)) {
+      newExpenses.push({ title, amount, finance_type: 'expense', category: 'Mjete Pune', payment_method: 'Cash', finance_date, project_id });
+      existingKeys.add(key); // shmang duplikatat brenda të njëjtit sync
+    }
+  }
+
+  if (newExpenses.length === 0) return 0;
+  const { error: insErr } = await supabase.from('finances').insert(newExpenses);
+  if (insErr) throw insErr;
+  return newExpenses.length;
+}
+
 export const workLogApi = {
   async list(): Promise<WorkLog[]> {
     const { data, error } = await supabase.from('work_logs').select('*').order('work_date', { ascending: false });

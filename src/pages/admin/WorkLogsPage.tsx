@@ -12,8 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, UserPlus } from 'lucide-react';
+import { Menu, UserPlus, RefreshCw } from 'lucide-react';
 import { clientApi, projectApi, workLogApi, workerApi } from '@/lib/erp-api';
+import { syncWorkLogExpenses } from '@/lib/erp/work-logs';
 import type { Project, WorkLog, Worker } from '@/lib/erp-types';
 import { cn, formatChf, formatNumberWithDots } from '@/lib/utils';
 
@@ -42,6 +43,8 @@ const WorkLogsPage = () => {
   const [payroll, setPayroll] = useState<any[]>([]);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [isAddingManualWorker, setIsAddingManualWorker] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(ALL_CLIENTS_VALUE);
   const [projectSearch, setProjectSearch] = useState('');
@@ -246,9 +249,42 @@ const WorkLogsPage = () => {
     }
   };
 
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncMsg(null);
+    try {
+      const count = await syncWorkLogExpenses();
+      setSyncMsg(count > 0 ? `U shtuan ${count} shpenzime të reja në Financat.` : 'Të gjitha orët kanë shpenzim — asgjë e re.');
+    } catch (e: any) {
+      setSyncMsg(`Gabim: ${e?.message || 'Diçka shkoi keq.'}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Evidenca e oreve te punes</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold">Evidenca e oreve te punes</h2>
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={isSyncing}
+            onClick={handleSync}
+          >
+            <RefreshCw className={cn('h-4 w-4', isSyncing && 'animate-spin')} />
+            {isSyncing ? 'Duke sinkronizuar...' : 'Sync Shpenzimet'}
+          </Button>
+          {syncMsg && (
+            <p className={cn('text-xs', syncMsg.startsWith('Gabim') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
+              {syncMsg}
+            </p>
+          )}
+        </div>
+      </div>
 
       <Card className="card-elegant border-border/60 overflow-hidden">
         <CardHeader className="pb-2">
