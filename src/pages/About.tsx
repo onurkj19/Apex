@@ -1,15 +1,23 @@
+import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BackToTop from '@/components/BackToTop';
 import { COMPANY_ADDRESS_LINE } from '@/lib/company';
-import { APEX1_ABOUT_SLIDES } from '@/lib/apex1-media';
-import { AutoSlideImages } from '@/components/AutoSlideImages';
+import { fetchFeaturedProjectHeroImage } from '@/lib/public-site-api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Award, Users, Calendar, MapPin, Phone, Mail, CheckCircle, Target, Eye, Heart } from 'lucide-react';
 
 const About = () => {
+  const [storyImage, setStoryImage] = useState<{ url: string; alt: string } | null>(null);
+
+  useEffect(() => {
+    fetchFeaturedProjectHeroImage()
+      .then(setStoryImage)
+      .catch(() => setStoryImage(null));
+  }, []);
+
   const stats = [
     { icon: Calendar, label: "Jahre Erfahrung", value: "8+" },
     { icon: Users, label: "Abgeschlossene Projekte", value: "750+" },
@@ -141,7 +149,21 @@ const team = [
                 </div>
               </div>
               <div className="relative min-w-0">
-                <AutoSlideImages slides={APEX1_ABOUT_SLIDES} />
+                <div className="relative w-full overflow-hidden rounded-xl shadow-elegant aspect-[4/3] bg-muted">
+                  {storyImage ? (
+                    <img
+                      src={storyImage.url}
+                      alt={storyImage.alt}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground px-4 text-center">
+                      Projektfoto wird geladen…
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
