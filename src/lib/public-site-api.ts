@@ -66,3 +66,24 @@ export async function fetchPublicProjectsWithImages(): Promise<PublicProjectWith
     };
   });
 }
+
+/** Foto e parë e projektit real për hero (prefero të përfunduar / në punë). */
+export async function fetchFeaturedProjectHeroImage(): Promise<{ url: string; alt: string } | null> {
+  const projects = await fetchPublicProjectsWithImages();
+  const visible = projects.filter(
+    (p) =>
+      p.images.length > 0 &&
+      WEBSITE_VISIBLE_PROJECT_STATUSES.includes(p.status as (typeof WEBSITE_VISIBLE_PROJECT_STATUSES)[number]),
+  );
+  if (visible.length === 0) return null;
+
+  const pick =
+    visible.find((p) => p.status === 'I perfunduar') ??
+    visible.find((p) => p.status === 'Ne pune') ??
+    visible.find((p) => p.status === 'I pranuar') ??
+    visible[0];
+
+  const img = pick.images[0];
+  if (!img?.image_url) return null;
+  return { url: img.image_url, alt: pick.project_name };
+}

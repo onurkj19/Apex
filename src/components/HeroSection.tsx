@@ -2,47 +2,36 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { APEX1_HERO_SLIDES } from '@/lib/apex1-media';
 import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 import type { WebsiteHomeHeroRow } from '@/lib/erp/website-content';
-
-const SLIDE_MS = 5000;
 
 const DEFAULT_BODY_DE =
   'Apex Gerüste ist Ihr zuverlässiger Partner für Gerüstverleih und professionelle Montage- und Demontagedienstleistungen. Mit einem engagierten Team und hochwertigen Materialien stellen wir sicher, dass Ihre Bauprojekte effizient und sicher durchgeführt werden.';
 
 type HeroSectionProps = {
   hero: WebsiteHomeHeroRow | null;
+  /** Foto origjinale nga projekti real (ERP), kur nuk ka imazh CMS. */
+  projectHeroImage?: { url: string; alt: string } | null;
 };
 
-const HeroSection = ({ hero }: HeroSectionProps) => {
+const HeroSection = ({ hero, projectHeroImage }: HeroSectionProps) => {
   const navigate = useNavigate();
-  const [slide, setSlide] = useState(0);
   const [cmsImageFailed, setCmsImageFailed] = useState(false);
 
-  const slides = useMemo(() => {
-    const staticSlides = APEX1_HERO_SLIDES.map((s) => ({ src: s.src, alt: s.alt }));
+  const heroImage = useMemo(() => {
     const cmsUrl = hero?.image_url?.trim();
     if (cmsUrl && !cmsImageFailed) {
-      return [{ src: cmsUrl, alt: hero?.title?.trim() || 'Apex Gerüste – Hero' }, ...staticSlides];
+      return { src: cmsUrl, alt: hero?.title?.trim() || 'Apex Gerüste – Hero' };
     }
-    return staticSlides;
-  }, [hero?.image_url, hero?.title, cmsImageFailed]);
+    if (projectHeroImage?.url) {
+      return { src: projectHeroImage.url, alt: projectHeroImage.alt };
+    }
+    return null;
+  }, [hero?.image_url, hero?.title, cmsImageFailed, projectHeroImage]);
 
   useEffect(() => {
     setCmsImageFailed(false);
   }, [hero?.image_url]);
-
-  useEffect(() => {
-    setSlide(0);
-  }, [slides.length]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setSlide((s) => (s + 1) % Math.max(slides.length, 1));
-    }, SLIDE_MS);
-    return () => window.clearInterval(id);
-  }, [slides.length]);
 
   const statsTriple = useMemo(() => {
     const s = hero?.stats;
@@ -66,30 +55,26 @@ const HeroSection = ({ hero }: HeroSectionProps) => {
       className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 min-w-0 overflow-x-clip overflow-hidden pt-20"
     >
       <div className="relative w-full bg-zinc-950 aspect-[16/9] min-h-[460px] sm:min-h-[560px] md:min-h-[640px] max-h-[88vh]">
-        {slides.map((item, i) => (
+        {heroImage && (
           <img
-            key={`${item.src}-${i}`}
-            src={item.src}
-            alt={item.alt}
+            src={heroImage.src}
+            alt={heroImage.alt}
             sizes="100vw"
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out will-change-opacity ${
-              i === slide ? 'z-0 opacity-100' : 'z-0 opacity-0'
-            }`}
-            loading={i === 0 ? 'eager' : 'lazy'}
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="eager"
             decoding="async"
-            fetchPriority={i === 0 ? 'high' : 'auto'}
+            fetchPriority="high"
             onError={() => {
-              if (i === 0 && hero?.image_url?.trim()) setCmsImageFailed(true);
+              if (hero?.image_url?.trim()) setCmsImageFailed(true);
             }}
           />
-        ))}
+        )}
 
         <div
           className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black/75 via-black/45 to-black/55"
           aria-hidden
         />
 
-        {/* Teksti / logo / butonat: nga lartë, jo në mes të lartësisë */}
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-start px-3 pt-3 pb-10 sm:px-5 sm:pt-5 sm:pb-14 md:px-8 md:pt-6 md:pb-16">
           <div className="w-full max-w-4xl mx-auto text-center">
             <h1 className="text-3xl min-[400px]:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-3 sm:mb-5 fade-in-up animate drop-shadow-md">
@@ -159,26 +144,6 @@ const HeroSection = ({ hero }: HeroSectionProps) => {
                   </div>
                   <div className="text-gray-200 text-xs sm:text-sm">{row.label}</div>
                 </div>
-              ))}
-            </div>
-
-            <div
-              className="flex justify-center gap-2 mt-6 sm:mt-8"
-              role="tablist"
-              aria-label="Hero slides"
-            >
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === slide}
-                  aria-label={`Foto ${i + 1}`}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    i === slide ? 'w-8 bg-primary' : 'w-2 bg-white/40 hover:bg-white/70'
-                  }`}
-                  onClick={() => setSlide(i)}
-                />
               ))}
             </div>
 

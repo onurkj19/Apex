@@ -60,7 +60,10 @@ const WebsiteContentPage = () => {
               <div><Label>Statistika Vite</Label><Input value={stats.years} onChange={(e) => setStats((s) => ({ ...s, years: e.target.value }))} /></div>
             </div>
             <div className="space-y-2">
-              <Label>Imazhi i Hero</Label>
+              <Label>Imazhi i Hero (një foto — zëvendëson slideshow-in)</Label>
+              <p className="text-xs text-muted-foreground">
+                Ngarko foto origjinale të projektit. Nëse lihet bosh, përdoret automatikisht fotoja e parë nga projekti real në ERP.
+              </p>
               <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
             </div>
             {imageUrl && <img src={imageUrl} alt="Hero" className="w-full max-w-sm rounded-md border" />}

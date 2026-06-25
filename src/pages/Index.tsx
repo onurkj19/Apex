@@ -7,21 +7,23 @@ import WhyChooseUs from '@/components/WhyChooseUs';
 import ContactSection from '@/components/ContactSection';
 import { websiteContentApi } from '@/lib/erp-api';
 import type { WebsiteHomeHeroRow } from '@/lib/erp/website-content';
+import { fetchFeaturedProjectHeroImage } from '@/lib/public-site-api';
 import { DEFAULT_DOCUMENT_TITLE } from '@/lib/site-meta';
 
 const Index = () => {
   const [homeHero, setHomeHero] = useState<WebsiteHomeHeroRow | null>(null);
+  const [projectHeroImage, setProjectHeroImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    websiteContentApi
-      .getHomeHero()
-      .then((row) => {
-        if (!cancelled) setHomeHero(row);
-      })
-      .catch(() => {
-        if (!cancelled) setHomeHero(null);
-      });
+    Promise.all([
+      websiteContentApi.getHomeHero().catch(() => null),
+      fetchFeaturedProjectHeroImage().catch(() => null),
+    ]).then(([heroRow, projectImage]) => {
+      if (cancelled) return;
+      setHomeHero(heroRow);
+      setProjectHeroImage(projectImage);
+    });
     return () => {
       cancelled = true;
     };
@@ -62,7 +64,7 @@ const Index = () => {
       <Header />
       
       <main>
-        <HeroSection hero={homeHero} />
+        <HeroSection hero={homeHero} projectHeroImage={projectHeroImage} />
         <WhyChooseUs />
         <ContactSection />
       </main>
