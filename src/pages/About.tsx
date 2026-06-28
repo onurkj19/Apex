@@ -56,7 +56,6 @@ const team = [
     phone: "+41 76 368 10 11",
     email: "info@apex-gerüste.ch",
     specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"],
-    photo: `${import.meta.env.BASE_URL}OnurFoto.jpeg`,
   },
   {
     name: "Arlind Morina",
