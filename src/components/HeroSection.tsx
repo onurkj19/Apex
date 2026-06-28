@@ -26,7 +26,7 @@ const HeroSection = ({ hero, projectHeroImage }: HeroSectionProps) => {
     if (projectHeroImage?.url) {
       return { src: projectHeroImage.url, alt: projectHeroImage.alt };
     }
-    return null;
+    return { src: `${import.meta.env.BASE_URL}apex10.jpeg`, alt: 'Apex Gerüste – Projekt' };
   }, [hero?.image_url, hero?.title, cmsImageFailed, projectHeroImage]);
 
   useEffect(() => {

@@ -150,19 +150,13 @@ const team = [
               </div>
               <div className="relative min-w-0">
                 <div className="relative w-full overflow-hidden rounded-xl shadow-elegant aspect-[4/3] bg-muted">
-                  {storyImage ? (
-                    <img
-                      src={storyImage.url}
-                      alt={storyImage.alt}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground px-4 text-center">
-                      Projektfoto wird geladen…
-                    </div>
-                  )}
+                  <img
+                    src={storyImage?.url ?? `${import.meta.env.BASE_URL}apex10.jpeg`}
+                    alt={storyImage?.alt ?? 'Apex Gerüste – Projekt'}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
               </div>
             </div>
