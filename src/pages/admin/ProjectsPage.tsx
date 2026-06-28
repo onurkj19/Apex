@@ -286,6 +286,7 @@ const ProjectsPage = () => {
   const [receivedByProject, setReceivedByProject] = useState<Record<string, number>>({});
   const [paymentDraft, setPaymentDraft] = useState<Record<string, string>>({});
   const [savingPaymentId, setSavingPaymentId] = useState<string | null>(null);
+  const [paymentFormOpenId, setPaymentFormOpenId] = useState<string | null>(null);
   const [form, setForm] = useState({
     client_id: '',
     location: '',
@@ -708,60 +709,79 @@ const ProjectsPage = () => {
                                         <p className="text-xs text-muted-foreground">Çmim pa ndarje MwSt</p>
                                       )}
 
-                                      {/* Payment panel */}
-                                      <div className="space-y-3 rounded-xl border border-border/60 bg-gradient-to-br from-muted/50 via-muted/20 to-transparent p-3 text-sm shadow-sm sm:p-4">
-                                        <div className="space-y-2 border-b border-border/40 pb-3">
-                                          <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <span className="text-muted-foreground">Faturë (kontratë)</span>
-                                            <span className="shrink-0 tabular-nums font-medium">{formatChf(contract)}</span>
+                                      {/* Payment summary — compact */}
+                                      <div className="rounded-lg border bg-muted/20 overflow-hidden">
+                                        {/* 3 rows */}
+                                        <div className="divide-y divide-border/40">
+                                          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5">
+                                              <Wallet className="h-3.5 w-3.5" /> Kontrata
+                                            </span>
+                                            <span className="tabular-nums font-semibold">{formatChf(contract)}</span>
                                           </div>
-                                          <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
-                                            <span>Pagesë e marrë</span>
-                                            <span className="shrink-0 tabular-nums font-semibold">{formatChf(received)}</span>
+                                          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                                            <span className="text-emerald-600 dark:text-emerald-400">Pagesë marrë</span>
+                                            <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{formatChf(received)}</span>
                                           </div>
-                                        </div>
-                                        <div className="rounded-lg border border-primary/20 bg-background/95 p-3 ring-1 ring-inset ring-border/35 sm:p-4">
-                                          <div className="mb-3 flex gap-2.5">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                              <Wallet className="h-4 w-4" aria-hidden />
-                                            </div>
-                                            <div className="min-w-0 flex-1 space-y-1">
-                                              <p className="text-sm font-medium leading-tight">Përditëso pagesën</p>
-                                              <p className="text-[11px] leading-relaxed text-muted-foreground">Shkruaj shumën dhe ruaj — një hyrje në Financat.</p>
-                                            </div>
-                                          </div>
-                                          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                                            <div className="min-w-0 flex-1 space-y-1.5">
-                                              <Label htmlFor={`pay-in-${p.id}`} className="text-xs text-muted-foreground">Shuma (CHF)</Label>
-                                              <Input id={`pay-in-${p.id}`} type="number" min={0} step="0.01" inputMode="decimal" className="h-10 w-full min-w-0 tabular-nums" placeholder="p.sh. 1500" value={paymentDraft[p.id] ?? ''} onChange={(e) => setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))} disabled={savingPaymentId === p.id} />
-                                            </div>
-                                            <Button type="button" variant="secondary" className="h-10 w-full shrink-0 px-4 sm:w-auto sm:min-w-[10rem]" disabled={savingPaymentId === p.id} onClick={() => void savePanelPayment(p.id)}>
-                                              {savingPaymentId === p.id ? 'Duke ruajtur...' : 'Ruaj pagesën'}
-                                            </Button>
+                                          <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                                            <span className="text-amber-600 dark:text-amber-400 font-medium">Mbetur</span>
+                                            <span className="tabular-nums font-bold text-amber-600 dark:text-amber-400">{formatChf(remaining)}</span>
                                           </div>
                                         </div>
-                                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-2 text-amber-800 dark:text-amber-200">
-                                          <span className="font-medium">Mbetur</span>
-                                          <span className="shrink-0 tabular-nums text-base font-semibold sm:text-lg">{formatChf(remaining)}</span>
-                                        </div>
+                                        {/* Progress */}
                                         {contract > 0 && (
-                                          <div className="space-y-1.5">
-                                            <div className="flex justify-between text-[11px] text-muted-foreground">
+                                          <div className="px-4 pb-3 pt-1 space-y-1">
+                                            <div className="flex justify-between text-[10px] text-muted-foreground">
                                               <span>Pagesa ndaj kontratës</span>
-                                              <span className="tabular-nums">{pct}%</span>
+                                              <span className="tabular-nums font-medium">{pct}%</span>
                                             </div>
-                                            <Progress value={pct} className="h-2" />
+                                            <Progress value={pct} className="h-1.5" />
                                           </div>
                                         )}
+                                        {/* Inline payment form toggle */}
+                                        <div className="border-t border-border/40 px-4 py-2.5">
+                                          {paymentFormOpenId !== p.id ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => setPaymentFormOpenId(p.id)}
+                                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                                            >
+                                              <Plus className="h-3 w-3" /> Regjistro pagesë
+                                            </button>
+                                          ) : (
+                                            <div className="flex flex-col sm:flex-row gap-2 items-end pt-1 pb-0.5">
+                                              <div className="flex-1 space-y-1">
+                                                <Label className="text-[10px] text-muted-foreground">Shuma (CHF)</Label>
+                                                <Input
+                                                  type="number" min={0} step="0.01" inputMode="decimal"
+                                                  className="h-8 text-sm tabular-nums"
+                                                  placeholder="p.sh. 1500"
+                                                  value={paymentDraft[p.id] ?? ''}
+                                                  onChange={(e) => setPaymentDraft((d) => ({ ...d, [p.id]: e.target.value }))}
+                                                  disabled={savingPaymentId === p.id}
+                                                  autoFocus
+                                                />
+                                              </div>
+                                              <div className="flex gap-1.5 shrink-0">
+                                                <Button size="sm" className="h-8 px-3 text-xs" disabled={savingPaymentId === p.id} onClick={() => void savePanelPayment(p.id)}>
+                                                  {savingPaymentId === p.id ? '...' : 'Ruaj'}
+                                                </Button>
+                                                <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => setPaymentFormOpenId(null)}>
+                                                  Anulo
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
 
-                                      {/* Progress */}
-                                      <div className="space-y-1.5">
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                          <span className="font-medium uppercase tracking-wide">Progres</span>
+                                      {/* Status progress */}
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                                          <span className="uppercase tracking-wide">Progres statusi</span>
                                           <span className="tabular-nums">{p.progress}%</span>
                                         </div>
-                                        <Progress value={p.progress} className="h-2.5 w-full" />
+                                        <Progress value={p.progress} className="h-1.5 w-full" />
                                       </div>
 
                                       {/* Tabs: Files / Issues */}
