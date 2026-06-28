@@ -115,7 +115,7 @@ const HeroSection = ({ hero, projectHeroImage }: HeroSectionProps) => {
             >
               <Button
                 className="btn-hero group w-full sm:w-auto px-5 sm:px-8 py-3 text-sm sm:text-base md:text-lg"
-                onClick={() => (window.location.href = 'mailto:info@apex-gerüste.ch')}
+                onClick={() => (window.location.href = 'mailto:info@apex-gerueste.ch')}
               >
                 Kostenlose Beratung
                 <ArrowRight

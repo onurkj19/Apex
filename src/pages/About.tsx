@@ -54,7 +54,7 @@ const team = [
     position: "Geschäftsführer & Gerüstbaumeister",
     experience: "5 Jahre Erfahrung",
     phone: "+41 76 368 10 11",
-    email: "info@apex-gerüste.ch",
+    email: "info@apex-gerueste.ch",
     specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"],
   },
   {
@@ -62,7 +62,7 @@ const team = [
     position: "Technischer Leiter",
     experience: "8 Jahre Erfahrung",
     phone: "+41 79 422 39 90",
-    email: "info@apex-gerüste.ch",
+    email: "info@apex-gerueste.ch",
     specialties: ["Baustellenplanung", "Sicherheitstechnik", "Teamführung"]
   },
   {
@@ -70,7 +70,7 @@ const team = [
     position: "Projektmanager",
     experience: "15 Jahre Erfahrung",
     phone: "+41 79 830 57 80",
-    email: "info@apex-gerüste.ch",
+    email: "info@apex-gerueste.ch",
     specialties: ["Kundenbetreuung", "Terminplanung", "Qualitätskontrolle"]
   }
 ];

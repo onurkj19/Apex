@@ -7,19 +7,19 @@ const ContactSection = () => {
     {
       name: "Onur Kajmakci",
       phone: "+41 76 368 10 11",
-      email: "info@apex-gerüste.ch",
+      email: "info@apex-gerueste.ch",
       role: "Geschäftsführer"
     },
     {
       name: "Arlind Morina",
       phone: "+41 79 422 39 90",
-      email: "info@apex-gerüste.ch",
+      email: "info@apex-gerueste.ch",
       role: "Projektleiter"
     },
     {
       name: "Flamur Shala",
       phone: "+41 79 830 57 80",
-      email: "info@apex-gerüste.ch",
+      email: "info@apex-gerueste.ch",
       role: "Technischer Leiter"
     }
   ];
@@ -96,7 +96,7 @@ const ContactSection = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail size={16} className="text-primary" />
-                  <span className="text-muted-foreground">info@apex-gerüste.ch</span>
+                  <span className="text-muted-foreground">info@apex-gerueste.ch</span>
                 </div>
               </div>
               

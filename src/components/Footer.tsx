@@ -58,7 +58,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail size={16} className="text-primary" />
-                <span className="text-white">info@apex-gerüste.ch</span>
+                <span className="text-white">info@apex-gerueste.ch</span>
               </div>
               <div className="flex items-start space-x-3">
                 <MapPin size={16} className="text-primary shrink-0 mt-0.5" />
