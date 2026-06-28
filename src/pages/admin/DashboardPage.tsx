@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatChf } from '@/lib/utils';
 import { TeamPlanAttachmentsView } from '@/components/TeamPlanAttachmentsView';
-import { Truck } from 'lucide-react';
+import { Truck, MapPin, ExternalLink, CalendarDays, Clock } from 'lucide-react';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
@@ -204,37 +204,101 @@ const DashboardPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Team Planning (detyrat e mia)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Detyrat e mia
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-4">
             {workerPlans.length === 0 && <p className="text-sm text-muted-foreground">Nuk ke plane aktive.</p>}
-            {workerPlans.map((plan) => (
-              <div key={plan.id} className="border rounded-md p-3 space-y-2">
-                <p className="font-medium">{plan.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(plan.plan_date).toLocaleDateString('sq-AL')} — {plan.location || 'Pa lokacion'}
-                </p>
-                <p className="text-sm text-muted-foreground">Statusi: {plan.status}</p>
-                {plan.vehicle_label && (
-                  <p className="text-sm flex items-center gap-2">
-                    <Truck className="h-4 w-4 shrink-0 text-primary" />
-                    <span>
-                      Furgoni / mjeti: <span className="text-foreground font-medium">{plan.vehicle_label}</span>
+            {(() => {
+              const todayKey = new Date().toISOString().slice(0, 10);
+              const tomorrowKey = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+              const todayPlans = workerPlans.filter((p: any) => p.plan_date === todayKey);
+              const tomorrowPlans = workerPlans.filter((p: any) => p.plan_date === tomorrowKey);
+              const upcomingPlans = workerPlans.filter((p: any) => p.plan_date > tomorrowKey).slice(0, 5);
+
+              const renderPlan = (plan: any) => (
+                <div key={plan.id} className="rounded-xl border bg-card p-4 space-y-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold leading-snug">{plan.title}</p>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(plan.plan_date).toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
-                  </p>
-                )}
-                {plan.trailer_required && (
-                  <p className="text-sm text-amber-600 font-medium">Rimorkio: kërkohet po</p>
-                )}
-                {plan.task_details && <p className="text-sm mt-1 whitespace-pre-wrap">{plan.task_details}</p>}
-                {plan.notes && (
-                  <p className="text-sm text-muted-foreground border-l-2 pl-2 italic">Shënim: {plan.notes}</p>
-                )}
-                {plan.attachments && plan.attachments.length > 0 && (
-                  <TeamPlanAttachmentsView items={plan.attachments} />
-                )}
-              </div>
-            ))}
+                  </div>
+
+                  {plan.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm text-muted-foreground flex-1">{plan.location}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline border border-primary/30 rounded-md px-2 py-0.5 bg-primary/5 shrink-0"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Maps
+                      </a>
+                    </div>
+                  )}
+
+                  {(plan.start_time || plan.end_time) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4 shrink-0" />
+                      {plan.start_time && <span>{plan.start_time}</span>}
+                      {plan.start_time && plan.end_time && <span>–</span>}
+                      {plan.end_time && <span>{plan.end_time}</span>}
+                    </div>
+                  )}
+
+                  {plan.vehicle_label && (
+                    <p className="text-sm flex items-center gap-2">
+                      <Truck className="h-4 w-4 shrink-0 text-primary" />
+                      <span>Mjeti: <span className="font-medium">{plan.vehicle_label}</span></span>
+                    </p>
+                  )}
+                  {plan.trailer_required && (
+                    <p className="text-xs text-amber-600 font-medium">⚠ Rimorkio kërkohet</p>
+                  )}
+                  {plan.task_details && (
+                    <p className="text-sm whitespace-pre-wrap border-l-2 border-primary/40 pl-3">{plan.task_details}</p>
+                  )}
+                  {plan.notes && (
+                    <p className="text-sm text-muted-foreground border-l-2 pl-3 italic">📝 {plan.notes}</p>
+                  )}
+                  {plan.attachments && plan.attachments.length > 0 && (
+                    <TeamPlanAttachmentsView items={plan.attachments} />
+                  )}
+                </div>
+              );
+
+              return (
+                <div className="space-y-5">
+                  {todayPlans.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">● SOT</p>
+                      <div className="space-y-2">{todayPlans.map(renderPlan)}</div>
+                    </div>
+                  )}
+                  {tomorrowPlans.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Nesër</p>
+                      <div className="space-y-2">{tomorrowPlans.map(renderPlan)}</div>
+                    </div>
+                  )}
+                  {upcomingPlans.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Të ardhshme</p>
+                      <div className="space-y-2">{upcomingPlans.map(renderPlan)}</div>
+                    </div>
+                  )}
+                  {todayPlans.length === 0 && tomorrowPlans.length === 0 && upcomingPlans.length === 0 && workerPlans.length > 0 && (
+                    <div className="space-y-2">{workerPlans.slice(0, 5).map(renderPlan)}</div>
+                  )}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
