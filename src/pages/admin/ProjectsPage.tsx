@@ -98,21 +98,37 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [typeHint, setTypeHint] = useState<ProjectFileType>('other');
+  const [needsMigration, setNeedsMigration] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    projectFilesApi.list(projectId).then(setFiles).catch(() => {});
+    projectFilesApi.list(projectId)
+      .then(setFiles)
+      .catch((err: any) => {
+        const msg = String(err?.message || err);
+        if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01')) {
+          setNeedsMigration(true);
+        }
+      });
   }, [projectId]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError('');
     try {
       const uploaded = await projectFilesApi.upload(projectId, file, typeHint);
       setFiles((prev) => [uploaded, ...prev]);
     } catch (err: any) {
-      alert('Upload dështoi: ' + (err?.message || err));
+      const msg = String(err?.message || err);
+      if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01')) {
+        setNeedsMigration(true);
+        setUploadError('');
+      } else {
+        setUploadError('Upload dështoi: ' + msg);
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -124,6 +140,15 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
     await projectFilesApi.delete(f);
     setFiles((prev) => prev.filter((x) => x.id !== f.id));
   };
+
+  if (needsMigration) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+        <p className="font-semibold">⚠ Duhet SQL Migration</p>
+        <p>Ekzekuto skedarin <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">20260628120000_project_enhancements.sql</code> në <strong>Supabase → SQL Editor</strong> për të aktivizuar skedarët.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -146,6 +171,8 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
         </Button>
         <input ref={inputRef} type="file" accept="*/*" className="hidden" onChange={handleUpload} />
       </div>
+
+      {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
 
       {files.length === 0 ? (
         <p className="text-xs text-muted-foreground italic">Nuk ka skedarë të ngarkuar.</p>
@@ -621,23 +648,28 @@ const ProjectsPage = () => {
                               {/* ── Card header row ── */}
                               <button
                                 type="button"
-                                className="w-full text-left px-4 py-3 flex flex-wrap items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+                                className="w-full text-left px-4 py-3 space-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
                                 onClick={() => { if (isEditing) return; setExpandedProjectId((prev) => (prev === p.id ? null : p.id)); }}
                               >
-                                {projectNum && (
-                                  <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground shrink-0">
-                                    <Hash className="h-3 w-3" />{projectNum}
-                                  </span>
-                                )}
-                                <span className="min-w-0 flex-1 break-words font-medium leading-snug">{p.project_name}</span>
-                                <Badge variant="outline" className={cn('shrink-0 border text-[10px] px-1.5 py-0', PRIORITY_CLASS[priority])}>
-                                  {priority}
-                                </Badge>
-                                <Badge variant="outline" className={cn('shrink-0 border', projectStatusBadgeClass(p.status))}>
-                                  {p.status}
-                                </Badge>
-                                <span className="shrink-0 tabular-nums font-bold text-foreground">{formatChf(contract)}</span>
-                                <span className={cn('shrink-0 text-muted-foreground transition-transform duration-200', isExpanded || isEditing ? 'rotate-180' : '')}>▾</span>
+                                {/* Row 1: badges + chevron */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {projectNum && (
+                                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                      <Hash className="h-3 w-3" />{projectNum}
+                                    </span>
+                                  )}
+                                  <Badge variant="outline" className={cn('border text-[10px] px-1.5 py-0', PRIORITY_CLASS[priority])}>
+                                    {priority}
+                                  </Badge>
+                                  <Badge variant="outline" className={cn('border text-[10px]', projectStatusBadgeClass(p.status))}>
+                                    {p.status}
+                                  </Badge>
+                                  <span className={cn('ml-auto text-muted-foreground transition-transform duration-200 text-sm', isExpanded || isEditing ? 'rotate-180' : '')}>▾</span>
+                                </div>
+                                {/* Row 2: project name (full width, word-wrap) */}
+                                <p className="font-semibold leading-snug break-words text-sm sm:text-base">{p.project_name}</p>
+                                {/* Row 3: price */}
+                                <p className="tabular-nums font-bold text-base">{formatChf(contract)}</p>
                               </button>
 
                               {/* ── Expanded details ── */}
