@@ -142,8 +142,7 @@ export interface NotificationItem {
     | 'project_created'
     | 'finance_income_created'
     | 'finance_expense_created'
-    | 'admin_change'
-    | 'new_order';
+    | 'admin_change';
   title: string;
   message: string;
   is_read: boolean;

@@ -128,7 +128,7 @@ export const shopOrdersApi = {
     try {
       const orderNum = newOrder.id.slice(0, 8).toUpperCase();
       await supabase.from('notifications').insert({
-        type: 'new_order' as string,
+        type: 'admin_change',
         title: `🛒 Neue Bestellung #${orderNum}`,
         message: `${newOrder.customer_name} — CHF ${newOrder.total.toFixed(2)} · ${newOrder.items.length} Artikel`,
         is_read: false,
