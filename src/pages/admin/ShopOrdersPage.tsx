@@ -1,28 +1,62 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { shopOrdersApi } from '@/lib/shop-api';
 import type { ShopOrder } from '@/lib/shop-api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ShoppingBag, ChevronDown, ChevronUp, RefreshCw, Mail, Copy, ExternalLink } from 'lucide-react';
+import { ShoppingBag, ChevronDown, ChevronUp, RefreshCw, Mail, Copy, ExternalLink, CheckCircle2 } from 'lucide-react';
+
+// ─── Status config ────────────────────────────────────────────────────────────
+
+const STATUS_STEPS = [
+  { key: 'pending',    label: 'Neu',             color: 'bg-yellow-500' },
+  { key: 'processing', label: 'In Bearbeitung',  color: 'bg-blue-500' },
+  { key: 'shipped',    label: 'Versandt',         color: 'bg-purple-500' },
+  { key: 'delivered',  label: 'Geliefert',        color: 'bg-green-500' },
+  { key: 'cancelled',  label: 'Storniert',        color: 'bg-red-500' },
+];
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pending:    { label: 'Neu', variant: 'default' },
+  pending:    { label: 'Neu',            variant: 'default' },
   processing: { label: 'In Bearbeitung', variant: 'outline' },
-  shipped:    { label: 'Versandt', variant: 'secondary' },
-  delivered:  { label: 'Geliefert', variant: 'secondary' },
-  cancelled:  { label: 'Storniert', variant: 'destructive' },
+  shipped:    { label: 'Versandt',       variant: 'secondary' },
+  delivered:  { label: 'Geliefert',      variant: 'secondary' },
+  cancelled:  { label: 'Storniert',      variant: 'destructive' },
 };
+
+// ─── Notification tracking (localStorage) ────────────────────────────────────
+
+const STORAGE_KEY = 'apex-shop-notifications-sent';
+
+const getSentMap = (): Record<string, string[]> => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const markSent = (orderId: string, type: string) => {
+  const map = getSentMap();
+  map[orderId] = Array.from(new Set([...(map[orderId] || []), type]));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+};
+
+const isSent = (orderId: string, type: string): boolean => {
+  const map = getSentMap();
+  return (map[orderId] || []).includes(type);
+};
+
+// ─── Email templates ──────────────────────────────────────────────────────────
 
 const buildEmailTemplate = (order: ShopOrder, type: string): string => {
   const itemsList = order.items
     .map((i) => `• ${i.title} × ${i.quantity} — CHF ${(i.unit_price * i.quantity).toFixed(2)}`)
     .join('\n');
-
   const orderNum = order.id.slice(0, 8).toUpperCase();
 
   const templates: Record<string, string> = {
@@ -93,33 +127,38 @@ Mit freundlichen Grüssen
 Apex Gerüste GmbH
 info@apex-gerueste.ch`,
   };
-
   return templates[type] || templates.received;
 };
 
-const getSubjectForType = (type: string, orderNum: string): string => {
-  const subjects: Record<string, string> = {
-    received:   `Bestellbestätigung #${orderNum} – Apex Gerüste GmbH`,
-    processing: `Ihre Bestellung #${orderNum} wird bearbeitet`,
-    shipped:    `Ihre Bestellung #${orderNum} wurde versandt`,
-    delivered:  `Lieferbestätigung #${orderNum}`,
-    cancelled:  `Stornierung Bestellung #${orderNum}`,
-  };
-  return subjects[type] || subjects.received;
-};
+const getSubject = (type: string, orderNum: string): string => ({
+  received:   `Bestellbestätigung #${orderNum} – Apex Gerüste GmbH`,
+  processing: `Ihre Bestellung #${orderNum} wird bearbeitet`,
+  shipped:    `Ihre Bestellung #${orderNum} wurde versandt`,
+  delivered:  `Lieferbestätigung #${orderNum}`,
+  cancelled:  `Stornierung Bestellung #${orderNum}`,
+}[type] ?? `Bestellung #${orderNum}`);
+
+// ─── Notify dialog ────────────────────────────────────────────────────────────
 
 interface NotifyDialogProps {
-  order: ShopOrder | null;
+  order: ShopOrder;
   type: string;
   onClose: () => void;
+  onSent: () => void;
 }
 
-const NotifyDialog = ({ order, type, onClose }: NotifyDialogProps) => {
-  if (!order) return null;
+const NotifyDialog = ({ order, type, onClose, onSent }: NotifyDialogProps) => {
   const orderNum = order.id.slice(0, 8).toUpperCase();
   const body = buildEmailTemplate(order, type);
-  const subject = getSubjectForType(type, orderNum);
+  const subject = getSubject(type, orderNum);
   const mailtoLink = `mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  const handleOpen = () => {
+    markSent(order.id, type);
+    onSent();
+    window.open(mailtoLink, '_blank');
+    onClose();
+  };
 
   const copyText = () => {
     navigator.clipboard.writeText(body);
@@ -135,30 +174,20 @@ const NotifyDialog = ({ order, type, onClose }: NotifyDialogProps) => {
             E-Mail Vorlage — {order.customer_name}
           </DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Betreff:</p>
             <p className="font-medium text-sm border rounded-md px-3 py-2 bg-muted/30">{subject}</p>
           </div>
-
           <div>
             <p className="text-sm text-muted-foreground mb-1">Nachricht:</p>
-            <Textarea
-              value={body}
-              readOnly
-              rows={16}
-              className="text-sm font-mono resize-none"
-            />
+            <Textarea value={body} readOnly rows={16} className="text-sm font-mono resize-none" />
           </div>
-
           <div className="flex flex-wrap gap-3">
-            <a href={mailtoLink} target="_blank" rel="noopener noreferrer" onClick={onClose}>
-              <Button>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                E-Mail öffnen
-              </Button>
-            </a>
+            <Button onClick={handleOpen}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              E-Mail öffnen &amp; als gesendet markieren
+            </Button>
             <Button variant="outline" onClick={copyText}>
               <Copy className="h-4 w-4 mr-2" />
               Text kopieren
@@ -171,22 +200,112 @@ const NotifyDialog = ({ order, type, onClose }: NotifyDialogProps) => {
   );
 };
 
+// ─── Notify buttons row ───────────────────────────────────────────────────────
+
+const NOTIFY_TYPES = [
+  { type: 'received',   label: 'Bestellung erhalten', statusKey: 'pending' },
+  { type: 'processing', label: 'In Bearbeitung',       statusKey: 'processing' },
+  { type: 'shipped',    label: 'Versandt',              statusKey: 'shipped' },
+  { type: 'delivered',  label: 'Geliefert',             statusKey: 'delivered' },
+  { type: 'cancelled',  label: 'Storniert',             statusKey: 'cancelled' },
+];
+
+interface NotifyButtonsProps {
+  order: ShopOrder;
+  sentTypes: string[];
+  onOpen: (type: string) => void;
+}
+
+const NotifyButtons = ({ order, sentTypes, onOpen }: NotifyButtonsProps) => {
+  const currentStatusIndex = STATUS_STEPS.findIndex((s) => s.key === order.status);
+
+  return (
+    <div className="border-t pt-4">
+      <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <Mail className="h-4 w-4" />
+        Kunden benachrichtigen:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {NOTIFY_TYPES.map((btn, i) => {
+          const sent = sentTypes.includes(btn.type);
+          const isCurrentStatus = btn.statusKey === order.status;
+          const isCancelled = btn.type === 'cancelled';
+          // highlight the step matching current status
+          const isActive = isCurrentStatus;
+
+          return (
+            <Button
+              key={btn.type}
+              type="button"
+              size="sm"
+              disabled={sent}
+              onClick={(e) => { e.stopPropagation(); onOpen(btn.type); }}
+              variant={isActive ? 'default' : 'outline'}
+              className={[
+                sent ? 'opacity-50 cursor-not-allowed line-through' : '',
+                isActive && !sent ? 'ring-2 ring-offset-1 ring-primary' : '',
+                isCancelled && !sent ? 'border-red-500 text-red-500 hover:bg-red-50' : '',
+              ].join(' ')}
+            >
+              {sent
+                ? <><CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />{btn.label}</>
+                : <><Mail className="h-3 w-3 mr-1" />{btn.label}</>
+              }
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Status progress bar */}
+      {order.status !== 'cancelled' && (
+        <div className="mt-4">
+          <div className="flex items-center gap-1">
+            {STATUS_STEPS.filter(s => s.key !== 'cancelled').map((step, idx) => {
+              const stepIdx = STATUS_STEPS.filter(s => s.key !== 'cancelled').findIndex(s => s.key === order.status);
+              const done = idx <= stepIdx;
+              return (
+                <div key={step.key} className="flex items-center flex-1">
+                  <div className={`flex-1 h-1.5 rounded-full transition-all ${done ? 'bg-primary' : 'bg-muted'}`} />
+                  {idx === STATUS_STEPS.filter(s => s.key !== 'cancelled').length - 1 && null}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-1">
+            {STATUS_STEPS.filter(s => s.key !== 'cancelled').map((step, idx) => {
+              const steps = STATUS_STEPS.filter(s => s.key !== 'cancelled');
+              const stepIdx = steps.findIndex(s => s.key === order.status);
+              const done = idx <= stepIdx;
+              return (
+                <span key={step.key} className={`text-xs ${done ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  {step.label}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 const ShopOrdersPage = () => {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [notifyDialog, setNotifyDialog] = useState<{ order: ShopOrder; type: string } | null>(null);
+  const [sentMap, setSentMap] = useState<Record<string, string[]>>(getSentMap);
+
+  const refreshSent = useCallback(() => setSentMap(getSentMap()), []);
 
   const load = async () => {
     setLoading(true);
-    try {
-      setOrders(await shopOrdersApi.list());
-    } catch {
-      toast.error('Bestellungen konnten nicht geladen werden.');
-    } finally {
-      setLoading(false);
-    }
+    try { setOrders(await shopOrdersApi.list()); }
+    catch { toast.error('Bestellungen konnten nicht geladen werden.'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
@@ -197,11 +316,8 @@ const ShopOrdersPage = () => {
       await shopOrdersApi.updateStatus(orderId, status);
       setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
       toast.success('Status aktualisiert.');
-    } catch {
-      toast.error('Fehler beim Aktualisieren des Status.');
-    } finally {
-      setUpdatingId(null);
-    }
+    } catch { toast.error('Fehler beim Aktualisieren.'); }
+    finally { setUpdatingId(null); }
   };
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -209,20 +325,7 @@ const ShopOrdersPage = () => {
     setExpandedId((prev) => prev === id ? null : id);
   };
 
-  const openNotify = (order: ShopOrder, type: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNotifyDialog({ order, type });
-  };
-
   const pending = orders.filter((o) => o.status === 'pending').length;
-
-  const NOTIFY_BUTTONS = [
-    { type: 'received',   label: 'Bestellung erhalten' },
-    { type: 'processing', label: 'In Bearbeitung' },
-    { type: 'shipped',    label: 'Versandt' },
-    { type: 'delivered',  label: 'Geliefert' },
-    { type: 'cancelled',  label: 'Storniert' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -243,27 +346,27 @@ const ShopOrdersPage = () => {
 
       {loading ? (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Noch keine Bestellungen vorhanden.</p>
-          </CardContent>
-        </Card>
+        <Card><div className="py-16 text-center text-muted-foreground p-4">
+          <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>Noch keine Bestellungen vorhanden.</p>
+        </div></Card>
       ) : (
         <div className="space-y-3">
           {orders.map((order) => {
             const isExpanded = expandedId === order.id;
             const statusInfo = STATUS_LABELS[order.status] || { label: order.status, variant: 'outline' as const };
+            const sentTypes = sentMap[order.id] || [];
+
             return (
               <Card key={order.id} className={order.status === 'pending' ? 'border-orange-400' : ''}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-sm font-bold text-primary">
                           #{order.id.slice(0, 8).toUpperCase()}
@@ -286,7 +389,6 @@ const ShopOrdersPage = () => {
                           {new Date(order.created_at).toLocaleString('de-CH')}
                         </p>
                       </div>
-
                       <Select
                         value={order.status}
                         onValueChange={(v) => handleStatusChange(order.id, v)}
@@ -301,40 +403,26 @@ const ShopOrdersPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => toggleExpand(order.id, e)}
-                      >
+                      <Button type="button" variant="ghost" size="icon" onClick={(e) => toggleExpand(order.id, e)}>
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t space-y-4">
-                      {/* Products */}
+                    <div className="mt-4 pt-4 border-t space-y-3">
                       <div>
                         <p className="text-sm font-semibold mb-2">Bestellte Artikel:</p>
-                        <div className="space-y-1">
-                          {order.items.map((item, i) => (
-                            <div key={i} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                {item.title} × {item.quantity}
-                                {item.discount_percent > 0 && (
-                                  <span className="ml-1 text-red-500">(-{item.discount_percent}%)</span>
-                                )}
-                              </span>
-                              <span className="font-medium">
-                                CHF {(item.unit_price * item.quantity).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                        {order.items.map((item, i) => (
+                          <div key={i} className="flex justify-between text-sm py-0.5">
+                            <span className="text-muted-foreground">
+                              {item.title} × {item.quantity}
+                              {item.discount_percent > 0 && <span className="ml-1 text-red-500">(-{item.discount_percent}%)</span>}
+                            </span>
+                            <span className="font-medium">CHF {(item.unit_price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
                       </div>
-
                       <div className="flex justify-between text-sm border-t pt-2">
                         <span className="text-muted-foreground">Zwischensumme</span>
                         <span>CHF {order.subtotal.toFixed(2)}</span>
@@ -347,7 +435,6 @@ const ShopOrdersPage = () => {
                         <span>Gesamtbetrag</span>
                         <span className="text-primary">CHF {order.total.toFixed(2)}</span>
                       </div>
-
                       {order.notes && (
                         <div className="bg-muted/40 rounded-lg p-3">
                           <p className="text-xs font-semibold mb-1">Anmerkungen des Kunden:</p>
@@ -355,27 +442,11 @@ const ShopOrdersPage = () => {
                         </div>
                       )}
 
-                      {/* Email Notification Buttons */}
-                      <div className="border-t pt-4">
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          Kunden benachrichtigen:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {NOTIFY_BUTTONS.map((btn) => (
-                            <Button
-                              key={btn.type}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => openNotify(order, btn.type, e)}
-                            >
-                              <Mail className="h-3 w-3 mr-1" />
-                              {btn.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
+                      <NotifyButtons
+                        order={order}
+                        sentTypes={sentTypes}
+                        onOpen={(type) => setNotifyDialog({ order, type })}
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -385,12 +456,12 @@ const ShopOrdersPage = () => {
         </div>
       )}
 
-      {/* Email Template Dialog */}
       {notifyDialog && (
         <NotifyDialog
           order={notifyDialog.order}
           type={notifyDialog.type}
           onClose={() => setNotifyDialog(null)}
+          onSent={refreshSent}
         />
       )}
     </div>
