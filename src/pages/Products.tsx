@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ShoppingCart, Package, X, Tag, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 // ─── Product Detail Modal ────────────────────────────────────────────────────
@@ -220,6 +221,7 @@ const Products = () => {
   const [category, setCategory] = useState<string>('all');
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
   const { itemCount, openCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     shopProductsApi.listPublic()
@@ -310,6 +312,23 @@ const Products = () => {
 
       <Footer />
       <BackToTop />
+
+      {/* Floating cart button */}
+      {itemCount > 0 && (
+        <button
+          onClick={() => navigate('/checkout')}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-primary text-primary-foreground px-5 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 font-semibold"
+          aria-label="Zur Kasse"
+        >
+          <div className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            <span className="absolute -top-2.5 -right-2.5 min-w-5 h-5 px-1 rounded-full bg-white text-primary text-[11px] font-bold flex items-center justify-center leading-none">
+              {itemCount}
+            </span>
+          </div>
+          <span>Zur Kasse</span>
+        </button>
+      )}
     </div>
   );
 };
