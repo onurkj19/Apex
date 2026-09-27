@@ -5,15 +5,170 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ShoppingBag, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { ShoppingBag, ChevronDown, ChevronUp, RefreshCw, Mail, Copy, ExternalLink } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pending:    { label: 'E re', variant: 'default' },
-  processing: { label: 'Në përpunim', variant: 'outline' },
-  shipped:    { label: 'E dërguar', variant: 'secondary' },
-  delivered:  { label: 'E dorëzuar', variant: 'secondary' },
-  cancelled:  { label: 'Anuluar', variant: 'destructive' },
+  pending:    { label: 'Neu', variant: 'default' },
+  processing: { label: 'In Bearbeitung', variant: 'outline' },
+  shipped:    { label: 'Versandt', variant: 'secondary' },
+  delivered:  { label: 'Geliefert', variant: 'secondary' },
+  cancelled:  { label: 'Storniert', variant: 'destructive' },
+};
+
+const buildEmailTemplate = (order: ShopOrder, type: string): string => {
+  const itemsList = order.items
+    .map((i) => `• ${i.title} × ${i.quantity} — CHF ${(i.unit_price * i.quantity).toFixed(2)}`)
+    .join('\n');
+
+  const orderNum = order.id.slice(0, 8).toUpperCase();
+
+  const templates: Record<string, string> = {
+    received: `Sehr geehrte/r ${order.customer_name},
+
+vielen Dank für Ihre Bestellung bei Apex Gerüste GmbH!
+
+Ihre Bestellnummer: #${orderNum}
+
+Bestellte Artikel:
+${itemsList}
+
+Zwischensumme: CHF ${order.subtotal.toFixed(2)}
+Versand: CHF ${order.shipping_cost.toFixed(2)}
+Gesamtbetrag: CHF ${order.total.toFixed(2)}
+
+Wir werden Ihre Bestellung so schnell wie möglich bearbeiten und Sie benachrichtigen, sobald das Paket versandt wurde.
+
+Mit freundlichen Grüssen
+Apex Gerüste GmbH
+info@apex-gerueste.ch`,
+
+    processing: `Sehr geehrte/r ${order.customer_name},
+
+Ihre Bestellung #${orderNum} wird aktuell von uns bearbeitet und vorbereitet.
+
+Wir informieren Sie, sobald das Paket versandbereit ist.
+
+Mit freundlichen Grüssen
+Apex Gerüste GmbH
+info@apex-gerueste.ch`,
+
+    shipped: `Sehr geehrte/r ${order.customer_name},
+
+Ihre Bestellung #${orderNum} wurde heute versandt!
+
+Lieferadresse: ${order.customer_address}, ${order.customer_zip} ${order.customer_city}
+
+Die Lieferung erfolgt per Swiss Post und dauert in der Regel 3–5 Werktage. Die Rechnung liegt dem Paket bei.
+
+Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+
+Mit freundlichen Grüssen
+Apex Gerüste GmbH
+info@apex-gerueste.ch`,
+
+    delivered: `Sehr geehrte/r ${order.customer_name},
+
+wir hoffen, Ihre Bestellung #${orderNum} ist gut bei Ihnen angekommen!
+
+Wir würden uns über Ihr Feedback freuen. Bei Fragen oder Reklamationen stehen wir Ihnen jederzeit zur Verfügung.
+
+Vielen Dank für Ihr Vertrauen in Apex Gerüste GmbH.
+
+Mit freundlichen Grüssen
+Apex Gerüste GmbH
+info@apex-gerueste.ch`,
+
+    cancelled: `Sehr geehrte/r ${order.customer_name},
+
+leider müssen wir Ihnen mitteilen, dass Ihre Bestellung #${orderNum} storniert wurde.
+
+Falls Sie Fragen haben oder eine alternative Lösung wünschen, kontaktieren Sie uns bitte unter info@apex-gerueste.ch.
+
+Wir entschuldigen uns für etwaige Unannehmlichkeiten.
+
+Mit freundlichen Grüssen
+Apex Gerüste GmbH
+info@apex-gerueste.ch`,
+  };
+
+  return templates[type] || templates.received;
+};
+
+const getSubjectForType = (type: string, orderNum: string): string => {
+  const subjects: Record<string, string> = {
+    received:   `Bestellbestätigung #${orderNum} – Apex Gerüste GmbH`,
+    processing: `Ihre Bestellung #${orderNum} wird bearbeitet`,
+    shipped:    `Ihre Bestellung #${orderNum} wurde versandt`,
+    delivered:  `Lieferbestätigung #${orderNum}`,
+    cancelled:  `Stornierung Bestellung #${orderNum}`,
+  };
+  return subjects[type] || subjects.received;
+};
+
+interface NotifyDialogProps {
+  order: ShopOrder | null;
+  type: string;
+  onClose: () => void;
+}
+
+const NotifyDialog = ({ order, type, onClose }: NotifyDialogProps) => {
+  if (!order) return null;
+  const orderNum = order.id.slice(0, 8).toUpperCase();
+  const body = buildEmailTemplate(order, type);
+  const subject = getSubjectForType(type, orderNum);
+  const mailtoLink = `mailto:${order.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  const copyText = () => {
+    navigator.clipboard.writeText(body);
+    toast.success('Text kopiert!');
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            E-Mail Vorlage — {order.customer_name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Betreff:</p>
+            <p className="font-medium text-sm border rounded-md px-3 py-2 bg-muted/30">{subject}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Nachricht:</p>
+            <Textarea
+              value={body}
+              readOnly
+              rows={16}
+              className="text-sm font-mono resize-none"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <a href={mailtoLink} target="_blank" rel="noopener noreferrer" onClick={onClose}>
+              <Button>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                E-Mail öffnen
+              </Button>
+            </a>
+            <Button variant="outline" onClick={copyText}>
+              <Copy className="h-4 w-4 mr-2" />
+              Text kopieren
+            </Button>
+            <Button variant="ghost" onClick={onClose}>Schliessen</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 const ShopOrdersPage = () => {
@@ -21,13 +176,14 @@ const ShopOrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [notifyDialog, setNotifyDialog] = useState<{ order: ShopOrder; type: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
       setOrders(await shopOrdersApi.list());
     } catch {
-      toast.error('Nuk u ngarkuan porositë.');
+      toast.error('Bestellungen konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -40,30 +196,48 @@ const ShopOrdersPage = () => {
     try {
       await shopOrdersApi.updateStatus(orderId, status);
       setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
-      toast.success('Statusi u ndryshua.');
+      toast.success('Status aktualisiert.');
     } catch {
-      toast.error('Gabim gjatë ndryshimit të statusit.');
+      toast.error('Fehler beim Aktualisieren des Status.');
     } finally {
       setUpdatingId(null);
     }
   };
 
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedId((prev) => prev === id ? null : id);
+  };
+
+  const openNotify = (order: ShopOrder, type: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotifyDialog({ order, type });
+  };
+
   const pending = orders.filter((o) => o.status === 'pending').length;
+
+  const NOTIFY_BUTTONS = [
+    { type: 'received',   label: 'Bestellung erhalten' },
+    { type: 'processing', label: 'In Bearbeitung' },
+    { type: 'shipped',    label: 'Versandt' },
+    { type: 'delivered',  label: 'Geliefert' },
+    { type: 'cancelled',  label: 'Storniert' },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Porositë e Dyqanit</h2>
+          <h2 className="text-2xl font-bold">Shop-Bestellungen</h2>
           {pending > 0 && (
             <p className="text-sm text-orange-500 font-medium mt-1">
-              ⚠️ {pending} porosi të reja presin!
+              ⚠️ {pending} neue Bestellung{pending > 1 ? 'en' : ''} warten!
             </p>
           )}
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Rifresko
+          Aktualisieren
         </Button>
       </div>
 
@@ -77,7 +251,7 @@ const ShopOrdersPage = () => {
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Nuk ka porosi ende.</p>
+            <p>Noch keine Bestellungen vorhanden.</p>
           </CardContent>
         </Card>
       ) : (
@@ -97,13 +271,15 @@ const ShopOrdersPage = () => {
                         <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                       </div>
                       <p className="font-semibold">{order.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">{order.customer_email} {order.customer_phone && `• ${order.customer_phone}`}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.customer_email}{order.customer_phone && ` • ${order.customer_phone}`}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {order.customer_address}, {order.customer_zip} {order.customer_city}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-right">
                         <p className="text-lg font-bold text-primary">CHF {order.total.toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground">
@@ -116,7 +292,7 @@ const ShopOrdersPage = () => {
                         onValueChange={(v) => handleStatusChange(order.id, v)}
                         disabled={updatingId === order.id}
                       >
-                        <SelectTrigger className="w-36">
+                        <SelectTrigger className="w-36" onClick={(e) => e.stopPropagation()}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -127,9 +303,10 @@ const ShopOrdersPage = () => {
                       </Select>
 
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                        onClick={(e) => toggleExpand(order.id, e)}
                       >
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
@@ -138,8 +315,9 @@ const ShopOrdersPage = () => {
 
                   {isExpanded && (
                     <div className="mt-4 pt-4 border-t space-y-4">
+                      {/* Products */}
                       <div>
-                        <p className="text-sm font-semibold mb-2">Produktet:</p>
+                        <p className="text-sm font-semibold mb-2">Bestellte Artikel:</p>
                         <div className="space-y-1">
                           {order.items.map((item, i) => (
                             <div key={i} className="flex justify-between text-sm">
@@ -158,24 +336,46 @@ const ShopOrdersPage = () => {
                       </div>
 
                       <div className="flex justify-between text-sm border-t pt-2">
-                        <span className="text-muted-foreground">Nëntotali</span>
+                        <span className="text-muted-foreground">Zwischensumme</span>
                         <span>CHF {order.subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
+                        <span className="text-muted-foreground">Versand</span>
                         <span>CHF {order.shipping_cost.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-bold border-t pt-2">
-                        <span>Total</span>
+                        <span>Gesamtbetrag</span>
                         <span className="text-primary">CHF {order.total.toFixed(2)}</span>
                       </div>
 
                       {order.notes && (
                         <div className="bg-muted/40 rounded-lg p-3">
-                          <p className="text-xs font-semibold mb-1">Shënime nga klienti:</p>
+                          <p className="text-xs font-semibold mb-1">Anmerkungen des Kunden:</p>
                           <p className="text-sm">{order.notes}</p>
                         </div>
                       )}
+
+                      {/* Email Notification Buttons */}
+                      <div className="border-t pt-4">
+                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Kunden benachrichtigen:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {NOTIFY_BUTTONS.map((btn) => (
+                            <Button
+                              key={btn.type}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => openNotify(order, btn.type, e)}
+                            >
+                              <Mail className="h-3 w-3 mr-1" />
+                              {btn.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -183,6 +383,15 @@ const ShopOrdersPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Email Template Dialog */}
+      {notifyDialog && (
+        <NotifyDialog
+          order={notifyDialog.order}
+          type={notifyDialog.type}
+          onClose={() => setNotifyDialog(null)}
+        />
       )}
     </div>
   );

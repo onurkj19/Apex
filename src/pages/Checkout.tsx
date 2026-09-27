@@ -39,7 +39,7 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) {
-      toast.error('Shporta është bosh!');
+      toast.error('Ihr Warenkorb ist leer!');
       return;
     }
 
@@ -71,7 +71,7 @@ const Checkout = () => {
       clearCart();
       navigate('/order-success', { state: { orderId: order.id.slice(0, 8).toUpperCase() } });
     } catch (err) {
-      toast.error('Ndodhi një gabim. Provo përsëri.');
+      toast.error('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
     } finally {
       setSubmitting(false);
     }
@@ -149,9 +149,9 @@ const Checkout = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="h-5 w-5" />
-                    Dorëzimi
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                    Lieferung
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
