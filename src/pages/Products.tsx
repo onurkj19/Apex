@@ -27,7 +27,10 @@ const ProductModal = ({
 
   const handleAdd = () => {
     addItem(product);
-    toast.success(`"${product.title}" wurde zum Warenkorb hinzugefügt!`);
+    toast.success('In den Warenkorb hinzugefügt ✓', {
+      description: product.title,
+      duration: 2000,
+    });
     onClose();
   };
 
@@ -140,7 +143,10 @@ const ProductCard = ({
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     addItem(product);
-    toast.success(`"${product.title}" wurde zum Warenkorb hinzugefügt!`);
+    toast.success('In den Warenkorb hinzugefügt ✓', {
+      description: product.title,
+      duration: 2000,
+    });
   };
 
   return (
