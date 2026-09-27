@@ -124,20 +124,16 @@ export const shopOrdersApi = {
     if (error) throw error;
     const newOrder = data as ShopOrder;
 
-    // Send notification to admin panel
-    try {
-      const orderNum = newOrder.id.slice(0, 8).toUpperCase();
-      await supabase.from('notifications').insert({
-        type: 'admin_change',
-        title: `🛒 Neue Bestellung #${orderNum}`,
-        message: `${newOrder.customer_name} — CHF ${newOrder.total.toFixed(2)} · ${newOrder.items.length} Artikel`,
-        is_read: false,
-        is_archived: false,
-        metadata: { order_id: newOrder.id, customer: newOrder.customer_name, total: newOrder.total },
-      });
-    } catch {
-      // Notification failure doesn't block the order
-    }
+    // Fire-and-forget notification — never blocks order
+    const orderNum = newOrder.id.slice(0, 8).toUpperCase();
+    supabase.from('notifications').insert({
+      type: 'admin_change',
+      title: `🛒 Neue Bestellung #${orderNum}`,
+      message: `${newOrder.customer_name} — CHF ${newOrder.total.toFixed(2)} · ${newOrder.items.length} Artikel`,
+      is_read: false,
+      is_archived: false,
+      metadata: { order_id: newOrder.id, customer: newOrder.customer_name, total: newOrder.total },
+    }).then(() => {}).catch(() => {});
 
     return newOrder;
   },

@@ -70,8 +70,10 @@ const Checkout = () => {
 
       clearCart();
       navigate('/order-success', { state: { orderId: order.id.slice(0, 8).toUpperCase() } });
-    } catch (err) {
-      toast.error('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      toast.error(`Fehler: ${msg}`);
+      console.error('Order error:', err);
     } finally {
       setSubmitting(false);
     }
