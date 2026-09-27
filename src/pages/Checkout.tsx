@@ -183,11 +183,23 @@ const Checkout = () => {
                     {items.map(({ product, quantity }) => {
                       const unitPrice = discountedPrice(product.price, product.discount_percent);
                       return (
-                        <div key={product.id} className="flex justify-between py-2 text-sm">
-                          <span className="text-muted-foreground">
-                            {product.title} × {quantity}
-                          </span>
-                          <span className="font-medium">
+                        <div key={product.id} className="flex items-center gap-3 py-3">
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url}
+                              alt={product.title}
+                              className="w-12 h-12 object-cover rounded-lg border shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-muted shrink-0 flex items-center justify-center">
+                              <Package className="h-5 w-5 text-muted-foreground/40" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium leading-snug line-clamp-2">{product.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">× {quantity}</p>
+                          </div>
+                          <span className="text-sm font-semibold shrink-0">
                             CHF {(unitPrice * quantity).toFixed(2)}
                           </span>
                         </div>
