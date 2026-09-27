@@ -9,18 +9,23 @@ import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { ShoppingCart, Package, X, ZoomIn } from 'lucide-react';
+import { ShoppingCart, Package, X, Tag, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ─── Product Detail Modal ─────────────────────────────────────────────────────
-
-const ProductModal = ({ product, onClose }: { product: ShopProduct; onClose: () => void }) => {
+// ─── Product Detail Modal ────────────────────────────────────────────────────
+const ProductModal = ({
+  product,
+  onClose,
+}: {
+  product: ShopProduct;
+  onClose: () => void;
+}) => {
   const { addItem } = useCart();
   const finalPrice = discountedPrice(product.price, product.discount_percent);
   const hasDiscount = product.discount_percent > 0;
+  const savedAmount = product.price - finalPrice;
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleAdd = () => {
     addItem(product);
     toast.success(`"${product.title}" wurde zum Warenkorb hinzugefügt!`);
     onClose();
@@ -28,61 +33,81 @@ const ProductModal = ({ product, onClose }: { product: ShopProduct; onClose: () 
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Image */}
-          <div className="relative bg-muted aspect-square md:aspect-auto min-h-[300px]">
+          <div className="relative bg-muted min-h-64 md:min-h-96 flex items-center justify-center">
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain max-h-96 p-4"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Package className="h-20 w-20 text-muted-foreground/30" />
-              </div>
+              <Package className="h-24 w-24 text-muted-foreground/30" />
             )}
             {hasDiscount && (
               <Badge className="absolute top-4 left-4 bg-red-500 text-white border-0 text-sm px-3 py-1">
                 -{product.discount_percent}% Rabatt
               </Badge>
             )}
+            <button
+              onClick={onClose}
+              className="absolute top-3 right-3 rounded-full bg-background/80 p-1.5 hover:bg-background transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Details */}
-          <div className="flex flex-col p-6 gap-4">
+          {/* Info */}
+          <div className="p-6 md:p-8 flex flex-col gap-4">
             {product.category && (
-              <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-widest">
+                <Layers className="h-3.5 w-3.5" />
                 {product.category}
-              </span>
+              </div>
             )}
+
             <h2 className="text-2xl font-bold leading-snug">{product.title}</h2>
 
             {product.description && (
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>
             )}
 
-            <div className="flex items-baseline gap-3 mt-2">
-              <span className="text-3xl font-bold text-primary">CHF {finalPrice.toFixed(2)}</span>
-              {hasDiscount && (
-                <span className="text-lg text-muted-foreground line-through">
-                  CHF {product.price.toFixed(2)}
+            {/* Price block */}
+            <div className="bg-muted/40 rounded-xl p-4 space-y-1">
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-primary">
+                  CHF {finalPrice.toFixed(2)}
                 </span>
+                {hasDiscount && (
+                  <span className="text-lg text-muted-foreground line-through">
+                    CHF {product.price.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              {hasDiscount && (
+                <div className="flex items-center gap-1.5 text-sm text-green-500 font-medium">
+                  <Tag className="h-3.5 w-3.5" />
+                  Sie sparen CHF {savedAmount.toFixed(2)} ({product.discount_percent}%)
+                </div>
               )}
             </div>
 
-            <div className="flex items-center gap-2 mt-1">
-              <div className={`w-2.5 h-2.5 rounded-full ${product.in_stock ? 'bg-green-500' : 'bg-red-500'}`} />
+            {/* Stock */}
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${product.in_stock ? 'bg-green-500' : 'bg-red-500'}`}
+              />
               <span className="text-sm text-muted-foreground">
-                {product.in_stock ? 'Auf Lager – sofort lieferbar' : 'Nicht verfügbar'}
+                {product.in_stock ? 'Auf Lager — sofort verfügbar' : 'Derzeit nicht auf Lager'}
               </span>
             </div>
 
-            <div className="mt-auto pt-4 space-y-3">
+            <div className="mt-auto space-y-3 pt-2">
               <Button
-                className="w-full"
                 size="lg"
+                className="w-full"
                 onClick={handleAdd}
                 disabled={!product.in_stock}
               >
@@ -90,7 +115,7 @@ const ProductModal = ({ product, onClose }: { product: ShopProduct; onClose: () 
                 {product.in_stock ? 'In den Warenkorb' : 'Nicht verfügbar'}
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                Versand per Swiss Post • Rechnung liegt bei
+                Zahlung per Rechnung · Versand per Swiss Post
               </p>
             </div>
           </div>
@@ -100,9 +125,14 @@ const ProductModal = ({ product, onClose }: { product: ShopProduct; onClose: () 
   );
 };
 
-// ─── Product Card ─────────────────────────────────────────────────────────────
-
-const ProductCard = ({ product, onOpen }: { product: ShopProduct; onOpen: () => void }) => {
+// ─── Product Card ────────────────────────────────────────────────────────────
+const ProductCard = ({
+  product,
+  onOpenDetail,
+}: {
+  product: ShopProduct;
+  onOpenDetail: (p: ShopProduct) => void;
+}) => {
   const { addItem } = useCart();
   const finalPrice = discountedPrice(product.price, product.discount_percent);
   const hasDiscount = product.discount_percent > 0;
@@ -116,7 +146,7 @@ const ProductCard = ({ product, onOpen }: { product: ShopProduct; onOpen: () => 
   return (
     <div
       className="group relative flex flex-col bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-      onClick={onOpen}
+      onClick={() => onOpenDetail(product)}
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
@@ -141,10 +171,6 @@ const ProductCard = ({ product, onOpen }: { product: ShopProduct; onOpen: () => 
             <Badge variant="secondary" className="text-sm">Nicht verfügbar</Badge>
           </div>
         )}
-        {/* Zoom hint */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
       </div>
 
       {/* Info */}
@@ -181,6 +207,7 @@ const ProductCard = ({ product, onOpen }: { product: ShopProduct; onOpen: () => 
   );
 };
 
+// ─── Main Page ───────────────────────────────────────────────────────────────
 const Products = () => {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,17 +218,24 @@ const Products = () => {
   useEffect(() => {
     shopProductsApi.listPublic()
       .then(setProducts)
-      .catch(() => toast.error('Nuk u ngarkuan produktet.'))
+      .catch(() => toast.error('Produkte konnten nicht geladen werden.'))
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = ['all', ...Array.from(new Set(products.map((p) => p.category).filter(Boolean) as string[]))];
+  const categories = [
+    'all',
+    ...Array.from(new Set(products.map((p) => p.category).filter(Boolean) as string[])),
+  ];
   const filtered = category === 'all' ? products : products.filter((p) => p.category === category);
 
   return (
     <div className="min-h-screen w-full min-w-0 bg-background">
       <Header />
       <CartDrawer />
+
+      {selectedProduct && (
+        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
 
       <main>
         {/* Hero */}
@@ -214,7 +248,6 @@ const Products = () => {
               Qualitätsprodukte für Ihren Bedarf — direkte Lieferung zu Ihnen.
             </p>
 
-            {/* Cart button */}
             {itemCount > 0 && (
               <Button size="lg" onClick={openCart} className="mx-auto">
                 <ShoppingCart className="h-5 w-5 mr-2" />
@@ -224,7 +257,7 @@ const Products = () => {
           </div>
         </section>
 
-        {/* Filters */}
+        {/* Category filters */}
         {categories.length > 1 && (
           <section className="container mx-auto px-4 mb-8">
             <div className="flex flex-wrap gap-2 justify-center">
@@ -242,7 +275,7 @@ const Products = () => {
           </section>
         )}
 
-        {/* Products grid */}
+        {/* Grid */}
         <section className="container mx-auto px-4 pb-20">
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -258,7 +291,11 @@ const Products = () => {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {filtered.map((product) => (
-                <ProductCard key={product.id} product={product} onOpen={() => setSelectedProduct(product)} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onOpenDetail={setSelectedProduct}
+                />
               ))}
             </div>
           )}
@@ -267,10 +304,6 @@ const Products = () => {
 
       <Footer />
       <BackToTop />
-
-      {selectedProduct && (
-        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      )}
     </div>
   );
 };
