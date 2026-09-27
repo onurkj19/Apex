@@ -9,6 +9,7 @@ export interface ShopProduct {
   image_url: string | null;
   in_stock: boolean;
   category: string | null;
+  sort_order: number;
   created_at: string;
 }
 
@@ -48,6 +49,7 @@ export const shopProductsApi = {
     const { data, error } = await supabase
       .from('shop_products')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as ShopProduct[];
@@ -58,9 +60,18 @@ export const shopProductsApi = {
       .from('shop_products')
       .select('*')
       .eq('in_stock', true)
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as ShopProduct[];
+  },
+
+  async updateOrder(items: { id: string; sort_order: number }[]): Promise<void> {
+    await Promise.all(
+      items.map(({ id, sort_order }) =>
+        supabase.from('shop_products').update({ sort_order }).eq('id', id)
+      )
+    );
   },
 
   async create(product: Omit<ShopProduct, 'id' | 'created_at'>): Promise<ShopProduct> {

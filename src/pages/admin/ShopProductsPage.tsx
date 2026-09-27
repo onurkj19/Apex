@@ -9,7 +9,85 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, X, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, X, Package, GripVertical } from 'lucide-react';
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// ─── Sortable row ────────────────────────────────────────────────────────────
+const SortableProductRow = ({
+  p,
+  onEdit,
+  onDelete,
+  deletingId,
+}: {
+  p: ShopProduct;
+  onEdit: (p: ShopProduct) => void;
+  onDelete: (id: string, title: string) => void;
+  deletingId: string | null;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  const hasDiscount = p.discount_percent > 0;
+  const finalPrice = hasDiscount ? p.price * (1 - p.discount_percent / 100) : p.price;
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 py-3 bg-background">
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0 p-1 touch-none"
+        title="Zvarrit për të ndryshuar renditjen"
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
+
+      {p.image_url ? (
+        <img src={p.image_url} alt={p.title} className="w-12 h-12 object-cover rounded-md shrink-0 border" />
+      ) : (
+        <div className="w-12 h-12 rounded-md bg-muted shrink-0 flex items-center justify-center">
+          <Package className="h-5 w-5 text-muted-foreground" />
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{p.title}</p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="text-sm font-semibold text-primary">CHF {finalPrice.toFixed(2)}</span>
+          {hasDiscount && (
+            <span className="text-xs text-muted-foreground line-through">CHF {p.price.toFixed(2)}</span>
+          )}
+          {hasDiscount && <Badge variant="destructive" className="text-xs">-{p.discount_percent}%</Badge>}
+          {p.category && <Badge variant="outline" className="text-xs">{p.category}</Badge>}
+          <Badge variant={p.in_stock ? 'default' : 'secondary'} className="text-xs">
+            {p.in_stock ? 'Ka stok' : 'Pa stok'}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <Button variant="outline" size="icon" onClick={() => onEdit(p)}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={deletingId === p.id}
+          onClick={() => onDelete(p.id, p.title)}
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const emptyForm = {
   title: '',
@@ -30,7 +108,12 @@ const ShopProductsPage = () => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const load = async () => {
     setLoading(true);
@@ -129,6 +212,25 @@ const ShopProductsPage = () => {
       toast.error('Gabim gjatë fshirjes.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(products, oldIndex, newIndex);
+    setProducts(reordered);
+    setSavingOrder(true);
+    try {
+      await shopProductsApi.updateOrder(reordered.map((p, i) => ({ id: p.id, sort_order: i })));
+      toast.success('Renditja u ruajt!');
+    } catch {
+      toast.error('Gabim gjatë ruajtjes së renditjes.');
+      await load();
+    } finally {
+      setSavingOrder(false);
     }
   };
 
@@ -280,10 +382,17 @@ const ShopProductsPage = () => {
         </Card>
       )}
 
-      {/* Products list */}
+      {/* Products list with DnD */}
       <Card>
         <CardHeader>
-          <CardTitle>Të gjitha produktet ({products.length})</CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle>Të gjitha produktet ({products.length})</CardTitle>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <GripVertical className="h-4 w-4" />
+              Zvarrit për të ndryshuar renditjen
+              {savingOrder && <span className="text-xs text-primary animate-pulse ml-2">Duke ruajtur...</span>}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -298,66 +407,21 @@ const ShopProductsPage = () => {
               <p>Nuk ka produkte. Shto produktin e parë!</p>
             </div>
           ) : (
-            <div className="divide-y">
-              {products.map((p) => {
-                const hasDiscount = p.discount_percent > 0;
-                const finalPrice = hasDiscount
-                  ? p.price * (1 - p.discount_percent / 100)
-                  : p.price;
-                return (
-                  <div key={p.id} className="flex items-center gap-4 py-3">
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.title}
-                        className="w-12 h-12 object-cover rounded-md shrink-0 border"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-md bg-muted shrink-0 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{p.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-sm font-semibold text-primary">
-                          CHF {finalPrice.toFixed(2)}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-xs text-muted-foreground line-through">
-                            CHF {p.price.toFixed(2)}
-                          </span>
-                        )}
-                        {hasDiscount && (
-                          <Badge variant="destructive" className="text-xs">
-                            -{p.discount_percent}%
-                          </Badge>
-                        )}
-                        {p.category && (
-                          <Badge variant="outline" className="text-xs">{p.category}</Badge>
-                        )}
-                        <Badge variant={p.in_stock ? 'default' : 'secondary'} className="text-xs">
-                          {p.in_stock ? 'Ka stok' : 'Pa stok'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button variant="outline" size="icon" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        disabled={deletingId === p.id}
-                        onClick={() => handleDelete(p.id, p.title)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+              <SortableContext items={products.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                <div className="divide-y">
+                  {products.map((p) => (
+                    <SortableProductRow
+                      key={p.id}
+                      p={p}
+                      onEdit={openEdit}
+                      onDelete={handleDelete}
+                      deletingId={deletingId}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>
