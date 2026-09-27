@@ -48,11 +48,16 @@ const About = () => {
     }
   ];
 
+const calcYears = (startYear: number) => {
+  const years = new Date().getFullYear() - startYear;
+  return `${years}+ Jahre Erfahrung`;
+};
+
 const team = [
   {
     name: "Onur Kajmakci",
     position: "Geschäftsführer & Gerüstbaumeister",
-    experience: "5 Jahre Erfahrung",
+    experience: calcYears(2019),
     phone: "+41 76 368 10 11",
     email: "info@apex-gerueste.ch",
     specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"],
@@ -60,7 +65,7 @@ const team = [
   {
     name: "Arlind Morina",
     position: "Technischer Leiter",
-    experience: "8 Jahre Erfahrung",
+    experience: calcYears(2016),
     phone: "+41 79 422 39 90",
     email: "info@apex-gerueste.ch",
     specialties: ["Baustellenplanung", "Sicherheitstechnik", "Teamführung"]
@@ -68,7 +73,7 @@ const team = [
   {
     name: "Flamur Shala",
     position: "Projektmanager",
-    experience: "15 Jahre Erfahrung",
+    experience: calcYears(2010),
     phone: "+41 79 830 57 80",
     email: "info@apex-gerueste.ch",
     specialties: ["Kundenbetreuung", "Terminplanung", "Qualitätskontrolle"]

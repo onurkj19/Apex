@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, Trash2, Truck, Users, Wallet } from 'lucide-react';
+import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, ShoppingBag, ShoppingCart, Trash2, Truck, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { authApi, notificationApi } from '@/lib/erp-api';
@@ -30,6 +30,8 @@ const items = [
   { to: '/admin/team-planning', label: 'Team Planning', icon: CalendarDays },
   { to: '/admin/leave-requests', label: 'Kerkesa Pushimi', icon: ClipboardList },
   { to: '/admin/work-approvals', label: 'Aprovimi Oreve', icon: ClipboardList },
+  { to: '/admin/shop-products', label: 'Shop Produktet', icon: ShoppingBag },
+  { to: '/admin/shop-orders', label: 'Shop Porositë', icon: ShoppingCart },
   { to: '/admin/settings', label: 'Cilesimet', icon: Settings },
 ];
 

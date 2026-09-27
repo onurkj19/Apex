@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { CartProvider } from "./context/CartContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,10 @@ const Projects = lazy(() => import("./pages/Projects"));
 const Products = lazy(() => import("./pages/Products"));
 const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const ShopProductsPage = lazy(() => import("./pages/admin/ShopProductsPage"));
+const ShopOrdersPage = lazy(() => import("./pages/admin/ShopOrdersPage"));
 const LoginPage = lazy(() => import("./pages/admin/LoginPage"));
 const DashboardPage = lazy(() => import("./pages/admin/DashboardPage"));
 const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
@@ -39,6 +44,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <CartProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -52,6 +58,8 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin/login" element={<LoginPage />} />
             <Route path="/admin" element={<ProtectedRoute />}>
@@ -76,6 +84,8 @@ const App = () => (
                 <Route path="leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="work-approvals" element={<WorkApprovalsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="shop-products" element={<ShopProductsPage />} />
+                <Route path="shop-orders" element={<ShopOrdersPage />} />
               </Route>
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
@@ -85,6 +95,7 @@ const App = () => (
         </Suspense>
       </HashRouter>
     </TooltipProvider>
+    </CartProvider>
   </QueryClientProvider>
 );
 

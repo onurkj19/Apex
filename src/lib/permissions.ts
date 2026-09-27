@@ -16,6 +16,7 @@ export const canAccessRoute = (role: AppRole | null | undefined, path: string) =
   if (!role) return false;
   if (role === 'super_admin') return true;
   if (role === 'admin') return !['/admin/leave-requests', '/admin/work-approvals'].includes(path);
+  if (path === '/admin/shop-products' || path === '/admin/shop-orders') return role === 'admin' || role === 'super_admin';
 
   if (role === 'worker') {
     return ['/admin/dashboard'].includes(path);

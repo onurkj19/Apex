@@ -80,47 +80,6 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 bg-background/80 backdrop-blur-lg border-t border-border/50">
-          <div className="flex flex-col gap-4 md:flex-row md:gap-6 justify-between items-center">
-            <p className="text-white text-sm">
-              © {new Date().getFullYear()} {COMPANY_LEGAL_NAME}. Alle Rechte vorbehalten.
-            </p>
-            <div className="flex items-center gap-2 md:gap-3">
-              <span className="text-white/80 text-xs md:text-sm">This website powered by</span>
-              <a
-                href="https://www.vertexwebsolutions.ch/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center"
-                aria-label="Vertex Web Solutions"
-                title="Vertex Web Solutions"
-              >
-                <img
-                  src={`${import.meta.env.BASE_URL}vertex-web-solutions.png`}
-                  alt="Vertex Web Solutions"
-                  className="h-8 md:h-9 w-auto object-contain"
-                  loading="lazy"
-                  onError={(e) => {
-                    const el = e.currentTarget;
-                    el.style.display = 'none';
-                  }}
-                />
-                <span className="sr-only">Vertex Web Solutions</span>
-              </a>
-            </div>
-            <div className="flex space-x-6">
-              <a href="#" className="text-white hover:text-primary text-sm transition-colors">
-                Datenschutz
-              </a>
-              <a href="#" className="text-white hover:text-primary text-sm transition-colors">
-                Impressum
-              </a>
-              <a href="#" className="text-white hover:text-primary text-sm transition-colors">
-                AGB
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
     </footer>
   );
