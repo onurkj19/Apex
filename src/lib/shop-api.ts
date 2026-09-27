@@ -122,7 +122,24 @@ export const shopOrdersApi = {
       .select()
       .single();
     if (error) throw error;
-    return data as ShopOrder;
+    const newOrder = data as ShopOrder;
+
+    // Send notification to admin panel
+    try {
+      const orderNum = newOrder.id.slice(0, 8).toUpperCase();
+      await supabase.from('notifications').insert({
+        type: 'new_order',
+        title: `🛒 Neue Bestellung #${orderNum}`,
+        message: `${newOrder.customer_name} — CHF ${newOrder.total.toFixed(2)} · ${newOrder.items.length} Artikel`,
+        is_read: false,
+        is_archived: false,
+        metadata: { order_id: newOrder.id, customer: newOrder.customer_name, total: newOrder.total },
+      });
+    } catch {
+      // Notification failure doesn't block the order
+    }
+
+    return newOrder;
   },
 
   async list(): Promise<ShopOrder[]> {
