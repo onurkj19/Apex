@@ -116,23 +116,26 @@ export const shopProductsApi = {
 
 export const shopOrdersApi = {
   async create(order: Omit<ShopOrder, 'id' | 'created_at' | 'status'>): Promise<ShopOrder> {
-    const { data, error } = await supabase
+    // Generate UUID client-side so we don't need SELECT after INSERT
+    const id = crypto.randomUUID();
+    const created_at = new Date().toISOString();
+
+    const { error } = await supabase
       .from('shop_orders')
-      .insert({ ...order, status: 'pending' })
-      .select()
-      .single();
+      .insert({ id, ...order, status: 'pending', created_at });
     if (error) throw error;
-    const newOrder = data as ShopOrder;
+
+    const newOrder: ShopOrder = { id, ...order, status: 'pending', created_at };
 
     // Fire-and-forget notification — never blocks order
-    const orderNum = newOrder.id.slice(0, 8).toUpperCase();
+    const orderNum = id.slice(0, 8).toUpperCase();
     supabase.from('notifications').insert({
       type: 'admin_change',
       title: `🛒 Neue Bestellung #${orderNum}`,
-      message: `${newOrder.customer_name} — CHF ${newOrder.total.toFixed(2)} · ${newOrder.items.length} Artikel`,
+      message: `${order.customer_name} — CHF ${order.total.toFixed(2)} · ${order.items.length} Artikel`,
       is_read: false,
       is_archived: false,
-      metadata: { order_id: newOrder.id, customer: newOrder.customer_name, total: newOrder.total },
+      metadata: { order_id: id, customer: order.customer_name, total: order.total },
     }).then(() => {}).catch(() => {});
 
     return newOrder;
