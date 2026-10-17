@@ -36,7 +36,7 @@ export const useAdminAuth = () => {
     checkAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      void checkAuth();
+      window.setTimeout(() => { void checkAuth(); }, 0);
     });
 
     return () => {

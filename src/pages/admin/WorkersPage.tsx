@@ -53,7 +53,7 @@ const WorkersPage = () => {
   const [form, setForm] = useState({
     full_name: '',
     hourly_rate: '',
-    role: WORKER_ROLE_OPTIONS[0].value,
+    role: WORKER_ROLE_OPTIONS[0].value as string,
     group_name: '',
   });
 
@@ -93,7 +93,7 @@ const WorkersPage = () => {
       setForm({
         full_name: '',
         hourly_rate: '',
-        role: WORKER_ROLE_OPTIONS[0].value,
+        role: WORKER_ROLE_OPTIONS[0].value as string,
         group_name: firstActive,
       });
       await load();

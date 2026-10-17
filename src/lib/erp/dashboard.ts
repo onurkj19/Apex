@@ -8,7 +8,7 @@ export const dashboardApi = {
       .from('projects')
       .select('id, revenue')
       .is('deleted_at', null)
-      .neq('status', 'I perfunduar');
+      .in('status', ['I pranuar', 'Ne pune', 'I perfunduar']);
     if (pErr) throw pErr;
     const ids = (projects || []).map((x: { id: string }) => x.id);
     if (ids.length === 0) return 0;
@@ -55,7 +55,8 @@ export const dashboardApi = {
     const { data, error } = await supabase
       .from('finances')
       .select('amount, finance_type, finance_date')
-      .gte('finance_date', new Date(new Date().getFullYear(), 0, 1).toISOString());
+      .gte('finance_date', `${new Date().getFullYear()}-01-01`)
+      .order('finance_date', { ascending: true });
     if (error) throw error;
     const monthly = new Map<string, { month: string; teArdhura: number; shpenzime: number }>();
     (data || []).forEach((row: any) => {

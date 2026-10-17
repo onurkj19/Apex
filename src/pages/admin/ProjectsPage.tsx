@@ -460,6 +460,7 @@ const ProjectsPage = () => {
         end_date: (project as any).end_date || null,
         revenue: Number(project.revenue || 0),
         revenue_includes_vat_8_1: Boolean(project.revenue_includes_vat_8_1),
+        is_public: Boolean(project.is_public),
         status: project.status,
         ...((project as any).priority ? { priority: (project as any).priority } : {}),
       });
@@ -706,6 +707,10 @@ const ProjectsPage = () => {
                                       </div>
                                       <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
                                         <Switch id={`vat-${p.id}`} checked={Boolean(p.revenue_includes_vat_8_1)} onCheckedChange={(c) => setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, revenue_includes_vat_8_1: c } : x)))} />
+                                        <div className="flex items-center gap-2 mt-3">
+                                          <Switch id={`public-${p.id}`} checked={Boolean(p.is_public)} onCheckedChange={value => setProjects(prev => prev.map(x => x.id === p.id ? { ...x, is_public: value } : x))} />
+                                          <Label htmlFor={`public-${p.id}`}>Publiko në website</Label>
+                                        </div>
                                         <Label htmlFor={`vat-${p.id}`} className="cursor-pointer text-sm font-normal">Çmimi përfshin MwSt 8.1%</Label>
                                       </div>
                                       <div className="flex gap-2">

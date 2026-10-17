@@ -196,6 +196,9 @@ const FinancesPage = () => {
         </div>
       </div>
 
+      {rows.some(row => row.payment_reconciliation?.status === 'unverified') && (
+        <p role="status" className="rounded-md border border-amber-400 p-3 text-sm">Bilanci përmban hyrje automatike të paverifikuara. Këto nuk janë dëshmi pagese; verifikojini me bankën ose cash.</p>
+      )}
       {/* Bilanci - 4 karta */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border-emerald-200 dark:border-emerald-800">
@@ -409,6 +412,7 @@ const FinancesPage = () => {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-medium text-sm leading-snug truncate">{row.title}</p>
+                                {row.payment_reconciliation?.status === 'unverified' && <p className="text-xs text-amber-600">Pagesë e paverifikuar — krahaso me bankën / cash.</p>}
                                 <p className="text-xs text-muted-foreground">
                                   {row.finance_date} · {row.payment_method}
                                   {row.category && ` · ${row.category}`}

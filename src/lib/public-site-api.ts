@@ -32,7 +32,6 @@ export type PublicProjectWithImages = PublicProjectRow & { images: PublicProject
 export async function fetchPublicProjectsWithImages(): Promise<PublicProjectWithImages[]> {
   const { data, error } = await supabase
     .from('projects')
-    .is('deleted_at', null)
     .select(
       `
       id,
@@ -53,6 +52,8 @@ export async function fetchPublicProjectsWithImages(): Promise<PublicProjectWith
       )
     `,
     )
+    .is('deleted_at', null)
+    .eq('is_public', true)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -61,7 +62,7 @@ export async function fetchPublicProjectsWithImages(): Promise<PublicProjectWith
     const nested = project.project_images as PublicProjectImageRow[] | undefined;
     const { project_images: _omit, ...rest } = project;
     return {
-      ...(rest as PublicProjectRow),
+      ...(rest as unknown as PublicProjectRow),
       images: Array.isArray(nested) ? nested : [],
     };
   });

@@ -13,6 +13,8 @@ import { Truck, MapPin, ExternalLink, CalendarDays, Clock } from 'lucide-react';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
+  const canSeeFinance = ['admin', 'super_admin', 'finance'].includes(profile?.role || '');
+  const [loadError, setLoadError] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [financeChart, setFinanceChart] = useState<any[]>([]);
   const [statusChart, setStatusChart] = useState<any[]>([]);
@@ -52,11 +54,11 @@ const DashboardPage = () => {
 
       const [statsRes, financeRes, statusRes, notificationsRes, trendRes, outstandingRes] = await Promise.all([
         dashboardApi.getStats(),
-        dashboardApi.getMonthlyFinance(),
+        canSeeFinance ? dashboardApi.getMonthlyFinance() : Promise.resolve([]),
         dashboardApi.getProjectStatusDistribution(),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(5),
-        dashboardApi.getTrendAlarms(),
-        dashboardApi.getOutstandingReceivablesChf(),
+        canSeeFinance ? dashboardApi.getTrendAlarms() : Promise.resolve(null),
+        canSeeFinance ? dashboardApi.getOutstandingReceivablesChf() : Promise.resolve(0),
       ]);
       setStats(statsRes);
       setFinanceChart(financeRes);
@@ -65,7 +67,7 @@ const DashboardPage = () => {
       setTrend(trendRes);
       setOutstandingReceivables(outstandingRes);
     };
-    void load();
+    void load().catch(error => setLoadError(error instanceof Error ? error.message : 'Nuk u ngarkuan të dhënat.'));
   }, [profile?.role]);
 
   const boxes = [
@@ -75,8 +77,8 @@ const DashboardPage = () => {
     { label: 'Te ardhura mujore', value: formatChf(stats?.monthly_revenue ?? 0) },
     { label: 'Shpenzime mujore', value: formatChf(stats?.monthly_expenses ?? 0) },
     { label: 'Bilanci i kompanise', value: formatChf(stats?.company_balance ?? 0) },
-    { label: 'Faturë e hapur (jo të përfunduara)', value: formatChf(outstandingReceivables) },
-  ];
+    { label: 'Për t’u arkëtuar nga projektet', value: formatChf(outstandingReceivables) },
+  ].filter((_, index) => canSeeFinance || index < 3);
 
   const roleWidgets = [
     {
@@ -440,6 +442,7 @@ const DashboardPage = () => {
       <h2 className="text-2xl font-bold">Dashboard</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
         {boxes.map((item) => (
           <Card key={item.label}>
             <CardHeader className="pb-2">

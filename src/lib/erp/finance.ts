@@ -10,7 +10,7 @@ export const PROJECT_PANEL_INCOME_TITLE = 'Pagesë nga paneli Projektet';
 
 export const financeApi = {
   async list(): Promise<FinanceEntry[]> {
-    const { data, error } = await supabase.from('finances').select('*').order('finance_date', { ascending: false });
+    const { data, error } = await supabase.from('finances').select('*, payment_reconciliation(status, reference)').order('finance_date', { ascending: false });
     if (error) throw error;
     return (data || []) as FinanceEntry[];
   },

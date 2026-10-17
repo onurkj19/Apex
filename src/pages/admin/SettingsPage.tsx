@@ -33,7 +33,7 @@ const SettingsPage = () => {
     role: 'worker' as AppRole,
     worker_id: '',
     worker_hourly_rate: '0',
-    worker_job_role: WORKER_ROLE_OPTIONS[0].value,
+    worker_job_role: WORKER_ROLE_OPTIONS[0].value as string,
     worker_group_name: '',
   });
 
@@ -151,7 +151,7 @@ const SettingsPage = () => {
         role: 'worker',
         worker_id: '',
         worker_hourly_rate: '0',
-        worker_job_role: WORKER_ROLE_OPTIONS[0].value,
+        worker_job_role: WORKER_ROLE_OPTIONS[0].value as string,
         worker_group_name: firstGroup,
       });
       setAdmins(await authApi.listAppUsers());

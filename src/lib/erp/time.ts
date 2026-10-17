@@ -1,4 +1,4 @@
-export const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
+export const toIsoDate = (date: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Zurich', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 
 export const overlapMinutes = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) => {
   const start = Math.max(aStart.getTime(), bStart.getTime());
