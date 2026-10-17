@@ -23,7 +23,7 @@ import { toLocalDateKey } from '@/lib/notification-dates';
 import { de } from 'date-fns/locale';
 import {
   Plus, Wallet, MapPin, LayoutList, Columns3,
-  Paperclip, Trash2, Upload, ExternalLink, Hash,
+  Paperclip, Trash2, Upload, ExternalLink, Hash, RotateCcw,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,6 +95,7 @@ const DescriptionWithToggle = () => {
 
 // File attachments panel for a single project
 const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
+  const [showDeleted, setShowDeleted] = useState(false);
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [typeHint, setTypeHint] = useState<ProjectFileType>('other');
@@ -103,7 +104,7 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    projectFilesApi.list(projectId)
+    projectFilesApi.list(projectId, showDeleted)
       .then(setFiles)
       .catch((err: any) => {
         const msg = String(err?.message || err);
@@ -111,7 +112,7 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
           setNeedsMigration(true);
         }
       });
-  }, [projectId]);
+  }, [projectId, showDeleted]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -136,16 +137,18 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
   };
 
   const handleDelete = async (f: ProjectFile) => {
-    if (!confirm(`Fshi "${f.file_name}"?`)) return;
-    await projectFilesApi.delete(f);
-    setFiles((prev) => prev.filter((x) => x.id !== f.id));
+    if (!confirm(`Hiqe "${f.file_name}"? Mund ta rikthesh te skedarët e hequr.`)) return;
+    try {
+      await projectFilesApi.delete(f);
+      setFiles(prev => prev.filter(x => x.id !== f.id));
+    } catch (error: unknown) { setUploadError(error instanceof Error ? error.message : 'Skedari nuk u hoq.'); }
   };
 
   if (needsMigration) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-        <p className="font-semibold">⚠ Duhet SQL Migration</p>
-        <p>Ekzekuto skedarin <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">20260628120000_project_enhancements.sql</code> në <strong>Supabase → SQL Editor</strong> për të aktivizuar skedarët.</p>
+        <p className="font-semibold">Skedarët nuk janë të disponueshëm aktualisht.</p>
+        <p>Kontakto administratorin për ta zgjidhur problemin.</p>
       </div>
     );
   }
@@ -165,10 +168,11 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
             ))}
           </SelectContent>
         </Select>
-        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => inputRef.current?.click()} disabled={uploading}>
+        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => inputRef.current?.click()} disabled={uploading || showDeleted}>
           <Upload className="h-3.5 w-3.5" />
           {uploading ? 'Duke ngarkuar...' : 'Ngarko skedar'}
         </Button>
+        <Button size="sm" variant="ghost" onClick={() => setShowDeleted(value => !value)}>{showDeleted ? 'Skedarët aktivë' : 'Skedarët e hequr'}</Button>
         <input ref={inputRef} type="file" accept="*/*" className="hidden" onChange={handleUpload} />
       </div>
 
@@ -192,9 +196,12 @@ const ProjectFilesPanel = ({ projectId }: { projectId: string }) => {
                 </a>
                 <span className="text-[10px] text-muted-foreground">{FILE_TYPE_LABELS[f.file_type]}</span>
               </div>
-              <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(f)}>
+              {showDeleted ? <Button size="sm" variant="outline" onClick={async () => {
+                try { await projectFilesApi.restore(f.id); setFiles(prev => prev.filter(x => x.id !== f.id)); }
+                catch (error: unknown) { setUploadError(error instanceof Error ? error.message : 'Rikthimi dështoi.'); }
+              }}><RotateCcw className="h-3 w-3 mr-1" />Rikthe</Button> : <Button aria-label={`Hiq ${f.file_name}`} size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(f)}>
                 <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              </Button>}
             </div>
           ))}
         </div>

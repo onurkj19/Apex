@@ -14,6 +14,10 @@ export const financeApi = {
     if (error) throw error;
     return (data || []) as FinanceEntry[];
   },
+  async reviewPayment(id: string, status: 'confirmed' | 'not_received' | 'unverified', reference: string) {
+    const { error } = await supabase.rpc('review_payment', { payment_id: id, review_status: status, evidence_reference: reference });
+    if (error) throw error;
+  },
   async create(payload: Partial<FinanceEntry>) {
     const { error } = await supabase.from('finances').insert(payload);
     if (error) throw error;

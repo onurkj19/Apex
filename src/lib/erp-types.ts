@@ -59,7 +59,7 @@ export interface WorkerGroup {
 }
 
 export interface FinanceEntry {
-  payment_reconciliation?: { status: string; reference: string | null } | null;
+  payment_reconciliation?: { status: 'unverified' | 'confirmed' | 'not_received'; reference: string | null } | null;
   id: string;
   title: string;
   amount: number;
