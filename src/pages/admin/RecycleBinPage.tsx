@@ -1,22 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { projectApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
+import { projectApi } from '@/lib/erp-api';
 import type { Project } from '@/lib/erp-types';
 import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
-
-const MS_PER_DAY = 86_400_000;
-
-function daysUntilPurge(deletedAt: string | null | undefined): number {
-  if (!deletedAt) return PROJECT_RECYCLE_RETENTION_DAYS;
-  const purgeAt = new Date(deletedAt).getTime() + PROJECT_RECYCLE_RETENTION_DAYS * MS_PER_DAY;
-  return Math.max(0, Math.ceil((purgeAt - Date.now()) / MS_PER_DAY));
-}
 
 const RecycleBinPage = () => {
   const [items, setItems] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
-  const [purgeInfo, setPurgeInfo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [pendingRestoreId, setPendingRestoreId] = useState<string | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -24,14 +16,11 @@ const RecycleBinPage = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const removed = await projectApi.purgeExpiredDeletedProjects();
-      if (removed > 0) {
-        setPurgeInfo(`${removed} projekt(ë) u hoqën përfundimisht (mbi ${PROJECT_RECYCLE_RETENTION_DAYS} ditë në kosh).`);
-      } else {
-        setPurgeInfo(null);
-      }
+      setError(null);
       const rows = await projectApi.listDeleted();
       setItems(rows);
+    } catch {
+      setError('Koshi nuk u ngarkua. Provo përsëri.');
     } finally {
       setLoading(false);
     }
@@ -51,10 +40,13 @@ const RecycleBinPage = () => {
     setRestoreLoading(true);
     try {
       await projectApi.restore(pendingRestoreId);
+      setPendingRestoreId(null);
       await load();
+    } catch (cause) {
+      setError('Projekti nuk u rikthye. Rifresko dhe provo përsëri.');
+      throw cause;
     } finally {
       setRestoreLoading(false);
-      setPendingRestoreId(null);
     }
   };
 
@@ -64,7 +56,7 @@ const RecycleBinPage = () => {
         <div>
           <h2 className="text-2xl font-bold">Koshi (Recycle Bin)</h2>
           <p className="text-sm text-muted-foreground">
-            Projektet e fshira qëndrojnë këtu. Pas {PROJECT_RECYCLE_RETENTION_DAYS} ditësh fshihen përfundimisht.
+            Projektet e hequra ruhen këtu dhe mund të rikthehen. Nuk fshihen automatikisht.
           </p>
         </div>
         <Button variant="outline" onClick={() => void load()} disabled={loading}>
@@ -72,9 +64,9 @@ const RecycleBinPage = () => {
         </Button>
       </div>
 
-      {purgeInfo && (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
-          {purgeInfo}
+      {error && (
+        <p role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+          {error}
         </p>
       )}
 
@@ -82,11 +74,15 @@ const RecycleBinPage = () => {
         <CardHeader>
           <CardTitle>Projekte të fshira</CardTitle>
           <CardDescription>
-            Rikthe një projekt për ta kthyer në listën kryesore, përpara se të skadojë afati.
+            Rikthe një projekt për ta kthyer në listën kryesore.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {items.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Duke ngarkuar...</p>
+          ) : error && items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Lista nuk është në dispozicion.</p>
+          ) : items.length === 0 ? (
             <p className="text-sm text-muted-foreground">Koshi është bosh.</p>
           ) : (
             <div className="overflow-x-auto rounded-md border">
@@ -96,7 +92,6 @@ const RecycleBinPage = () => {
                     <th className="p-3 font-medium">Projekti</th>
                     <th className="p-3 font-medium">Lokacioni</th>
                     <th className="p-3 font-medium">Fshirë më</th>
-                    <th className="p-3 font-medium">Ditë deri në fshirje përfundimtare</th>
                     <th className="p-3 font-medium w-[140px]">Veprime</th>
                   </tr>
                 </thead>
@@ -110,7 +105,6 @@ const RecycleBinPage = () => {
                           ? new Date(p.deleted_at).toLocaleString('sq-AL', { dateStyle: 'short', timeStyle: 'short' })
                           : '—'}
                       </td>
-                      <td className="p-3">{daysUntilPurge(p.deleted_at)}</td>
                       <td className="p-3">
                         <Button
                           size="sm"

@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { clientApi, projectApi, financeApi, PROJECT_RECYCLE_RETENTION_DAYS } from '@/lib/erp-api';
+import { clientApi, projectApi, financeApi } from '@/lib/erp-api';
 import { projectFilesApi, type ProjectFile, type ProjectFileType } from '@/lib/erp/project-files';
 import { DestructiveConfirmDialog } from '@/components/admin/DestructiveConfirmDialog';
 import type { Project, ProjectStatus } from '@/lib/erp-types';
@@ -893,7 +893,7 @@ const ProjectsPage = () => {
       {/* ── Dialogs ── */}
       <DestructiveConfirmDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} title="Krijo projektin?" description="A dëshiron të krijosh këtë projekt?" confirmLabel="Po, krijo" confirmVariant="default" loading={loading} onConfirm={performCreate} />
       <DestructiveConfirmDialog open={editDialogOpen} onOpenChange={(o) => { setEditDialogOpen(o); if (!o) setEditConfirmProject(null); }} title="Ruaj ndryshimet?" description="A dëshiron të ruash ndryshimet?" confirmLabel="Po, ruaj" confirmVariant="default" loading={Boolean(editConfirmProject && actionLoadingId === `edit-${editConfirmProject.id}`)} onConfirm={performSaveEdit} />
-      <DestructiveConfirmDialog open={deleteDialogOpen} onOpenChange={(o) => { setDeleteDialogOpen(o); if (!o) setPendingDeleteId(null); }} title="Fshi projektin?" description={`Projekti kalon në Koshi. Mund ta rikthesh brenda ${PROJECT_RECYCLE_RETENTION_DAYS} ditëve.`} confirmLabel="Po, fshi" loading={Boolean(pendingDeleteId && actionLoadingId === `delete-${pendingDeleteId}`)} onConfirm={performRemoveProject} />
+      <DestructiveConfirmDialog open={deleteDialogOpen} onOpenChange={(o) => { setDeleteDialogOpen(o); if (!o) setPendingDeleteId(null); }} title="Fshi projektin?" description="Projekti kalon në Koshi dhe mund të rikthehet. Nuk fshihet automatikisht." confirmLabel="Po, fshi" loading={Boolean(pendingDeleteId && actionLoadingId === `delete-${pendingDeleteId}`)} onConfirm={performRemoveProject} />
     </div>
   );
 };
