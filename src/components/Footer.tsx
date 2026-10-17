@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 
@@ -24,15 +25,9 @@ const Footer = () => {
               Montage- und Demontagedienstleistungen in der Schweiz.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-white hover:text-primary transition-colors icon-bounce">
-                <Facebook size={20} />
-              </a>
-              <a href="#" className="text-white hover:text-primary transition-colors icon-bounce">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="text-white hover:text-primary transition-colors icon-bounce">
-                <Linkedin size={20} />
-              </a>
+
+
+
             </div>
           </div>
 
@@ -40,11 +35,11 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-white">Dienstleistungen</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-white hover:text-primary transition-colors">Gerüstverleih</a></li>
-              <li><a href="#" className="text-white hover:text-primary transition-colors">Montage & Demontage</a></li>
-              <li><a href="#" className="text-white hover:text-primary transition-colors">Wohnbau</a></li>
-              <li><a href="#" className="text-white hover:text-primary transition-colors">Gewerbe</a></li>
-              <li><a href="#" className="text-white hover:text-primary transition-colors">Industrie</a></li>
+              <li><Link to="/services" className="text-white hover:text-primary transition-colors">Gerüstverleih</Link></li>
+              <li><Link to="/services" className="text-white hover:text-primary transition-colors">Montage & Demontage</Link></li>
+              <li><Link to="/services" className="text-white hover:text-primary transition-colors">Wohnbau</Link></li>
+              <li><Link to="/services" className="text-white hover:text-primary transition-colors">Gewerbe</Link></li>
+              <li><Link to="/services" className="text-white hover:text-primary transition-colors">Industrie</Link></li>
             </ul>
           </div>
 
@@ -71,11 +66,11 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-white">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="#about" className="text-white hover:text-primary transition-colors">Über uns</a></li>
-              <li><a href="#projects" className="text-white hover:text-primary transition-colors">Projekte</a></li>
-              <li><a href="#shop" className="text-white hover:text-primary transition-colors">Produkte</a></li>
-              <li><a href="#career" className="text-white hover:text-primary transition-colors">Karriere</a></li>
-              <li><a href="#contact" className="text-white hover:text-primary transition-colors">Kontakt</a></li>
+              <li><Link to="/about" className="text-white hover:text-primary transition-colors">Über uns</Link></li>
+              <li><Link to="/projects" className="text-white hover:text-primary transition-colors">Projekte</Link></li>
+              <li><Link to="/products" className="text-white hover:text-primary transition-colors">Produkte</Link></li>
+
+              <li><Link to="/contact" className="text-white hover:text-primary transition-colors">Kontakt</Link></li>
             </ul>
           </div>
         </div>

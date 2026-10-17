@@ -20,11 +20,13 @@ export interface DashboardStats {
   monthly_revenue: number;
   monthly_expenses: number;
   company_balance: number;
+  unverified_receipts?: number;
 }
 
 export interface Project {
   id: string;
   project_name: string;
+  is_public?: boolean;
   client_id: string | null;
   location: string;
   description: string | null;
@@ -58,6 +60,7 @@ export interface WorkerGroup {
 }
 
 export interface FinanceEntry {
+  payment_reconciliation?: { status: 'unverified' | 'confirmed' | 'not_received'; reference: string | null } | null;
   id: string;
   title: string;
   amount: number;

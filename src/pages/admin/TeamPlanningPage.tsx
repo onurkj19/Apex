@@ -128,7 +128,7 @@ const TeamPlanningPage = () => {
       };
 
       if (editingPlan) {
-        let merged: TeamPlanAttachment[] = [...keepAttachments];
+        const merged: TeamPlanAttachment[] = [...keepAttachments];
         for (const u of uploads) {
           merged.push(await teamPlanApi.uploadAttachment(editingPlan.id, u.file!, u.title.trim()));
         }
@@ -141,7 +141,7 @@ const TeamPlanningPage = () => {
           ...basePayload,
           status: 'planned',
         });
-        let atts: TeamPlanAttachment[] = [];
+        const atts: TeamPlanAttachment[] = [];
         for (const u of uploads) {
           atts.push(await teamPlanApi.uploadAttachment(plan.id, u.file!, u.title.trim()));
         }

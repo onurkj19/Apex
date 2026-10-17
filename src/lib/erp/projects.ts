@@ -1,10 +1,11 @@
+import { loadFinanceReportingRows } from './finance-reporting';
+import { receivedByProject } from '@/lib/payment-summary';
 import supabase from '@/lib/supabase';
 import type { Project } from '@/lib/erp-types';
 import { progressForProjectStatus } from '@/lib/project-progress';
 import { netRevenueFromGrossInclMwst } from '@/lib/vat-ch';
 import { createAdminChangeNotification, tryCreateNotification } from '@/lib/erp/notifications';
 
-const RECYCLE_RETENTION_DAYS = 10;
 
 export const projectApi = {
   async list(): Promise<Project[]> {
@@ -120,11 +121,11 @@ export const projectApi = {
         deleted_by: uid,
       })
       .eq('id', projectId)
-      .is('deleted_at', null);
+      .is('deleted_at', null).select('id').single();
     if (error) throw error;
     await createAdminChangeNotification(
       'Projekti u hoq në Recycle Bin',
-      `Projekti ${projectId} mund të rikthehet nga Koshi brenda ${RECYCLE_RETENTION_DAYS} ditëve.`,
+      `Projekti ${projectId} mund të rikthehet nga Koshi pa afat automatik fshirjeje.`,
       { project_id: projectId, soft_delete: true },
     );
   },
@@ -134,33 +135,13 @@ export const projectApi = {
       .from('projects')
       .update({ deleted_at: null, deleted_by: null })
       .eq('id', projectId)
-      .not('deleted_at', 'is', null);
+      .not('deleted_at', 'is', null).select('id').single();
     if (error) throw error;
     await createAdminChangeNotification(
       'Projekti u rikthye',
       `Projekti ${projectId} u rikthye nga Recycle Bin.`,
       { project_id: projectId, restored: true },
     );
-  },
-
-  async purgeExpiredDeletedProjects(): Promise<number> {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - RECYCLE_RETENTION_DAYS);
-    const iso = cutoff.toISOString();
-
-    const { data: rows, error: selErr } = await supabase
-      .from('projects')
-      .select('id')
-      .not('deleted_at', 'is', null)
-      .lt('deleted_at', iso);
-    if (selErr) throw selErr;
-
-    const ids = (rows || []).map((r) => r.id as string);
-    for (const id of ids) {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
-      if (error) throw error;
-    }
-    return ids.length;
   },
 
   async getProfitLoss() {
@@ -226,20 +207,9 @@ export const projectApi = {
   /** Shuma e hyrjeve në financat për këtë projekt (pagesat me project_id). */
   async sumIncomeReceivedByProjectIds(projectIds: string[]): Promise<Record<string, number>> {
     if (projectIds.length === 0) return {};
-    const { data, error } = await supabase
-      .from('finances')
-      .select('project_id, amount')
-      .eq('finance_type', 'income')
-      .in('project_id', projectIds);
-    if (error) throw error;
-    const map: Record<string, number> = {};
-    for (const row of data || []) {
-      const pid = row.project_id as string | null;
-      if (!pid) continue;
-      map[pid] = (map[pid] || 0) + Number((row as { amount?: number }).amount || 0);
-    }
-    return map;
+    const ids = new Set(projectIds);
+    return receivedByProject((await loadFinanceReportingRows()).filter(row => !!row.project_id && ids.has(row.project_id)));
   },
 };
 
-export const PROJECT_RECYCLE_RETENTION_DAYS = RECYCLE_RETENTION_DAYS;
+

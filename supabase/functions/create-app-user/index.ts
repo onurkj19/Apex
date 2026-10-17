@@ -50,13 +50,20 @@ Deno.serve(async (req) => {
       throw new Error('Te dhenat kryesore mungojne.');
     }
 
+    const allowedRoles = ['admin', 'super_admin', 'finance', 'project_manager', 'viewer', 'worker'];
+    if (!allowedRoles.includes(payload.role) || payload.password.length < 12 || payload.full_name.trim().length < 2) {
+      throw new Error('Roli, emri ose fjalëkalimi është i pavlefshëm (minimum 12 karaktere).');
+    }
+    if (payload.role === 'super_admin' && callerProfile.role !== 'super_admin') {
+      throw new Error('Vetëm super admin mund të caktojë super admin.');
+    }
+
     const { data: createdAuth, error: createErr } = await adminClient.auth.admin.createUser({
       email: payload.email.trim().toLowerCase(),
       password: payload.password,
       email_confirm: true,
       user_metadata: {
         full_name: payload.full_name,
-        app_role: payload.role,
       },
     });
     if (createErr || !createdAuth.user) throw createErr || new Error('Nuk u krijua auth user.');

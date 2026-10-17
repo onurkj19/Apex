@@ -10,9 +10,13 @@ export const PROJECT_PANEL_INCOME_TITLE = 'Pagesë nga paneli Projektet';
 
 export const financeApi = {
   async list(): Promise<FinanceEntry[]> {
-    const { data, error } = await supabase.from('finances').select('*').order('finance_date', { ascending: false });
+    const { data, error } = await supabase.from('finances').select('*, payment_reconciliation(status, reference)').order('finance_date', { ascending: false });
     if (error) throw error;
     return (data || []) as FinanceEntry[];
+  },
+  async reviewPayment(id: string, status: 'confirmed' | 'not_received' | 'unverified', reference: string) {
+    const { error } = await supabase.rpc('review_payment', { payment_id: id, review_status: status, evidence_reference: reference });
+    if (error) throw error;
   },
   async create(payload: Partial<FinanceEntry>) {
     const { error } = await supabase.from('finances').insert(payload);

@@ -186,7 +186,7 @@ const ShopProductsPage = () => {
         await shopProductsApi.update(editId, payload);
         toast.success('Produkti u përditësua!');
       } else {
-        await shopProductsApi.create(payload);
+        await shopProductsApi.create({ ...payload, sort_order: 0 });
         toast.success('Produkti u shtua!');
       }
 

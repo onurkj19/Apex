@@ -40,7 +40,7 @@ export interface ShopOrder {
 }
 
 export const discountedPrice = (price: number, discountPercent: number) =>
-  discountPercent > 0 ? price * (1 - discountPercent / 100) : price;
+  Math.round(((discountPercent > 0 ? price * (1 - discountPercent / 100) : price) + Number.EPSILON) * 100) / 100;
 
 // ─── Products ────────────────────────────────────────────────────────────────
 
@@ -67,11 +67,9 @@ export const shopProductsApi = {
   },
 
   async updateOrder(items: { id: string; sort_order: number }[]): Promise<void> {
-    await Promise.all(
-      items.map(({ id, sort_order }) =>
-        supabase.from('shop_products').update({ sort_order }).eq('id', id)
-      )
-    );
+    const results = await Promise.all(items.map(({ id, sort_order }) =>
+      supabase.from('shop_products').update({ sort_order }).eq('id', id)));
+    for (const result of results) if (result.error) throw result.error;
   },
 
   async create(product: Omit<ShopProduct, 'id' | 'created_at'>): Promise<ShopProduct> {
@@ -115,30 +113,13 @@ export const shopProductsApi = {
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 export const shopOrdersApi = {
-  async create(order: Omit<ShopOrder, 'id' | 'created_at' | 'status'>): Promise<ShopOrder> {
-    // Generate UUID client-side so we don't need SELECT after INSERT
-    const id = crypto.randomUUID();
-    const created_at = new Date().toISOString();
-
-    const { error } = await supabase
-      .from('shop_orders')
-      .insert({ id, ...order, status: 'pending', created_at });
+  async create(order: Omit<ShopOrder, 'id' | 'created_at' | 'status'>, requestId: string): Promise<{ id: string }> {
+    const { data, error } = await supabase.rpc('place_shop_order', {
+      request_id: requestId,
+      order_payload: { ...order, items: order.items.map(({ product_id, quantity }) => ({ product_id, quantity })) },
+    });
     if (error) throw error;
-
-    const newOrder: ShopOrder = { id, ...order, status: 'pending', created_at };
-
-    // Fire-and-forget notification — never blocks order
-    const orderNum = id.slice(0, 8).toUpperCase();
-    supabase.from('notifications').insert({
-      type: 'admin_change',
-      title: `🛒 Neue Bestellung #${orderNum}`,
-      message: `${order.customer_name} — CHF ${order.total.toFixed(2)} · ${order.items.length} Artikel`,
-      is_read: false,
-      is_archived: false,
-      metadata: { order_id: id, customer: order.customer_name, total: order.total },
-    }).then(() => {}).catch(() => {});
-
-    return newOrder;
+    return { id: String(data) };
   },
 
   async list(): Promise<ShopOrder[]> {

@@ -15,12 +15,12 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: "auto",
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        skipWaiting: false,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
       },
       manifest: {

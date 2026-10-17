@@ -13,6 +13,8 @@ import { Truck, MapPin, ExternalLink, CalendarDays, Clock } from 'lucide-react';
 
 const DashboardPage = () => {
   const { profile } = useAdminAuth();
+  const canSeeFinance = ['admin', 'super_admin', 'finance'].includes(profile?.role || '');
+  const [loadError, setLoadError] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [financeChart, setFinanceChart] = useState<any[]>([]);
   const [statusChart, setStatusChart] = useState<any[]>([]);
@@ -50,13 +52,14 @@ const DashboardPage = () => {
         return;
       }
 
+      const reportingRows = canSeeFinance ? await dashboardApi.getFinanceReportingRows() : [];
       const [statsRes, financeRes, statusRes, notificationsRes, trendRes, outstandingRes] = await Promise.all([
-        dashboardApi.getStats(),
-        dashboardApi.getMonthlyFinance(),
+        dashboardApi.getStats(reportingRows),
+        canSeeFinance ? dashboardApi.getMonthlyFinance(reportingRows) : Promise.resolve([]),
         dashboardApi.getProjectStatusDistribution(),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(5),
-        dashboardApi.getTrendAlarms(),
-        dashboardApi.getOutstandingReceivablesChf(),
+        canSeeFinance ? dashboardApi.getTrendAlarms(reportingRows) : Promise.resolve(null),
+        canSeeFinance ? dashboardApi.getOutstandingReceivablesChf(reportingRows) : Promise.resolve(0),
       ]);
       setStats(statsRes);
       setFinanceChart(financeRes);
@@ -65,25 +68,26 @@ const DashboardPage = () => {
       setTrend(trendRes);
       setOutstandingReceivables(outstandingRes);
     };
-    void load();
+    void load().catch(error => setLoadError(error instanceof Error ? error.message : 'Nuk u ngarkuan të dhënat.'));
   }, [profile?.role]);
 
   const boxes = [
     { label: 'Total Projekte', value: stats?.total_projects ?? 0 },
     { label: 'Projekte Aktive', value: stats?.active_projects ?? 0 },
     { label: 'Projekte Perfunduara', value: stats?.completed_projects ?? 0 },
-    { label: 'Te ardhura mujore', value: formatChf(stats?.monthly_revenue ?? 0) },
+    { label: 'Hyrje mujore të konfirmuara / manuale', value: formatChf(stats?.monthly_revenue ?? 0) },
     { label: 'Shpenzime mujore', value: formatChf(stats?.monthly_expenses ?? 0) },
-    { label: 'Bilanci i kompanise', value: formatChf(stats?.company_balance ?? 0) },
-    { label: 'Faturë e hapur (jo të përfunduara)', value: formatChf(outstandingReceivables) },
-  ];
+    { label: 'Fluksi neto i regjistruar', value: formatChf(stats?.company_balance ?? 0) },
+    { label: 'Hyrje për verifikim', value: formatChf(stats?.unverified_receipts ?? 0) },
+    { label: 'Për t’u arkëtuar nga projektet', value: formatChf(outstandingReceivables) },
+  ].filter((_, index) => canSeeFinance || index < 3);
 
   const roleWidgets = [
     {
       key: 'finance',
       visible: ['finance', 'super_admin', 'admin'].includes(profile?.role || ''),
       title: 'Finance Focus',
-      content: `Expense spike: ${Number(trend?.metrics?.expenseSpikePct || 0).toFixed(1)}% | Margin: ${Number(trend?.metrics?.currentMargin || 0).toFixed(1)}%`,
+      content: `Expense spike: ${Number(trend?.metrics?.expenseSpikePct || 0).toFixed(1)}% | Fluksi neto (%): ${Number(trend?.metrics?.currentMargin || 0).toFixed(1)}%`,
     },
     {
       key: 'pm',
@@ -440,6 +444,7 @@ const DashboardPage = () => {
       <h2 className="text-2xl font-bold">Dashboard</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
         {boxes.map((item) => (
           <Card key={item.label}>
             <CardHeader className="pb-2">
@@ -489,7 +494,7 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Te ardhura vs shpenzime (muaj)</CardTitle>
+            <CardTitle>Hyrje të konfirmuara / manuale dhe shpenzime</CardTitle>
           </CardHeader>
           <CardContent className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">

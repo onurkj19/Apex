@@ -42,7 +42,7 @@ const ContractPdfPreview = ({ url }: { url: string }) => {
 
         canvas.width = Math.ceil(viewport.width);
         canvas.height = Math.ceil(viewport.height);
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvas, canvasContext: ctx, viewport }).promise;
         const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
         if (!cancelled) setThumbnail(dataUrl);

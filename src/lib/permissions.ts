@@ -16,7 +16,7 @@ export const canAccessRoute = (role: AppRole | null | undefined, path: string) =
   if (!role) return false;
   if (role === 'super_admin') return true;
   if (role === 'admin') return !['/admin/leave-requests', '/admin/work-approvals'].includes(path);
-  if (path === '/admin/shop-products' || path === '/admin/shop-orders') return role === 'admin' || role === 'super_admin';
+  if (path === '/admin/shop-products' || path === '/admin/shop-orders') return false;
 
   if (role === 'worker') {
     return ['/admin/dashboard'].includes(path);
@@ -27,7 +27,7 @@ export const canAccessRoute = (role: AppRole | null | undefined, path: string) =
   }
 
   if (role === 'project_manager') {
-    return !['/admin/finances', '/admin/profit-loss', '/admin/settings', '/admin/leave-requests', '/admin/work-approvals'].includes(path);
+    return !['/admin/finances', '/admin/profit-loss', '/admin/quotes-invoices', '/admin/reports', '/admin/settings', '/admin/leave-requests', '/admin/work-approvals'].includes(path);
   }
 
   if (role === 'viewer') {

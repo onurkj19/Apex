@@ -1,3 +1,4 @@
+import { documentUrl } from '@/lib/private-documents';
 import supabase from '@/lib/supabase';
 import type { Contract } from '@/lib/erp-types';
 import { createAdminChangeNotification } from '@/lib/erp/notifications';
@@ -6,14 +7,13 @@ export const contractApi = {
   async list(): Promise<Contract[]> {
     const { data, error } = await supabase.from('contracts').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as Contract[];
+    return Promise.all(((data || []) as Contract[]).map(async row => ({ ...row, contract_file_url: await documentUrl(row.contract_file_path, row.contract_file_url) })));
   },
   async uploadPdf(file: File) {
     const path = `contracts/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from('erp-documents').upload(path, file, { upsert: false });
     if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('erp-documents').getPublicUrl(path);
-    return { path, url: data.publicUrl };
+    return { path, url: await documentUrl(path) };
   },
   async create(payload: Partial<Contract>) {
     const { error } = await supabase.from('contracts').insert(payload);

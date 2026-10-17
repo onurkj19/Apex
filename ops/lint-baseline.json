@@ -1,0 +1,22 @@
+{
+  "src/components/ui/command.tsx:@typescript-eslint/no-empty-object-type": 1,
+  "src/components/ui/textarea.tsx:@typescript-eslint/no-empty-object-type": 1,
+  "src/hooks/use-admin-auth.ts:@typescript-eslint/no-explicit-any": 1,
+  "src/lib/erp/dashboard.ts:@typescript-eslint/no-explicit-any": 6,
+  "src/lib/erp/projects.ts:@typescript-eslint/no-explicit-any": 4,
+  "src/lib/erp/work-logs.ts:@typescript-eslint/no-explicit-any": 2,
+  "src/pages/admin/ClientsEquipmentPage.tsx:@typescript-eslint/no-explicit-any": 2,
+  "src/pages/admin/DashboardPage.tsx:@typescript-eslint/no-explicit-any": 10,
+  "src/pages/admin/FinancesPage.tsx:@typescript-eslint/no-explicit-any": 1,
+  "src/pages/admin/FinancesPage.tsx:@typescript-eslint/no-unused-expressions": 1,
+  "src/pages/admin/ProfitLossPage.tsx:@typescript-eslint/no-explicit-any": 1,
+  "src/pages/admin/ProjectsPage.tsx:@typescript-eslint/no-explicit-any": 15,
+  "src/pages/admin/ReportsPage.tsx:@typescript-eslint/no-explicit-any": 4,
+  "src/pages/admin/SettingsPage.tsx:@typescript-eslint/no-explicit-any": 7,
+  "src/pages/admin/TeamPlanningPage.tsx:prefer-const": 2,
+  "src/pages/admin/WebsiteContentPage.tsx:@typescript-eslint/no-explicit-any": 2,
+  "src/pages/admin/WorkApprovalsPage.tsx:@typescript-eslint/no-explicit-any": 2,
+  "src/pages/admin/WorkLogsPage.tsx:@typescript-eslint/no-explicit-any": 2,
+  "supabase/functions/daily-notifications/index.ts:@typescript-eslint/no-explicit-any": 1,
+  "supabase/functions/monthly-report/index.ts:@typescript-eslint/no-explicit-any": 8
+}

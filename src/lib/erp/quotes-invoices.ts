@@ -1,3 +1,4 @@
+import { documentUrl } from '@/lib/private-documents';
 import supabase from '@/lib/supabase';
 import type { Invoice, Quote } from '@/lib/erp-types';
 import { createAdminChangeNotification } from '@/lib/erp/notifications';
@@ -6,14 +7,13 @@ export const quoteApi = {
   async list(): Promise<Quote[]> {
     const { data, error } = await supabase.from('quotes').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as Quote[];
+    return Promise.all(((data || []) as Quote[]).map(async row => ({ ...row, quote_file_url: await documentUrl(row.quote_file_path, row.quote_file_url || row.pdf_url) })));
   },
   async uploadDocument(file: File) {
     const path = `quotes/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from('erp-documents').upload(path, file, { upsert: false });
     if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('erp-documents').getPublicUrl(path);
-    return { path, url: data.publicUrl };
+    return { path, url: await documentUrl(path) };
   },
   async create(payload: Partial<Quote>) {
     const { data, error } = await supabase.from('quotes').insert(payload).select('*').single();
@@ -37,7 +37,7 @@ export const invoiceApi = {
   async list(): Promise<Invoice[]> {
     const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as Invoice[];
+    return Promise.all(((data || []) as Invoice[]).map(async row => ({ ...row, invoice_file_url: await documentUrl(row.invoice_file_path, row.invoice_file_url || row.pdf_url) })));
   },
   async create(payload: Partial<Invoice>) {
     const { data, error } = await supabase.from('invoices').insert(payload).select('*').single();
@@ -49,8 +49,7 @@ export const invoiceApi = {
     const path = `invoices/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage.from('erp-documents').upload(path, file, { upsert: false });
     if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('erp-documents').getPublicUrl(path);
-    return { path, url: data.publicUrl };
+    return { path, url: await documentUrl(path) };
   },
   async update(id: string, payload: Partial<Invoice>) {
     const { error } = await supabase.from('invoices').update(payload).eq('id', id);

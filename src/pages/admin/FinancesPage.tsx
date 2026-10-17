@@ -1,3 +1,5 @@
+import { paymentSummary } from '@/lib/payment-summary';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -29,6 +31,10 @@ const categoryColor: Record<string, string> = {
 };
 
 const FinancesPage = () => {
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<'confirmed' | 'not_received' | 'unverified'>('confirmed');
+  const [reviewReference, setReviewReference] = useState('');
+  const [reviewSaving, setReviewSaving] = useState(false);
   const [rows, setRows] = useState<FinanceEntry[]>([]);
   const [projectOptions, setProjectOptions] = useState<Array<{ id: string; project_name: string }>>([]);
   const [error, setError] = useState('');
@@ -63,7 +69,19 @@ const FinancesPage = () => {
     setRows(financeRows);
     setProjectOptions(projectRows.map((p) => ({ id: p.id, project_name: p.project_name })));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load().catch(error => setError(error instanceof Error ? error.message : 'Ngarkimi dështoi.')); }, []);
+
+  const saveReview = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!reviewId || reviewSaving) return;
+    setReviewSaving(true); setError('');
+    try {
+      await financeApi.reviewPayment(reviewId, reviewStatus, reviewReference.trim());
+      await load(); setReviewId(null); setReviewReference('');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Verifikimi nuk u ruajt.');
+    } finally { setReviewSaving(false); }
+  };
 
   const onIncomeSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -110,6 +128,7 @@ const FinancesPage = () => {
 
   const cashBalance = rows.reduce((s, r) => r.payment_method === 'Cash' ? s + (r.finance_type === 'income' ? r.amount : -r.amount) : s, 0);
   const bankBalance = rows.reduce((s, r) => r.payment_method === 'Bank' ? s + (r.finance_type === 'income' ? r.amount : -r.amount) : s, 0);
+  const receipts = paymentSummary(rows);
   const totalIncome = rows.filter((r) => r.finance_type === 'income').reduce((s, r) => s + Number(r.amount), 0);
   const totalExpense = rows.filter((r) => r.finance_type === 'expense').reduce((s, r) => s + Number(r.amount), 0);
 
@@ -171,6 +190,23 @@ const FinancesPage = () => {
 
   return (
     <div className="space-y-6">
+      <Dialog open={reviewId !== null} onOpenChange={open => { if (!open && !reviewSaving) setReviewId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Verifiko pagesën</DialogTitle><DialogDescription>Zgjidh rezultatin pasi ta krahasosh hyrjen me bankën ose dëshminë cash. Shuma dhe historiku nuk fshihen.</DialogDescription></DialogHeader>
+          <form onSubmit={saveReview} className="space-y-4">
+            <Label htmlFor="review-status">Rezultati</Label>
+            <Select value={reviewStatus} onValueChange={value => setReviewStatus(value as typeof reviewStatus)}>
+              <SelectTrigger id="review-status"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="confirmed">Pagesa është marrë</SelectItem><SelectItem value="not_received">Pagesa nuk është marrë</SelectItem><SelectItem value="unverified">Mbetet e paverifikuar</SelectItem></SelectContent>
+            </Select>
+            <Label htmlFor="review-reference">Referenca bankare / dëshmia cash / arsyeja</Label>
+            <Input id="review-reference" required minLength={8} maxLength={500} value={reviewReference} onChange={event => setReviewReference(event.target.value)} />
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <DialogFooter><Button type="button" variant="outline" disabled={reviewSaving} onClick={() => setReviewId(null)}>Anulo</Button><Button type="submit" disabled={reviewSaving}>{reviewSaving ? 'Duke ruajtur...' : 'Ruaj verifikimin'}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold">Financat</h2>
@@ -196,13 +232,22 @@ const FinancesPage = () => {
         </div>
       </div>
 
+      {rows.some(row => row.payment_reconciliation?.status === 'unverified') && (
+        <p role="status" className="rounded-md border border-amber-400 p-3 text-sm">Bilanci përmban hyrje automatike të paverifikuara. Këto nuk janë dëshmi pagese; verifikojini me bankën ose cash.</p>
+      )}
+      <Card><CardContent className="py-4 text-sm space-y-1">
+        <p>Të konfirmuara / të futura manualisht: <strong>{formatChf(receipts.confirmed)}</strong></p>
+        <p>Për verifikim: <strong>{formatChf(receipts.unverified)}</strong></p>
+        <p>Të shënuara si të pamarra: <strong>{formatChf(receipts.notReceived)}</strong></p>
+        <p className="text-muted-foreground">Totali i regjistruar ruan historikun; nuk është konfirmim i gjendjes bankare.</p>
+      </CardContent></Card>
       {/* Bilanci - 4 karta */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border-emerald-200 dark:border-emerald-800">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-emerald-600" />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Hyrje Totale</span>
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Hyrje të regjistruara</span>
             </div>
             <p className="text-xl font-bold tabular-nums text-emerald-600">+ {formatChf(totalIncome)}</p>
           </CardContent>
@@ -220,7 +265,7 @@ const FinancesPage = () => {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Landmark className={cn('h-4 w-4', (totalIncome - totalExpense) >= 0 ? 'text-emerald-600' : 'text-red-500')} />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Bilanci Total</span>
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Bilanci i regjistruar</span>
             </div>
             <p className={cn('text-xl font-bold tabular-nums', (totalIncome - totalExpense) >= 0 ? 'text-emerald-600' : 'text-red-500')}>
               {formatChf(totalIncome - totalExpense)}
@@ -409,6 +454,9 @@ const FinancesPage = () => {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-medium text-sm leading-snug truncate">{row.title}</p>
+                                {row.payment_reconciliation?.status === 'not_received' && <p className="text-xs text-red-600">Nuk është marrë — {row.payment_reconciliation.reference}</p>}
+                                {row.payment_reconciliation?.status === 'confirmed' && <p className="text-xs text-emerald-600">E konfirmuar — {row.payment_reconciliation.reference}</p>}
+                                {row.payment_reconciliation?.status === 'unverified' && <p className="text-xs text-amber-600">Pagesë e paverifikuar — krahaso me bankën / cash.</p>}
                                 <p className="text-xs text-muted-foreground">
                                   {row.finance_date} · {row.payment_method}
                                   {row.category && ` · ${row.category}`}
@@ -492,6 +540,7 @@ const FinancesPage = () => {
                                     )}
                                   </div>
                                   <div className="flex flex-wrap gap-2 pt-1">
+                                    {row.payment_reconciliation && <Button size="sm" variant="outline" onClick={() => { setReviewId(row.id); setReviewStatus(row.payment_reconciliation?.status === 'unverified' ? 'confirmed' : row.payment_reconciliation?.status || 'confirmed'); setReviewReference(row.payment_reconciliation?.reference || ''); }}>Verifiko pagesën</Button>}
                                     <Button size="sm" variant="outline" onClick={() => setEditingId(row.id)}>Modifiko</Button>
                                     <Button
                                       size="sm"

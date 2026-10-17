@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -30,6 +30,7 @@ const Checkout = () => {
     notes: '',
   });
 
+  const requestRef = useRef<{ fingerprint: string; id: string } | null>(null);
   const grandTotal = total + SHIPPING_COST;
 
   const update = (key: keyof typeof form) => (
@@ -54,6 +55,14 @@ const Checkout = () => {
         unit_price: discountedPrice(product.price, product.discount_percent),
       }));
 
+      const fingerprint = JSON.stringify({ form, items: orderItems.map(({ product_id, quantity }) => ({ product_id, quantity })) });
+      if (requestRef.current?.fingerprint !== fingerprint) {
+        const saved = sessionStorage.getItem('apex-checkout-request');
+        let previous: { fingerprint: string; id: string } | null = null;
+        try { previous = saved ? JSON.parse(saved) : null; } catch { /* replace invalid local state */ }
+        requestRef.current = previous?.fingerprint === fingerprint ? previous : { fingerprint, id: crypto.randomUUID() };
+        sessionStorage.setItem('apex-checkout-request', JSON.stringify(requestRef.current));
+      }
       const order = await shopOrdersApi.create({
         customer_name: form.name,
         customer_email: form.email,
@@ -66,8 +75,9 @@ const Checkout = () => {
         shipping_cost: SHIPPING_COST,
         total: grandTotal,
         notes: form.notes,
-      });
+      }, requestRef.current.id);
 
+      sessionStorage.removeItem('apex-checkout-request');
       clearCart();
       navigate('/order-success', { state: { orderId: order.id.slice(0, 8).toUpperCase() } });
     } catch (err: unknown) {

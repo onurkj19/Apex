@@ -216,7 +216,7 @@ const team = [
                 <Card key={index} className="card-elegant">
                   <CardContent className="p-6 text-center">
                     <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden ring-2 ring-primary/30 shrink-0">
-                      {'photo' in member && member.photo ? (
+                      {'photo' in member && typeof member.photo === 'string' && member.photo ? (
                         <img
                           src={member.photo}
                           alt={member.name}

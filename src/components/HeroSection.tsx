@@ -37,15 +37,15 @@ const HeroSection = ({ hero, projectHeroImage }: HeroSectionProps) => {
     const s = hero?.stats;
     if (s && typeof s === 'object') {
       return [
-        { value: String(s.projects ?? '150+'), label: 'Abgeschlossene Projekte' },
-        { value: String(s.workers ?? '5+'), label: 'Team' },
-        { value: String(s.years ?? '15+'), label: 'Jahre Erfahrung' },
+        { value: String(s.projects ?? '—'), label: 'Abgeschlossene Projekte' },
+        { value: String(s.workers ?? '—'), label: 'Team' },
+        { value: String(s.years ?? '—'), label: 'Jahre Erfahrung' },
       ];
     }
     return [
-      { value: '150+', label: 'Abgeschlossene Projekte' },
-      { value: '15+', label: 'Jahre Erfahrung' },
-      { value: '100%', label: 'Kundenzufriedenheit' },
+      { value: 'Montage', label: 'Fachgerechter Aufbau' },
+      { value: 'Demontage', label: 'Sicherer Rückbau' },
+      { value: 'Schweiz', label: 'Einsatzgebiet' },
     ];
   }, [hero?.stats]);
 
