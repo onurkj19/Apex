@@ -1,114 +1,73 @@
 import supabase from '@/lib/supabase';
+import { loadFinanceReportingRows, type ReportingRow } from './finance-reporting';
+import { comparablePeriods, periodSummary, receivedByProject, zurichDate } from '@/lib/payment-summary';
 import type { DashboardStats } from '@/lib/erp-types';
 
-/** Shuma e faturave të hapura (kontratë − pagesa të regjistruara) për projektet jo të përfunduara. */
+/** Contract balance after confirmed/manually entered receipts, including completed jobs. */
 export const dashboardApi = {
-  async getOutstandingReceivablesChf(): Promise<number> {
-    const { data: projects, error: pErr } = await supabase
-      .from('projects')
-      .select('id, revenue')
-      .is('deleted_at', null)
-      .in('status', ['I pranuar', 'Ne pune', 'I perfunduar']);
-    if (pErr) throw pErr;
-    const ids = (projects || []).map((x: { id: string }) => x.id);
-    if (ids.length === 0) return 0;
-
-    const { data: incomes, error: iErr } = await supabase
-      .from('finances')
-      .select('project_id, amount')
-      .eq('finance_type', 'income')
-      .in('project_id', ids);
-    if (iErr) throw iErr;
-
-    const received: Record<string, number> = {};
-    for (const row of incomes || []) {
-      const pid = row.project_id as string;
-      if (!pid) continue;
-      received[pid] = (received[pid] || 0) + Number((row as { amount?: number }).amount || 0);
-    }
-
-    let total = 0;
-    for (const p of projects || []) {
-      const rev = Number((p as { revenue?: number }).revenue || 0);
-      const rec = received[(p as { id: string }).id] || 0;
-      total += Math.max(0, rev - rec);
-    }
-    return total;
+  getFinanceReportingRows: loadFinanceReportingRows,
+  async getOutstandingReceivablesChf(rows?: ReportingRow[]): Promise<number> {
+    const [financeRows, response] = await Promise.all([
+      rows ? Promise.resolve(rows) : loadFinanceReportingRows(),
+      supabase.from('projects').select('id, revenue').is('deleted_at',null).in('status',['I pranuar','Ne pune','I perfunduar']),
+    ]);
+    if (response.error) throw response.error;
+    const received = receivedByProject(financeRows);
+    return (response.data || []).reduce((sum,p)=>sum+Math.max(0,Math.round((Number(p.revenue)-(received[p.id]||0))*100)/100),0);
   },
-  async getStats(): Promise<DashboardStats> {
-    const { data, error } = await supabase.from('v_dashboard_stats').select('*').single();
-    if (error) throw error;
-    return data as DashboardStats;
+  async getStats(rows?: ReportingRow[]): Promise<DashboardStats> {
+    const [financeRows,response] = await Promise.all([
+      rows ? Promise.resolve(rows) : loadFinanceReportingRows(),
+      supabase.from('v_dashboard_stats').select('total_projects, active_projects, completed_projects').single(),
+    ]);
+    if (response.error) throw response.error;
+    const today = zurichDate();
+    const monthly = periodSummary(financeRows,`${today.slice(0,7)}-01`,today);
+    const all = periodSummary(financeRows,'0000-01-01',today);
+    return { ...response.data, monthly_revenue: monthly.confirmed, monthly_expenses: monthly.expenses, company_balance: all.cashFlow, unverified_receipts: all.unverified } as DashboardStats;
   },
 
   async getProjectStatusDistribution() {
     const { data, error } = await supabase.from('projects').select('status').is('deleted_at', null);
     if (error) throw error;
-    const counts = (data || []).reduce<Record<string, number>>((acc, item: any) => {
+    const counts = (data || []).reduce<Record<string, number>>((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
       return acc;
     }, {});
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   },
 
-  async getMonthlyFinance() {
-    const { data, error } = await supabase
-      .from('finances')
-      .select('amount, finance_type, finance_date')
-      .gte('finance_date', `${new Date().getFullYear()}-01-01`)
-      .order('finance_date', { ascending: true });
-    if (error) throw error;
-    const monthly = new Map<string, { month: string; teArdhura: number; shpenzime: number }>();
-    (data || []).forEach((row: any) => {
-      const month = new Date(row.finance_date).toLocaleDateString('sq-AL', { month: 'short' });
-      if (!monthly.has(month)) monthly.set(month, { month, teArdhura: 0, shpenzime: 0 });
-      const item = monthly.get(month)!;
-      if (row.finance_type === 'income') item.teArdhura += Number(row.amount || 0);
-      else item.shpenzime += Number(row.amount || 0);
-    });
-    return Array.from(monthly.values());
+  async getMonthlyFinance(rows?: ReportingRow[]) {
+    const allRows = rows || await loadFinanceReportingRows();
+    const year = zurichDate().slice(0,4);
+    const monthly: Array<{month: string; teArdhura: number; shpenzime: number; perVerifikim: number}> = [];
+    for (let m=1;m<=Number(zurichDate().slice(5,7));m++) {
+      const key = `${year}-${String(m).padStart(2,'0')}`;
+      const summary = periodSummary(allRows,`${key}-01`,`${key}-31`);
+      monthly.push({ month: new Date(`${key}-15T12:00:00Z`).toLocaleDateString('sq-AL',{month:'short',timeZone:'Europe/Zurich'}), teArdhura: summary.confirmed, shpenzime: summary.expenses, perVerifikim: summary.unverified });
+    }
+    return monthly;
   },
-  async getTrendAlarms() {
-    const now = new Date();
-    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const previousEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const [{ data: financeRows, error: financeError }, { data: projectRows, error: projectError }] = await Promise.all([
-      supabase
-        .from('finances')
-        .select('amount, finance_type, finance_date')
-        .gte('finance_date', previousStart.toISOString().slice(0, 10)),
-      supabase.from('projects').select('status, progress').is('deleted_at', null),
+  async getTrendAlarms(rows?: ReportingRow[]) {
+    const dates = comparablePeriods(zurichDate());
+    const [financeRows, {data: projectRows, error: projectError}] = await Promise.all([
+      rows ? Promise.resolve(rows) : loadFinanceReportingRows(),
+      supabase.from('projects').select('status, progress').is('deleted_at',null),
     ]);
-
-    if (financeError) throw financeError;
     if (projectError) throw projectError;
-
-    const rows = financeRows || [];
-    const sumRange = (from: Date, to: Date, type: 'income' | 'expense') =>
-      rows
-        .filter((x: any) => {
-          const d = new Date(x.finance_date);
-          return x.finance_type === type && d >= from && d <= to;
-        })
-        .reduce((sum: number, x: any) => sum + Number(x.amount || 0), 0);
-
-    const currentIncome = sumRange(currentStart, now, 'income');
-    const currentExpense = sumRange(currentStart, now, 'expense');
-    const prevIncome = sumRange(previousStart, previousEnd, 'income');
-    const prevExpense = sumRange(previousStart, previousEnd, 'expense');
-
-    const currentMargin = currentIncome > 0 ? ((currentIncome - currentExpense) / currentIncome) * 100 : 0;
-    const prevMargin = prevIncome > 0 ? ((prevIncome - prevExpense) / prevIncome) * 100 : 0;
-    const marginDrop = prevMargin - currentMargin;
-    const expenseSpikePct = prevExpense > 0 ? ((currentExpense - prevExpense) / prevExpense) * 100 : 0;
-
-    const activeProjects = (projectRows || []).filter((p: any) => p.status === 'Ne pune').length;
-    const stalledProjects = (projectRows || []).filter((p: any) => p.status === 'Ne pune' && Number(p.progress || 0) < 20).length;
+    const current = periodSummary(financeRows,dates.currentStart,dates.currentEnd);
+    const previous = periodSummary(financeRows,dates.previousStart,dates.previousEnd);
+    const currentIncome=current.confirmed, prevIncome=previous.confirmed;
+    const currentExpense=current.expenses, prevExpense=previous.expenses;
+    const currentMargin=currentIncome>0?((currentIncome-currentExpense)/currentIncome)*100:0;
+    const prevMargin=prevIncome>0?((prevIncome-prevExpense)/prevIncome)*100:0;
+    const marginDrop=prevMargin-currentMargin;
+    const expenseSpikePct=prevExpense>0?((currentExpense-prevExpense)/prevExpense)*100:0;
+    const activeProjects = (projectRows || []).filter((p) => p.status === 'Ne pune').length;
+    const stalledProjects = (projectRows || []).filter((p) => p.status === 'Ne pune' && Number(p.progress || 0) < 20).length;
 
     const alarms: Array<{ type: string; severity: 'low' | 'medium' | 'high'; message: string; value: number }> = [];
-    if (marginDrop > 8) alarms.push({ type: 'margin_drop', severity: 'high', message: 'Profit margin ka renie te ndjeshme', value: marginDrop });
+    if (marginDrop > 8) alarms.push({ type: 'margin_drop', severity: 'high', message: 'Fluksi neto ka rënie kundrejt së njëjtës periudhë të muajit të kaluar', value: marginDrop });
     if (expenseSpikePct > 20) alarms.push({ type: 'expense_spike', severity: 'high', message: 'Shpenzimet mujore jane rritur ndjeshem', value: expenseSpikePct });
     if (stalledProjects >= 3) alarms.push({ type: 'project_stall', severity: 'medium', message: 'Ka disa projekte aktive me progres te ulet', value: stalledProjects });
 

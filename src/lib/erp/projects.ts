@@ -1,3 +1,5 @@
+import { loadFinanceReportingRows } from './finance-reporting';
+import { receivedByProject } from '@/lib/payment-summary';
 import supabase from '@/lib/supabase';
 import type { Project } from '@/lib/erp-types';
 import { progressForProjectStatus } from '@/lib/project-progress';
@@ -226,19 +228,8 @@ export const projectApi = {
   /** Shuma e hyrjeve në financat për këtë projekt (pagesat me project_id). */
   async sumIncomeReceivedByProjectIds(projectIds: string[]): Promise<Record<string, number>> {
     if (projectIds.length === 0) return {};
-    const { data, error } = await supabase
-      .from('finances')
-      .select('project_id, amount')
-      .eq('finance_type', 'income')
-      .in('project_id', projectIds);
-    if (error) throw error;
-    const map: Record<string, number> = {};
-    for (const row of data || []) {
-      const pid = row.project_id as string | null;
-      if (!pid) continue;
-      map[pid] = (map[pid] || 0) + Number((row as { amount?: number }).amount || 0);
-    }
-    return map;
+    const ids = new Set(projectIds);
+    return receivedByProject((await loadFinanceReportingRows()).filter(row => !!row.project_id && ids.has(row.project_id)));
   },
 };
 

@@ -52,13 +52,14 @@ const DashboardPage = () => {
         return;
       }
 
+      const reportingRows = canSeeFinance ? await dashboardApi.getFinanceReportingRows() : [];
       const [statsRes, financeRes, statusRes, notificationsRes, trendRes, outstandingRes] = await Promise.all([
-        dashboardApi.getStats(),
-        canSeeFinance ? dashboardApi.getMonthlyFinance() : Promise.resolve([]),
+        dashboardApi.getStats(reportingRows),
+        canSeeFinance ? dashboardApi.getMonthlyFinance(reportingRows) : Promise.resolve([]),
         dashboardApi.getProjectStatusDistribution(),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(5),
-        canSeeFinance ? dashboardApi.getTrendAlarms() : Promise.resolve(null),
-        canSeeFinance ? dashboardApi.getOutstandingReceivablesChf() : Promise.resolve(0),
+        canSeeFinance ? dashboardApi.getTrendAlarms(reportingRows) : Promise.resolve(null),
+        canSeeFinance ? dashboardApi.getOutstandingReceivablesChf(reportingRows) : Promise.resolve(0),
       ]);
       setStats(statsRes);
       setFinanceChart(financeRes);
@@ -74,9 +75,10 @@ const DashboardPage = () => {
     { label: 'Total Projekte', value: stats?.total_projects ?? 0 },
     { label: 'Projekte Aktive', value: stats?.active_projects ?? 0 },
     { label: 'Projekte Perfunduara', value: stats?.completed_projects ?? 0 },
-    { label: 'Te ardhura mujore', value: formatChf(stats?.monthly_revenue ?? 0) },
+    { label: 'Hyrje mujore të konfirmuara / manuale', value: formatChf(stats?.monthly_revenue ?? 0) },
     { label: 'Shpenzime mujore', value: formatChf(stats?.monthly_expenses ?? 0) },
-    { label: 'Bilanci i kompanise', value: formatChf(stats?.company_balance ?? 0) },
+    { label: 'Fluksi neto i regjistruar', value: formatChf(stats?.company_balance ?? 0) },
+    { label: 'Hyrje për verifikim', value: formatChf(stats?.unverified_receipts ?? 0) },
     { label: 'Për t’u arkëtuar nga projektet', value: formatChf(outstandingReceivables) },
   ].filter((_, index) => canSeeFinance || index < 3);
 
@@ -85,7 +87,7 @@ const DashboardPage = () => {
       key: 'finance',
       visible: ['finance', 'super_admin', 'admin'].includes(profile?.role || ''),
       title: 'Finance Focus',
-      content: `Expense spike: ${Number(trend?.metrics?.expenseSpikePct || 0).toFixed(1)}% | Margin: ${Number(trend?.metrics?.currentMargin || 0).toFixed(1)}%`,
+      content: `Expense spike: ${Number(trend?.metrics?.expenseSpikePct || 0).toFixed(1)}% | Fluksi neto (%): ${Number(trend?.metrics?.currentMargin || 0).toFixed(1)}%`,
     },
     {
       key: 'pm',
@@ -492,7 +494,7 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Te ardhura vs shpenzime (muaj)</CardTitle>
+            <CardTitle>Hyrje të konfirmuara / manuale dhe shpenzime</CardTitle>
           </CardHeader>
           <CardContent className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">

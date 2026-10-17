@@ -4,6 +4,7 @@ import { dashboardApi, projectApi, workLogApi } from '@/lib/erp-api';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar } from 'recharts';
 
 const ReportsPage = () => {
+  const [loadError, setLoadError] = useState('');
   const [financeChart, setFinanceChart] = useState<any[]>([]);
   const [statusChart, setStatusChart] = useState<any[]>([]);
   const [profitLossChart, setProfitLossChart] = useState<any[]>([]);
@@ -26,15 +27,17 @@ const ReportsPage = () => {
         payroll.map((p) => ({ name: p.worker_name?.slice(0, 12) || 'Punetor', ore: Number(p.total_hours || 0) })),
       );
     };
-    load();
+    void load().catch(error => setLoadError(error instanceof Error ? error.message : 'Raporti nuk u ngarkua.'));
   }, []);
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Raportet dhe analitika</h2>
+      {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
+      <p className="text-sm text-muted-foreground">Hyrjet automatike të paverifikuara dhe pagesat e shënuara si të pamarra nuk llogariten si të arkëtuara.</p>
 
       <Card>
-        <CardHeader><CardTitle>Raporti financiar mujor</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Raporti financiar mujor — hyrje të konfirmuara / manuale</CardTitle></CardHeader>
         <CardContent className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={financeChart}>
@@ -63,7 +66,7 @@ const ReportsPage = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle>Fitim vs Humbje sipas projekteve</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Rezultat i përllogaritur sipas kontratave</CardTitle></CardHeader>
           <CardContent className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={profitLossChart}>
@@ -97,7 +100,7 @@ const ReportsPage = () => {
         <CardHeader><CardTitle>Automatizimi mujor</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Raporti mujor gjenerohet me Supabase Edge Function ne diten e pare te muajit dhe dergohet permes Resend.
+            Raporti i muajit të mbyllur dallon hyrjet e konfirmuara nga shumat për verifikim. Dërgimi varet nga konfigurimi i automatizimit.
           </p>
         </CardContent>
       </Card>

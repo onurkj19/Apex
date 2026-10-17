@@ -20,6 +20,7 @@ export interface DashboardStats {
   monthly_revenue: number;
   monthly_expenses: number;
   company_balance: number;
+  unverified_receipts?: number;
 }
 
 export interface Project {
