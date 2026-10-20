@@ -38,6 +38,7 @@ test('team leaders and workers are routed to the portal and never see admin scre
   assert.equal(P.homeRouteForRole('team_leader'), '/portal');
   assert.equal(P.homeRouteForRole('admin'), '/admin/dashboard');
   assert.equal(P.canAccessRoute('team_leader', '/admin/projects'), false);
+  assert.equal(P.canAccessRoute('team_leader', '/admin/dashboard'), false);
   assert.equal(P.canPaySaturday('finance'), false);
   assert.equal(P.canPaySaturday('admin'), true);
   assert.equal(P.canEditPayroll('finance'), false);

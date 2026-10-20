@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { portalApi, saturdayApi, type CashReceiptRow } from '@/lib/v2/api';
 import { cashReceiptModel } from '@/lib/v2/pdf/models';
@@ -65,6 +66,15 @@ const PortalMore = () => {
           ))}
         </CardContent>
       </Card>
+
+      {profile.role === 'worker' && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 py-4">
+            <p className="text-sm text-muted-foreground">Bisherige Zeiterfassung mit Start/Stopp und Einsatzplan</p>
+            <Button asChild size="sm" variant="outline"><Link to="/admin/dashboard">Öffnen</Link></Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Benachrichtigungen</CardTitle></CardHeader>

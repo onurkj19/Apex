@@ -42,7 +42,7 @@ export const homeRouteForRole = (role: AppRole | null | undefined) =>
 export const canAccessRoute = (role: AppRole | null | undefined, path: string) => {
   if (!role) return false;
   if (path in V2_ROUTE_ROLES) return V2_ROUTE_ROLES[path].includes(role);
-  if (role === 'team_leader') return path === '/admin/dashboard';
+  if (role === 'team_leader') return false;
   if (role === 'super_admin') return true;
   if (role === 'admin') return !['/admin/leave-requests', '/admin/work-approvals'].includes(path);
   if (path === '/admin/shop-products' || path === '/admin/shop-orders') return false;
