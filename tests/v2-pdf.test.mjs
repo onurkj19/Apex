@@ -39,8 +39,8 @@ test('weekly team report pivots hours per weekday', () => {
   assert.equal(model.rows[1][1], '8.00');
   assert.equal(model.rows[1][6], '4.00');
   assert.equal(model.rows[1][7], '');
-  assert.equal(model.rows[1][9], '12.00');
-  assert.equal(model.totalRow[9], '19.50');
+  assert.equal(model.rows[1][8], '12.00');
+  assert.equal(model.totalRow[8], '19.50');
   assert.ok(R.renderPdf(model, 'x').length > 500);
 });
 
