@@ -11,7 +11,7 @@ export type QuoteStatus = 'Draft' | 'Derguar' | 'Pranuar' | 'Perfunduar' | 'Refu
 export type InvoiceStatus = 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'Cash' | 'Bank';
 export type ExpenseCategory = 'Karburant' | 'Pajisje' | 'Blerje Produktesh' | 'Qira Magazine' | 'Mjete Pune';
-export type AppRole = 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer' | 'worker';
+export type AppRole = 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer' | 'worker' | 'team_leader';
 
 export interface DashboardStats {
   total_projects: number;
@@ -202,7 +202,7 @@ export interface TeamPlanItem {
   updated_at: string;
 }
 
-export type LeaveRequestType = 'day_off' | 'annual_leave';
+export type LeaveRequestType = 'day_off' | 'annual_leave' | 'unpaid_leave' | 'personal_day' | 'sick_notification' | 'other_absence';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'counter_offered' | 'worker_countered';
 
 export interface LeaveRequest {

@@ -15,11 +15,12 @@ type CreatePayload = {
   email: string;
   password: string;
   full_name: string;
-  role: 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer' | 'worker';
+  role: 'admin' | 'super_admin' | 'finance' | 'project_manager' | 'viewer' | 'worker' | 'team_leader';
   worker_id?: string | null;
   worker_defaults?: WorkerDefaults | null;
 };
 
+const isFieldRole = (role: string) => role === 'worker' || role === 'team_leader';
 const canCreateUsers = (role: string | null | undefined) => role === 'super_admin' || role === 'admin';
 
 Deno.serve(async (req) => {
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
       throw new Error('Te dhenat kryesore mungojne.');
     }
 
-    const allowedRoles = ['admin', 'super_admin', 'finance', 'project_manager', 'viewer', 'worker'];
+    const allowedRoles = ['admin', 'super_admin', 'finance', 'project_manager', 'viewer', 'worker', 'team_leader'];
     if (!allowedRoles.includes(payload.role) || payload.password.length < 12 || payload.full_name.trim().length < 2) {
       throw new Error('Roli, emri ose fjalëkalimi është i pavlefshëm (minimum 12 karaktere).');
     }
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
     let createdNewWorker = false;
 
     try {
-      if (payload.role === 'worker' && !linkedWorkerId) {
+      if (isFieldRole(payload.role) && !linkedWorkerId) {
         const wd = payload.worker_defaults || {};
         const hourly = typeof wd.hourly_rate === 'number' && Number.isFinite(wd.hourly_rate) && wd.hourly_rate >= 0
           ? wd.hourly_rate
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
           full_name: payload.full_name,
           email: payload.email.trim().toLowerCase(),
           role: payload.role,
-          worker_id: payload.role === 'worker' ? linkedWorkerId : null,
+          worker_id: isFieldRole(payload.role) ? linkedWorkerId : null,
           is_active: true,
         },
         { onConflict: 'id' },
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: true,
           user_id: authUserId,
-          worker_id: payload.role === 'worker' ? linkedWorkerId : null,
+          worker_id: isFieldRole(payload.role) ? linkedWorkerId : null,
           created_worker: createdNewWorker,
         }),
         {

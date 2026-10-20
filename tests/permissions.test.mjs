@@ -20,3 +20,26 @@ test('approval and financial controls remain restricted', () => {
   assert.equal(canDeleteFinance('worker'),false);
   assert.equal(canDeleteFinance('admin'),true);
 });
+const P = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
+test('V2 routes: payroll/saturday screens only for admin, super_admin, finance', () => {
+  for (const path of ['/admin/samstag', '/admin/lohn', '/admin/finanz-unterakkord']) {
+    for (const role of ['admin', 'super_admin', 'finance']) assert.equal(P.canAccessRoute(role, path), true, `${role} ${path}`);
+    for (const role of ['project_manager', 'viewer', 'worker', 'team_leader', null]) assert.equal(P.canAccessRoute(role, path), false, `${role} ${path}`);
+  }
+});
+test('V2 routes: approvals for admin, super_admin, project_manager only', () => {
+  for (const path of ['/admin/stunden', '/admin/tagesrapporte', '/admin/urlaub']) {
+    for (const role of ['admin', 'super_admin', 'project_manager']) assert.equal(P.canAccessRoute(role, path), true);
+    for (const role of ['finance', 'viewer', 'worker', 'team_leader']) assert.equal(P.canAccessRoute(role, path), false);
+  }
+});
+test('team leaders and workers are routed to the portal and never see admin screens', () => {
+  assert.equal(P.homeRouteForRole('worker'), '/portal');
+  assert.equal(P.homeRouteForRole('team_leader'), '/portal');
+  assert.equal(P.homeRouteForRole('admin'), '/admin/dashboard');
+  assert.equal(P.canAccessRoute('team_leader', '/admin/projects'), false);
+  assert.equal(P.canAccessRoute('team_leader', '/admin/dashboard'), false);
+  assert.equal(P.canPaySaturday('finance'), false);
+  assert.equal(P.canPaySaturday('admin'), true);
+  assert.equal(P.canEditPayroll('finance'), false);
+});
