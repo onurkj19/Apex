@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, ShoppingBag, ShoppingCart, Trash2, Truck, Users, Wallet } from 'lucide-react';
+import { Banknote, BarChart3, CalendarClock, CalendarOff, FileDown, HardHat, Camera, Coins, Scale,  Bell, Boxes, BriefcaseBusiness, CalendarDays, Clock3, ClipboardList, FileBadge2, FileText, FolderKanban, LayoutDashboard, LineChart, LogOut, Menu, Settings, ShoppingBag, ShoppingCart, Trash2, Truck, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { authApi, notificationApi } from '@/lib/erp-api';
@@ -30,6 +30,15 @@ const items = [
   { to: '/admin/team-planning', label: 'Team Planning', icon: CalendarDays },
   { to: '/admin/leave-requests', label: 'Kerkesa Pushimi', icon: ClipboardList },
   { to: '/admin/work-approvals', label: 'Aprovimi Oreve', icon: ClipboardList },
+  { to: '/admin/stunden', label: 'Stunden genehmigen', icon: Clock3 },
+  { to: '/admin/tagesrapporte', label: 'Tagesrapporte', icon: Camera },
+  { to: '/admin/unterakkord', label: 'Unterakkord', icon: HardHat },
+  { to: '/admin/finanz-unterakkord', label: 'Finanzen Unterakkord', icon: Scale },
+  { to: '/admin/samstag', label: 'Samstagszahlungen', icon: Banknote },
+  { to: '/admin/lohn', label: 'Lohnkonfiguration', icon: Coins },
+  { to: '/admin/urlaub', label: 'Urlaub & Absenzen', icon: CalendarOff },
+  { to: '/admin/kalender', label: 'Kalender & Konflikte', icon: CalendarClock },
+  { to: '/admin/pdf-berichte', label: 'PDF-Berichte', icon: FileDown },
   { to: '/admin/shop-products', label: 'Shop Produktet', icon: ShoppingBag },
   { to: '/admin/shop-orders', label: 'Shop Porositë', icon: ShoppingCart },
   { to: '/admin/settings', label: 'Cilesimet', icon: Settings },

@@ -43,6 +43,15 @@ const PortalHours = lazy(() => import("./pages/portal/PortalHours"));
 const PortalReport = lazy(() => import("./pages/portal/PortalReport"));
 const PortalLeave = lazy(() => import("./pages/portal/PortalLeave"));
 const PortalMore = lazy(() => import("./pages/portal/PortalMore"));
+const HoursApprovalPage = lazy(() => import("./pages/admin/HoursApprovalPage"));
+const DailyReportsPage = lazy(() => import("./pages/admin/DailyReportsPage"));
+const SaturdayPaymentsPage = lazy(() => import("./pages/admin/SaturdayPaymentsPage"));
+const PayrollConfigPage = lazy(() => import("./pages/admin/PayrollConfigPage"));
+const UnterakkordPage = lazy(() => import("./pages/admin/UnterakkordPage"));
+const UnterakkordFinancePage = lazy(() => import("./pages/admin/UnterakkordFinancePage"));
+const LeaveManagementPage = lazy(() => import("./pages/admin/LeaveManagementPage"));
+const CalendarConflictsPage = lazy(() => import("./pages/admin/CalendarConflictsPage"));
+const PdfReportsPage = lazy(() => import("./pages/admin/PdfReportsPage"));
 const ProtectedRoute = lazy(() => import("./components/admin/ProtectedRoute"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
@@ -89,6 +98,15 @@ const App = () => (
                 <Route path="team-planning" element={<TeamPlanningPage />} />
                 <Route path="leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="work-approvals" element={<WorkApprovalsPage />} />
+                <Route path="stunden" element={<HoursApprovalPage />} />
+                <Route path="tagesrapporte" element={<DailyReportsPage />} />
+                <Route path="samstag" element={<SaturdayPaymentsPage />} />
+                <Route path="lohn" element={<PayrollConfigPage />} />
+                <Route path="unterakkord" element={<UnterakkordPage />} />
+                <Route path="finanz-unterakkord" element={<UnterakkordFinancePage />} />
+                <Route path="urlaub" element={<LeaveManagementPage />} />
+                <Route path="kalender" element={<CalendarConflictsPage />} />
+                <Route path="pdf-berichte" element={<PdfReportsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="shop-products" element={<ShopProductsPage />} />
                 <Route path="shop-orders" element={<ShopOrdersPage />} />

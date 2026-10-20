@@ -6,8 +6,8 @@ import {
   type WorkerRef,
 } from './extraction.ts';
 
-// deno-lint-ignore no-explicit-any
-type Db = any;
+// Minimal structural type: the real supabase-js client (and the in-memory test double) both satisfy it.
+type Db = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export interface ExtractDeps {
   admin: Db;
