@@ -13,11 +13,11 @@ const transpileTree = (entry, outDir, seen = new Set()) => {
   const importPattern = /from\s+['"](\.{1,2}\/[^'"]+)['"]/g;
   let rewritten = source;
   for (const match of source.matchAll(importPattern)) {
-    const target = path.resolve(path.dirname(entry), match[1]);
+    const target = path.resolve(path.dirname(entry), match[1].replace(/\.ts$/, ''));
     const resolved = ['.ts', '/index.ts'].map((s) => target + s).find((p) => fs.existsSync(p));
     if (resolved) transpileTree(resolved, outDir, seen);
   }
-  rewritten = source.replace(importPattern, (_m, spec) => `from '${spec}.js'`);
+  rewritten = source.replace(importPattern, (_m, spec) => `from '${spec.replace(/\.ts$/, '')}.js'`);
   const js = ts.transpileModule(rewritten, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
