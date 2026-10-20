@@ -70,7 +70,7 @@ create table if not exists public.daily_report_files (
   size_bytes bigint check (size_bytes is null or size_bytes >= 0),
   sha256 text check (sha256 is null or sha256 ~ '^[0-9a-f]{64}$'),
   page_no integer not null default 1,
-  uploaded_by uuid not null references public.users(id) on delete restrict,
+  uploaded_by uuid not null default auth.uid() references public.users(id) on delete restrict,
   created_at timestamptz not null default now()
 );
 create index if not exists idx_daily_report_files_report on public.daily_report_files (report_id);

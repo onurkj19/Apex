@@ -189,7 +189,8 @@ create index if not exists idx_saturday_payments_status on public.saturday_payme
 
 create table if not exists public.saturday_payment_events (
   id uuid primary key default uuid_generate_v4(),
-  payment_id uuid not null references public.saturday_payments(id) on delete restrict,
+  -- deliberately no FK: history must survive removal of an unpaid payment row
+  payment_id uuid not null,
   action text not null,
   actor uuid,
   details jsonb not null default '{}'::jsonb,
