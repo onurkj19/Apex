@@ -92,3 +92,4 @@ backend/.env
 backend/node_modules/
 backend/logs/
 supabase/.temp/
+e2e/screenshots/
