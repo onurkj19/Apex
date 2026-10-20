@@ -37,6 +37,12 @@ const AuditLogsPage = lazy(() => import("./pages/admin/AuditLogsPage"));
 const TeamPlanningPage = lazy(() => import("./pages/admin/TeamPlanningPage"));
 const LeaveRequestsPage = lazy(() => import("./pages/admin/LeaveRequestsPage"));
 const WorkApprovalsPage = lazy(() => import("./pages/admin/WorkApprovalsPage"));
+const PortalLayout = lazy(() => import("./pages/portal/PortalLayout"));
+const PortalHome = lazy(() => import("./pages/portal/PortalHome"));
+const PortalHours = lazy(() => import("./pages/portal/PortalHours"));
+const PortalReport = lazy(() => import("./pages/portal/PortalReport"));
+const PortalLeave = lazy(() => import("./pages/portal/PortalLeave"));
+const PortalMore = lazy(() => import("./pages/portal/PortalMore"));
 const ProtectedRoute = lazy(() => import("./components/admin/ProtectedRoute"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
@@ -87,6 +93,13 @@ const App = () => (
                 <Route path="shop-products" element={<ShopProductsPage />} />
                 <Route path="shop-orders" element={<ShopOrdersPage />} />
               </Route>
+            </Route>
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<PortalHome />} />
+              <Route path="stunden" element={<PortalHours />} />
+              <Route path="rapport" element={<PortalReport />} />
+              <Route path="urlaub" element={<PortalLeave />} />
+              <Route path="mehr" element={<PortalMore />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

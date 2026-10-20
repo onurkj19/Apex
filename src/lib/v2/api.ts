@@ -29,13 +29,24 @@ export interface Worksite {
   kind: 'assignment' | 'project';
   id: string;
   name: string;
-  [key: string]: unknown;
+  assignment_number: string | null;
+  address: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  planned_daily_minutes: number | null;
+  team_leader: string | null;
+  is_team_leader: boolean;
+  team: { worker_id: string; name: string }[];
 }
 
 export interface Target {
   kind: 'assignment' | 'project';
   id: string;
   label: string;
+  address?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_team_leader?: boolean;
 }
 
 export interface TimeEntryRow {

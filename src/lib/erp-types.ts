@@ -202,7 +202,7 @@ export interface TeamPlanItem {
   updated_at: string;
 }
 
-export type LeaveRequestType = 'day_off' | 'annual_leave';
+export type LeaveRequestType = 'day_off' | 'annual_leave' | 'unpaid_leave' | 'personal_day' | 'sick_notification' | 'other_absence';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'counter_offered' | 'worker_countered';
 
 export interface LeaveRequest {
