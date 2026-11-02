@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { authApi } from '@/lib/erp-api';
+import { homeRouteForRole } from '@/lib/permissions';
+import type { AppRole } from '@/lib/erp-types';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -23,7 +25,7 @@ const LoginPage = () => {
         const admin = await authApi.getAdminSession();
         if (!mounted) return;
         if (admin) {
-          navigate('/admin/dashboard', { replace: true });
+          navigate(homeRouteForRole(admin.profile.role as AppRole), { replace: true });
           return;
         }
       } catch {
@@ -58,7 +60,7 @@ const LoginPage = () => {
         setError('Akses i ndaluar. Vetem admin mund te hyje.');
         return;
       }
-      navigate('/admin/dashboard');
+      navigate(homeRouteForRole(admin.profile.role as AppRole));
     } catch {
       setError('Kredencialet nuk jane te sakta.');
     } finally {
