@@ -5,12 +5,6 @@ import { COMPANY_ADDRESS_LINE, COMPANY_LEGAL_NAME } from '@/lib/company';
 const ContactSection = () => {
   const contacts = [
     {
-      name: "Onur Kajmakci",
-      phone: "+41 76 368 10 11",
-      email: "info@apex-gerueste.ch",
-      role: "Geschäftsführer"
-    },
-    {
       name: "Arlind Morina",
       phone: "+41 79 422 39 90",
       email: "info@apex-gerueste.ch",
@@ -139,7 +133,7 @@ const ContactSection = () => {
               </p>
               <div className="flex items-center space-x-3">
                 <Phone size={16} className="text-primary" />
-                <span className="text-foreground font-semibold">+41 76 368 10 11</span>
+                <span className="text-foreground font-semibold">+41 79 422 39 90</span>
               </div>
             </Card>
           </div>

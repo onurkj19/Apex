@@ -55,14 +55,6 @@ const calcYears = (startYear: number) => {
 
 const team = [
   {
-    name: "Onur Kajmakci",
-    position: "Geschäftsführer & Gerüstbaumeister",
-    experience: calcYears(2019),
-    phone: "+41 76 368 10 11",
-    email: "info@apex-gerueste.ch",
-    specialties: ["Projektleitung", "Statikberechnung", "Sondergerüste"],
-  },
-  {
     name: "Arlind Morina",
     position: "Technischer Leiter",
     experience: calcYears(2016),
@@ -211,7 +203,7 @@ const team = [
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
               {team.map((member, index) => (
                 <Card key={index} className="card-elegant">
                   <CardContent className="p-6 text-center">
