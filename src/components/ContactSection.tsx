@@ -9,12 +9,6 @@ const ContactSection = () => {
       phone: "+41 79 422 39 90",
       email: "info@apex-gerueste.ch",
       role: "Projektleiter"
-    },
-    {
-      name: "Flamur Shala",
-      phone: "+41 79 830 57 80",
-      email: "info@apex-gerueste.ch",
-      role: "Technischer Leiter"
     }
   ];
 

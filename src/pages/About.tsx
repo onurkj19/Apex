@@ -61,14 +61,6 @@ const team = [
     phone: "+41 79 422 39 90",
     email: "info@apex-gerueste.ch",
     specialties: ["Baustellenplanung", "Sicherheitstechnik", "Teamführung"]
-  },
-  {
-    name: "Flamur Shala",
-    position: "Projektmanager",
-    experience: calcYears(2010),
-    phone: "+41 79 830 57 80",
-    email: "info@apex-gerueste.ch",
-    specialties: ["Kundenbetreuung", "Terminplanung", "Qualitätskontrolle"]
   }
 ];
 
@@ -203,7 +195,7 @@ const team = [
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            <div className="grid grid-cols-1 gap-8 max-w-md mx-auto">
               {team.map((member, index) => (
                 <Card key={index} className="card-elegant">
                   <CardContent className="p-6 text-center">
